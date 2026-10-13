@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>군집 수 정하기와 군집 해석 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 실루엣 계수 체험기 */
+.sil-grid { display:grid; grid-template-columns:1.25fr 1fr; gap:16px; }
+@media (max-width:760px){ .sil-grid { grid-template-columns:1fr; } }
+.sil-grid canvas { width:100%; height:auto; background:#fbfcfd; border:1px solid var(--line); }
+#sil-main { cursor:grab; touch-action:none; }
+.sil-info { background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:10px 14px; font-size:.86rem; line-height:1.65; min-height:120px; }
+.sil-info .big { font-size:1.15rem; font-weight:800; }
+.sil-info .pos { color:#127a3c; } .sil-info .neg { color:#b32424; } .sil-info .mid { color:#b4700a; }
+.cap { font-size:.78rem; font-weight:700; color:var(--ink-faint); margin:10px 0 3px; }
+.nl { font-family:var(--font-mono); background:#fff; border:1px solid var(--line); border-radius:8px; padding:8px 12px; font-size:.9rem; overflow-x:auto; white-space:pre; }
+</style>
+</head>
+<body data-unit="3" data-lesson="L34">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>군집 수 정하기와 군집 해석</h1>
+  <span class="std-badge">성취기준 12데과03-03</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>엘보 방법과 실루엣 계수를 이용하여 적절한 군집 수 k를 판단할 수 있다.</li>
+      <li>실루엣 계수를 직접 계산하고, 값이 낮은 경계 데이터의 의미를 해석할 수 있다.</li>
+      <li>k-평균과 병합 군집의 결과를 비교하여 ‘군집에는 하나의 정답이 없다’는 점을 설명할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과03-03] 데이터의 속성에 대한 유사성을 측정하고 분석하여 군집을 형성하고, 군집 분석 결과의 의미를 해석한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span>수집</span><span>전처리</span><span>탐색</span><span class="on">모델링</span><span class="on">평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  체육대회 반 티셔츠를 맞추려고 반 친구 30명의 키를 모았습니다. 사이즈를 S·M·L 세 가지로 할까요, XS부터 XL까지 다섯 가지로 할까요?
+  사이즈가 많을수록 옷은 몸에 잘 맞지만 주문과 관리가 번거롭습니다. 사이즈가 너무 적으면 누군가는 헐렁한 옷을 입어야 하지요.
+  k-평균에서 <b>k를 몇으로 할까</b>도 똑같은 고민입니다. 오늘은 이 고민을 도와주는 두 가지 도구를 배웁니다.
+</div>
+
+<div class="box box-tip">
+  <span class="box-label">확장 차시 안내</span>
+  이 차시는 L33(k-평균 군집 분석)을 공부했다고 가정합니다. 핵심만 다시 정리하면, k-평균은 중심점 k개를 두고
+  ‘가까운 중심에 할당 → 중심을 평균 위치로 이동’을 반복하며, 거리를 쓰므로 속성을 먼저 표준화해야 합니다.
+</div>
+
+<h2><span class="sec-no">1</span>엘보 방법: SSE가 꺾이는 곳 <i class="pub-c">공통</i></h2>
+
+<p>각 점에서 자기 군집 중심까지 거리의 제곱을 모두 더한 값을 <span class="keyterm">군집 내 제곱합(SSE)</span>이라고 합니다
+(scikit-learn에서는 <code>inertia_</code>). SSE가 작을수록 군집이 촘촘합니다.
+그런데 k를 늘리면 SSE는 <b>거의 항상 줄어듭니다</b>. 극단적으로 k를 데이터 개수와 같게 하면 모든 점이 자기 자신이 중심이 되어 SSE = 0입니다.
+그러니 “SSE가 가장 작은 k”를 고르면 안 됩니다.</p>
+
+<p>대신 k에 따른 SSE 그래프를 그리고, <b>SSE가 크게 줄다가 갑자기 완만해지는 지점</b>을 찾습니다.
+그래프 모양이 팔꿈치(elbow)처럼 꺾인다고 해서 <span class="keyterm">엘보 방법</span>이라고 합니다.
+꺾인 뒤로는 k를 늘려도 얻는 이득이 작으므로, 그 지점의 k가 ‘가성비 좋은’ 선택입니다.</p>
+
+<figure>
+<svg viewBox="0 0 420 200" width="100%" style="max-width:460px" role="img" aria-label="엘보 그래프 예시">
+  <line x1="40" y1="170" x2="400" y2="170" stroke="#8595a6"/><line x1="40" y1="170" x2="40" y2="15" stroke="#8595a6"/>
+  <polyline fill="none" stroke="#d97706" stroke-width="3" points="70,30 125,65 180,110 235,140 290,146 345,151 395,155"/>
+  <g fill="#d97706"><circle cx="70" cy="30" r="5"/><circle cx="125" cy="65" r="5"/><circle cx="180" cy="110" r="5"/><circle cx="235" cy="140" r="7" stroke="#1e2733" stroke-width="2"/><circle cx="290" cy="146" r="5"/><circle cx="345" cy="151" r="5"/><circle cx="395" cy="155" r="5"/></g>
+  <text x="248" y="128" font-size="13" font-weight="700" fill="#1e2733">여기서 꺾임!</text>
+  <g font-size="12" fill="#4b5a6b" text-anchor="middle"><text x="70" y="188">2</text><text x="125" y="188">3</text><text x="180" y="188">4</text><text x="235" y="188">5</text><text x="290" y="188">6</text><text x="345" y="188">7</text><text x="395" y="188">8</text></g>
+  <text x="14" y="95" font-size="12" fill="#4b5a6b" transform="rotate(-90 14 95)" text-anchor="middle">SSE</text>
+</svg>
+<figcaption>그림 1. 엘보 그래프의 모양 — 가로축은 k, 세로축은 SSE입니다.</figcaption>
+</figure>
+
+<h2><span class="sec-no">2</span>실루엣 계수: 내 군집이 맞나? <i class="pub-c">공통</i></h2>
+
+<p><span class="keyterm">실루엣 계수(silhouette coefficient)</span>는 점 하나하나가 <b>자기 군집에 얼마나 잘 어울리는지</b>를 −1에서 1 사이 숫자로 알려 줍니다.</p>
+<ul>
+  <li><b>a</b> = 같은 군집의 다른 점들까지의 <b>평균 거리</b> (작을수록 좋음 — 군집 내 유사성)</li>
+  <li><b>b</b> = 가장 가까운 <b>다른</b> 군집의 점들까지의 평균 거리 (클수록 좋음 — 군집 간 상이성)</li>
+</ul>
+<span class="formula">s = (b − a) ÷ max(a, b)
+<small>s가 1에 가까우면 잘 묶임, 0 근처면 두 군집의 경계, 음수면 다른 군집이 더 어울림</small></span>
+
+<h3>손으로 계산해 보기</h3>
+<p>수직선 위의 점 5개가 군집 ①{1, 2, 4}와 군집 ②{8, 9}로 나뉘어 있습니다.</p>
+<div class="nl">  ①    ①       ①                ②    ②
+──●────●─────────●───────────────────●────●──
+  1    2         4                   8    9</div>
+<ul>
+  <li>점 <b>4</b>: a = (|4−1| + |4−2|) ÷ 2 = (3 + 2) ÷ 2 = <b>2.5</b>, b = (|4−8| + |4−9|) ÷ 2 = (4 + 5) ÷ 2 = <b>4.5</b><br>
+      s = (4.5 − 2.5) ÷ 4.5 ≈ <b>0.44</b> — 자기 군집에 속하긴 하지만 경계 쪽에 있습니다.</li>
+  <li>점 <b>1</b>: a = (1 + 3) ÷ 2 = 2, b = (7 + 8) ÷ 2 = 7.5, s = (7.5 − 2) ÷ 7.5 ≈ <b>0.73</b> — 훨씬 확실하게 군집 ①에 속합니다.</li>
+</ul>
+<p>모든 점의 실루엣 계수를 평균한 값을 <span class="keyterm">실루엣 점수</span>라고 하고, 여러 k 중 실루엣 점수가 높은 k를 후보로 삼습니다.</p>
+
+<details class="reveal"><summary>도전: 점 9의 실루엣 계수를 구해 보세요 (정답 확인)</summary>
+<div class="reveal-body">
+a = |9−8| = 1 (같은 군집에 점 8 하나뿐), b = (|9−1| + |9−2| + |9−4|) ÷ 3 = (8 + 7 + 5) ÷ 3 ≈ 6.67.
+s = (6.67 − 1) ÷ 6.67 ≈ <b>0.85</b>. 군집 ②는 작지만 아주 촘촘해서 높은 값이 나옵니다.
+</div></details>
+
+<div class="sim">
+  <div class="sim-head">실루엣 계수 체험기 — 점을 끌어 경계로 옮겨 보세요</div>
+  <div class="sim-body">
+    <div class="sim-controls">
+      <label>k <select id="sil-k"><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></label>
+      <button id="sil-reset" class="gray">↺ 처음 데이터로</button>
+      <span class="sim-note" style="margin:0">점을 클릭하면 a·b·s 계산이, 끌면 실시간 변화가 보입니다. 놓으면 k-평균을 다시 실행합니다.</span>
+    </div>
+    <div class="sil-grid">
+      <div>
+        <canvas id="sil-main" width="520" height="380"></canvas>
+        <div class="cap">실루엣 그림 — 점마다 막대 하나(군집별로 모아 큰 값부터), 세로 점선은 실루엣 점수</div>
+        <canvas id="sil-plot" width="520" height="170"></canvas>
+      </div>
+      <div>
+        <div class="sil-info" id="sil-info"></div>
+        <div class="sim-stats">
+          <div class="stat-chip">실루엣 점수 <b id="sil-score">—</b></div>
+          <div class="stat-chip">SSE <b id="sil-sse">—</b></div>
+        </div>
+        <div class="cap">k = 2~6일 때 비교 (현재 데이터 기준)</div>
+        <canvas id="sil-k-chart" width="420" height="230"></canvas>
+      </div>
+    </div>
+    <p class="widget-hint">관찰 포인트: 한 무리 가운데의 점을 두 무리 사이로 끌어가면 s가 0 근처로, 더 끌어가면 음수로 떨어집니다. k를 바꾸면 SSE는 계속 줄어드는데 실루엣 점수는 어떻게 되나요?</p>
+  </div>
+</div>
+
+<h2><span class="sec-no">3</span>파이썬으로 k 고르기 <i class="pub-c">공통</i></h2>
+
+<p>L33의 문구점 회원 데이터(<code>customers.csv</code>)의 네 속성을 표준화한 뒤, k를 2부터 8까지 바꾸며 SSE와 실루엣 점수를 계산합니다.
+<code>n_init</code>과 <code>random_state</code>를 고정해 누가 실행해도 같은 결과가 나오게 합니다.</p>
+
+<div class="pycell" data-title="k = 2~8의 SSE와 실루엣 점수"><textarea>
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import silhouette_score
+
+df = load_csv("customers.csv")
+cols = ["나이", "연소득", "월방문수", "소비점수"]
+X = StandardScaler().fit_transform(df[cols])      # 표준화 먼저!
+
+rows = []
+for k in range(2, 9):
+    km = KMeans(n_clusters=k, n_init=10, random_state=0).fit(X)
+    rows.append((k, round(km.inertia_, 1), round(silhouette_score(X, km.labels_), 3)))
+res = pd.DataFrame(rows, columns=["k", "SSE", "실루엣"])
+print(res.to_string(index=False))
+
+fig, ax = plt.subplots(1, 2, figsize=(10, 3.6))
+ax[0].plot(res["k"], res["SSE"], "o-"); ax[0].set_title("엘보 방법"); ax[0].set_xlabel("k"); ax[0].set_ylabel("SSE")
+ax[1].plot(res["k"], res["실루엣"], "o-", color="darkorange"); ax[1].set_title("실루엣 점수"); ax[1].set_xlabel("k")
+plt.show()
+
+# ✏️ cols에서 "나이"를 빼고 다시 실행하면 가장 좋은 k가 달라지나요?
+</textarea></div>
+
+<p>SSE는 396.0 → 292.9 → 188.4 → <b>122.1</b>(k=5)까지 크게 줄다가 그 뒤로는 111.8, 104.0, 96.5로 조금씩만 줄어듭니다. 엘보는 k = 5입니다.
+실루엣 점수도 k = 5에서 <b>0.504</b>로 가장 높습니다. 두 도구가 같은 답을 가리키므로 k = 5를 고르는 근거가 튼튼합니다.
+재미있는 점은 k = 2(0.412)가 k = 3(0.399)보다 실루엣 점수가 높다는 것입니다. 실루엣 점수가 k에 따라 한 방향으로만 변하지는 않습니다.</p>
+
+<div class="box box-warn">
+  <span class="box-label">엘보와 실루엣은 ‘안내자’이지 ‘규칙’이 아니다</span>
+  실제 데이터에서는 팔꿈치가 뚜렷하지 않거나, 두 방법이 서로 다른 k를 가리키는 일이 흔합니다.
+  이때는 <b>분석 목적</b>(쿠폰을 몇 종류까지 운영할 수 있나?)과 <b>해석 가능성</b>(군집마다 뚜렷한 특징이 있나?)을 함께 고려해 결정합니다.
+  실루엣 점수가 0.01 높다는 이유만으로 관리하기 어려운 8개 군집을 고를 필요는 없습니다.
+</div>
+
+<h3>경계에 있는 데이터 찾기 <i class="pub">천재</i></h3>
+<p>군집 전체의 점수가 좋아도, 개별 데이터 중에는 두 군집 사이에 걸친 <b>경계 데이터</b>가 있습니다.
+음악 추천 앱이라면 ‘신나는 곡’과 ‘잔잔한 곡’ 사이에 있는 곡이 그런 예입니다. 실루엣 계수가 낮은 고객을 찾아봅시다.</p>
+
+<div class="pycell" data-title="개별 실루엣 계수로 경계 고객 찾기"><textarea>
+from sklearn.metrics import silhouette_samples
+
+km = KMeans(n_clusters=5, n_init=10, random_state=0).fit(X)
+df["군집"] = km.labels_
+df["실루엣"] = silhouette_samples(X, km.labels_)   # 점마다 s 값
+
+print(df.groupby("군집")["실루엣"].agg(["mean", "min", "count"]).round(3))
+print("s < 0.2인 고객 수:", (df["실루엣"] < 0.2).sum())
+print(df.sort_values("실루엣").head(5)[["고객ID"] + cols + ["군집", "실루엣"]].round(3).to_string(index=False))
+
+# ✏️ 실루엣이 가장 높은 고객 5명도 출력해, 경계 고객과 무엇이 다른지 비교해 보세요.
+</textarea></div>
+
+<p>군집 2(나이 많고 소득·방문·소비가 모두 낮은 무리)는 평균 실루엣이 <b>0.602</b>로 가장 뚜렷하고,
+군집 0(모든 속성이 평균에 가까운 무리)은 <b>0.444</b>로 가장 흐릿합니다. 200명 중 10명은 s가 0.2보다 작고,
+고객 C094(43세, 5450만원, 월 1회, 41점)는 <b>−0.024</b>로 음수입니다. 방문수는 적은데 소득과 소비점수는 중간이라
+‘고소득 절약형’(군집 4)과 ‘평범한 중간층’(군집 0) 어디에도 딱 맞지 않습니다. 이런 고객에게는 군집 쿠폰보다 개별 맞춤이 나을 수 있습니다.</p>
+
+<h2><span class="sec-no">4</span>다른 방법으로 묶으면? 병합 군집과 비교 <i class="pub">씨마스</i></h2>
+
+<p>군집을 만드는 방법은 k-평균만 있는 것이 아닙니다. <span class="keyterm">병합 군집(계층적 군집)</span>은 처음에 모든 점을 각각 하나의 군집으로 보고,
+<b>가장 가까운 두 군집을 하나로 합치는 일</b>을 반복합니다. 합쳐지는 과정을 나무 모양으로 그린 것을 <span class="keyterm">덴드로그램</span>이라고 하며,
+나무를 어느 높이에서 자르느냐에 따라 군집 수가 정해집니다. k-평균과 달리 무작위 시작점이 없어 실행할 때마다 결과가 같습니다.</p>
+
+<div class="pycell" data-title="k-평균 vs 병합 군집"><textarea>
+from sklearn.cluster import AgglomerativeClustering
+from scipy.cluster.hierarchy import linkage, dendrogram
+
+agg = AgglomerativeClustering(n_clusters=5, linkage="ward").fit(X)
+df["병합"] = agg.labels_
+print(pd.crosstab(df["군집"], df["병합"], rownames=["k-평균"], colnames=["병합"]))
+print("실루엣 점수  k-평균:", round(silhouette_score(X, km.labels_), 3),
+      " 병합:", round(silhouette_score(X, agg.labels_), 3))
+
+Z = linkage(X, method="ward")
+plt.figure(figsize=(9, 3.5))
+dendrogram(Z, truncate_mode="lastp", p=12)      # 마지막 12개 가지만 표시
+plt.title("덴드로그램(위에서 자를수록 군집 수가 적어짐)"); plt.ylabel("합칠 때의 거리")
+plt.show()
+
+# ✏️ n_clusters=3으로 바꾸면 두 방법의 결과 차이가 커지나요, 작아지나요?
+</textarea></div>
+
+<p>교차표를 보면 두 방법은 대부분 같은 무리를 찾았지만, 3명(k-평균 군집 0의 2명과 군집 4의 1명)을 다른 군집에 넣었습니다.
+실루엣 점수도 0.504와 0.503으로 거의 같습니다. 어느 쪽이 ‘정답’일까요? <b>둘 다 정답이 아닙니다.</b>
+군집에는 미리 정해진 정답이 없으므로, 방법과 k에 따라 경계에 있는 데이터의 소속은 달라질 수 있습니다.
+중요한 것은 결과가 <b>분석 목적에 쓸모 있고 설명 가능한가</b>입니다.</p>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">토론 활동</span>우리 가게의 k는 몇이 좋을까? <i class="pub-c">공통</i></div>
+  <div class="act-body">
+    <ol>
+      <li>파이썬 결과를 보고 표를 완성하세요.
+        <div class="table-wrap"><table>
+          <thead><tr><th>근거</th><th>가리키는 k</th><th>이유 (한 문장)</th></tr></thead>
+          <tbody><tr><td>엘보 방법</td><td></td><td></td></tr><tr><td>실루엣 점수</td><td></td><td></td></tr><tr><td>운영 조건: 쿠폰은 최대 4종류</td><td></td><td></td></tr></tbody>
+        </table></div></li>
+      <li>쿠폰을 4종류밖에 만들 수 없다면 k = 4와 k = 5 중 무엇을 고르겠습니까? k = 4에서는 어떤 두 군집이 합쳐질지 예상하고, 그래도 괜찮은지 토론하세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+      <li>실루엣 계수가 음수인 고객 C094에게 어떤 쿠폰을 보내는 것이 좋을지, 그리고 이런 ‘경계 고객’을 어떻게 다룰지 의견을 쓰세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+    </ol>
+  </div>
+</div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  실루엣 계수는 수직선 손계산(5분) → 위젯에서 점 끌기(10분) 순으로 도입하면 공식이 직관과 연결됩니다.
+  Orange 학급은 <b>k-Means</b> 위젯의 ‘From 2 to 8’ 옵션으로 k별 실루엣 점수를 표로 보고, <b>Silhouette Plot</b> 위젯으로 경계 데이터를 선택해
+  <b>Data Table</b>로 확인할 수 있습니다. 흔한 오개념: “SSE가 가장 작은 k가 최선이다”(k를 늘리면 SSE는 계속 준다),
+  “실루엣 점수가 최대인 k만 정답이다”(목적·해석 가능성과 함께 판단), “k-평균과 병합 군집 중 하나는 틀렸다”(군집에는 정답이 없다).
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>SSE는 k가 커질수록 줄어들므로, SSE 감소가 갑자기 완만해지는 ‘팔꿈치’ 지점의 k를 후보로 삼는다(엘보 방법).</li>
+    <li>실루엣 계수 s = (b − a) ÷ max(a, b)는 −1~1이며, 1에 가까울수록 잘 묶였고 0 근처는 경계, 음수는 다른 군집이 더 어울린다는 뜻이다.</li>
+    <li>엘보와 실루엣은 판단을 돕는 안내자일 뿐, 최종 k는 분석 목적과 해석 가능성을 함께 고려해 정한다.</li>
+    <li>병합 군집은 가까운 군집을 차례로 합치는 방법이며, 방법에 따라 경계 데이터의 소속이 달라진다 — 군집에는 하나의 정답이 없다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 실루엣 계수 체험기 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const COLORS = ["#e4572e", "#2e86de", "#17a55a", "#9b59b6", "#e0a100", "#16a2b8"];
+  const BASE = [
+    [1.6,7.9],[2.3,8.6],[2.9,7.4],[1.9,6.8],[3.2,8.3],[2.5,7.1],[1.4,7.3],[2.8,6.4],[3.4,7.0],
+    [6.6,8.4],[7.4,7.8],[7.9,8.7],[6.9,7.2],[8.3,7.6],[7.2,8.9],[6.4,7.7],[7.7,6.9],[8.6,8.2],
+    [4.3,2.1],[5.1,2.8],[5.8,1.9],[4.7,3.3],[5.5,3.6],[6.2,2.7],[4.1,2.9],[5.2,1.6],[5.9,3.1],
+    [4.9,7.4],[5.3,5.0]
+  ];
+  let P = [], lab = [], cen = [], sil = [], sel = -1, drag = false;
+  const main = $("sil-main"), mc = main.getContext("2d");
+  const plot = $("sil-plot"), pc = plot.getContext("2d");
+  const kch = $("sil-k-chart"), kc = kch.getContext("2d");
+  const MW = main.width, MH = main.height, PAD = 22;
+  const toPx = p => [PAD + p[0] / 10 * (MW - 2 * PAD), MH - PAD - p[1] / 10 * (MH - 2 * PAD)];
+  const toData = (x, y) => [(x - PAD) / (MW - 2 * PAD) * 10, (MH - PAD - y) / (MH - 2 * PAD) * 10];
+  const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+
+  // 결정적 k-평균: 모든 점을 첫 중심으로 한 번씩 시도(나머지는 가장 먼 점) → SSE 최소 결과
+  function kmeans(pts, k){
+    let best = null;
+    for (let s = 0; s < pts.length; s++){
+      let c = [pts[s].slice()];
+      while (c.length < k){
+        let far = -1, fd = -1;
+        pts.forEach((p, i) => { const d = Math.min(...c.map(q => dist(p, q))); if (d > fd){ fd = d; far = i; } });
+        c.push(pts[far].slice());
+      }
+      let L = new Array(pts.length).fill(-1);
+      for (let it = 0; it < 100; it++){
+        let ch = 0;
+        pts.forEach((p, i) => { let bj = 0, bd = Infinity; c.forEach((q, j) => { const d = dist(p, q); if (d < bd){ bd = d; bj = j; } }); if (L[i] !== bj){ L[i] = bj; ch++; } });
+        if (!ch) break;
+        c = c.map((q, j) => { const m = pts.filter((_, i) => L[i] === j); return m.length ? [m.reduce((s2, p) => s2 + p[0], 0) / m.length, m.reduce((s2, p) => s2 + p[1], 0) / m.length] : q; });
+      }
+      const sse = pts.reduce((s2, p, i) => s2 + dist(p, c[L[i]]) ** 2, 0);
+      if (!best || sse < best.sse - 1e-9) best = { L, c, sse };
+    }
+    // 색이 매번 바뀌지 않도록 중심의 x좌표 순서로 번호를 다시 붙임
+    const order = best.c.map((q, j) => j).sort((a, b) => best.c[a][0] - best.c[b][0]);
+    const remap = []; order.forEach((j, r) => remap[j] = r);
+    return { L: best.L.map(l => remap[l]), c: order.map(j => best.c[j]), sse: best.sse };
+  }
+
+  function silhouette(pts, L, k){
+    return pts.map((p, i) => {
+      const same = pts.filter((_, j) => j !== i && L[j] === L[i]);
+      if (!same.length) return { s: 0, a: 0, b: 0, nb: -1 };
+      const a = same.reduce((s, q) => s + dist(p, q), 0) / same.length;
+      let b = Infinity, nb = -1;
+      for (let c = 0; c < k; c++){
+        if (c === L[i]) continue;
+        const o = pts.filter((_, j) => L[j] === c);
+        if (!o.length) continue;
+        const m = o.reduce((s, q) => s + dist(p, q), 0) / o.length;
+        if (m < b){ b = m; nb = c; }
+      }
+      return { s: (b - a) / Math.max(a, b), a, b, nb };
+    });
+  }
+  const mean = arr => arr.reduce((s, v) => s + v, 0) / arr.length;
+
+  function recluster(){
+    const k = +$("sil-k").value;
+    const r = kmeans(P, k); lab = r.L; cen = r.c;
+    $("sil-sse").textContent = r.sse.toFixed(1);
+    refresh(); drawKChart();
+  }
+  function refresh(){
+    const k = +$("sil-k").value;
+    sil = silhouette(P, lab, k);
+    $("sil-score").textContent = mean(sil.map(o => o.s)).toFixed(3);
+    drawMain(); drawPlot(); info();
+  }
+
+  function drawMain(){
+    mc.clearRect(0, 0, MW, MH);
+    mc.strokeStyle = "#eef1f5";
+    for (let g = 0; g <= 10; g++){
+      let a = toPx([g, 0]), b = toPx([g, 10]); mc.beginPath(); mc.moveTo(...a); mc.lineTo(...b); mc.stroke();
+      a = toPx([0, g]); b = toPx([10, g]); mc.beginPath(); mc.moveTo(...a); mc.lineTo(...b); mc.stroke();
+    }
+    if (sel >= 0){
+      const o = sil[sel], sp = toPx(P[sel]);
+      P.forEach((q, j) => {
+        if (j === sel) return;
+        const qp = toPx(q);
+        if (lab[j] === lab[sel]){ mc.setLineDash([]); mc.strokeStyle = COLORS[lab[sel]] + "99"; }
+        else if (lab[j] === o.nb){ mc.setLineDash([4, 4]); mc.strokeStyle = "#8595a6"; }
+        else return;
+        mc.lineWidth = 1.2; mc.beginPath(); mc.moveTo(...sp); mc.lineTo(...qp); mc.stroke();
+      });
+      mc.setLineDash([]);
+    }
+    P.forEach((p, i) => {
+      const [x, y] = toPx(p);
+      mc.beginPath(); mc.arc(x, y, i === sel ? 9 : 6, 0, Math.PI * 2);
+      mc.fillStyle = COLORS[lab[i]]; mc.fill();
+      mc.lineWidth = i === sel ? 3 : 1.2; mc.strokeStyle = i === sel ? "#1e2733" : "#fff"; mc.stroke();
+      if (sil[i] && sil[i].s < 0){ mc.fillStyle = "#b32424"; mc.font = "bold 12px sans-serif"; mc.fillText("!", x + 7, y - 6); }
+    });
+    cen.forEach((c, j) => { const [x, y] = toPx(c); mc.strokeStyle = COLORS[j]; mc.lineWidth = 3;
+      mc.beginPath(); mc.moveTo(x - 7, y - 7); mc.lineTo(x + 7, y + 7); mc.moveTo(x + 7, y - 7); mc.lineTo(x - 7, y + 7); mc.stroke(); });
+  }
+
+  function drawPlot(){
+    const W = plot.width, H = plot.height, L0 = 30, R0 = W - 10;
+    pc.clearRect(0, 0, W, H);
+    const xOf = v => L0 + (v + 0.2) / 1.2 * (R0 - L0);       // −0.2 ~ 1.0
+    const k = +$("sil-k").value;
+    const order = [];
+    for (let c = 0; c < k; c++){
+      P.map((_, i) => i).filter(i => lab[i] === c).sort((a, b) => sil[b].s - sil[a].s).forEach(i => order.push(i));
+      order.push(-1);
+    }
+    const bh = (H - 20) / order.length;
+    order.forEach((i, r) => {
+      if (i < 0) return;
+      const y = 4 + r * bh, v = Math.max(-0.2, sil[i].s);
+      pc.fillStyle = COLORS[lab[i]] + (i === sel ? "ff" : "bb");
+      pc.fillRect(Math.min(xOf(0), xOf(v)), y, Math.abs(xOf(v) - xOf(0)), Math.max(1, bh - 1));
+      if (i === sel){ pc.strokeStyle = "#1e2733"; pc.lineWidth = 1.5; pc.strokeRect(Math.min(xOf(0), xOf(v)), y, Math.abs(xOf(v) - xOf(0)), Math.max(1, bh - 1)); }
+    });
+    pc.strokeStyle = "#4b5a6b"; pc.lineWidth = 1; pc.beginPath(); pc.moveTo(xOf(0), 2); pc.lineTo(xOf(0), H - 16); pc.stroke();
+    const m = mean(sil.map(o => o.s));
+    pc.setLineDash([5, 4]); pc.strokeStyle = "#b32424"; pc.beginPath(); pc.moveTo(xOf(m), 2); pc.lineTo(xOf(m), H - 16); pc.stroke(); pc.setLineDash([]);
+    pc.fillStyle = "#4b5a6b"; pc.font = "11px sans-serif"; pc.textAlign = "center";
+    [-0.2, 0, 0.2, 0.4, 0.6, 0.8, 1].forEach(v => pc.fillText(v.toFixed(1), xOf(v), H - 3));
+    pc.textAlign = "left";
+  }
+
+  function drawKChart(){
+    const W = kch.width, H = kch.height, ks = [2, 3, 4, 5, 6];
+    const res = ks.map(k => { const r = kmeans(P, k); return { k, sse: r.sse, s: mean(silhouette(P, r.L, k).map(o => o.s)) }; });
+    kc.clearRect(0, 0, W, H);
+    const cur = +$("sil-k").value;
+    const panel = (x0, title, vals, color, fmt) => {
+      const w = W / 2 - 20, top = 28, bot = H - 26, lo = Math.min(...vals), hi = Math.max(...vals), span = (hi - lo) || 1;
+      kc.fillStyle = "#1e2733"; kc.font = "bold 12px sans-serif"; kc.textAlign = "center"; kc.fillText(title, x0 + w / 2, 15);
+      kc.strokeStyle = "#dde4ec"; kc.strokeRect(x0, top - 6, w, bot - top + 12);
+      const pt = i => [x0 + 14 + i * (w - 28) / (ks.length - 1), bot - (vals[i] - lo) / span * (bot - top)];
+      kc.strokeStyle = color; kc.lineWidth = 2; kc.beginPath(); vals.forEach((_, i) => { const [x, y] = pt(i); i ? kc.lineTo(x, y) : kc.moveTo(x, y); }); kc.stroke();
+      vals.forEach((v, i) => { const [x, y] = pt(i); kc.beginPath(); kc.arc(x, y, ks[i] === cur ? 6 : 3.5, 0, Math.PI * 2); kc.fillStyle = ks[i] === cur ? "#1e2733" : color; kc.fill();
+        kc.fillStyle = "#4b5a6b"; kc.font = "11px sans-serif"; kc.fillText(ks[i], x, H - 10);
+        if (ks[i] === cur){ kc.fillStyle = "#1e2733"; kc.font = "bold 11px sans-serif"; kc.fillText(fmt(v), x, y - 9 < top ? y + 18 : y - 9); } });
+    };
+    panel(10, "SSE (엘보)", res.map(r => r.sse), "#2e86de", v => v.toFixed(1));
+    panel(W / 2 + 10, "실루엣 점수", res.map(r => r.s), "#d97706", v => v.toFixed(3));
+    kc.textAlign = "left";
+  }
+
+  function info(){
+    const el = $("sil-info");
+    if (sel < 0){ el.innerHTML = "점을 하나 클릭해 보세요.<br>그 점의 <b>a</b>(같은 군집까지 평균 거리), <b>b</b>(가장 가까운 다른 군집까지 평균 거리), <b>s</b>가 계산됩니다.<br><span style='color:#b32424;font-weight:700'>!</span> 표시는 s가 음수인 점입니다."; return; }
+    const o = sil[sel];
+    const nSame = lab.filter((l, j) => l === lab[sel] && j !== sel).length;
+    if (o.nb < 0){ el.innerHTML = "이 점은 혼자 군집을 이루고 있어 s = 0으로 정합니다."; return; }
+    const nOther = lab.filter(l => l === o.nb).length;
+    const cls = o.s >= 0.5 ? "pos" : o.s >= 0 ? "mid" : "neg";
+    const verdict = o.s >= 0.5 ? "자기 군집에 잘 어울립니다." : o.s >= 0.2 ? "속하긴 하지만 경계 쪽입니다." : o.s >= 0 ? "두 군집의 경계에 걸쳐 있습니다." : "다른 군집이 더 가깝습니다 — 잘못 묶였을 수 있어요.";
+    el.innerHTML = `<b style="color:${COLORS[lab[sel]]}">●</b> 선택한 점 (${P[sel][0].toFixed(1)}, ${P[sel][1].toFixed(1)})<br>
+      a = 같은 군집 ${nSame}개 점까지 평균 거리 = <b>${o.a.toFixed(2)}</b> <small>(실선)</small><br>
+      b = 가장 가까운 다른 군집 <b style="color:${COLORS[o.nb]}">●</b> ${nOther}개 점까지 평균 거리 = <b>${o.b.toFixed(2)}</b> <small>(점선)</small><br>
+      s = (${o.b.toFixed(2)} − ${o.a.toFixed(2)}) ÷ ${Math.max(o.a, o.b).toFixed(2)} = <span class="big ${cls}">${o.s.toFixed(3)}</span><br>${verdict}`;
+  }
+
+  function pick(e){
+    const r = main.getBoundingClientRect();
+    const x = (e.clientX - r.left) * MW / r.width, y = (e.clientY - r.top) * MH / r.height;
+    let best = -1, bd = 14;
+    P.forEach((p, i) => { const [px, py] = toPx(p); const d = Math.hypot(px - x, py - y); if (d < bd){ bd = d; best = i; } });
+    return { i: best, x, y };
+  }
+  main.addEventListener("pointerdown", e => {
+    const h = pick(e); sel = h.i;
+    if (sel >= 0){ drag = true; main.setPointerCapture(e.pointerId); main.style.cursor = "grabbing"; }
+    refresh();
+  });
+  main.addEventListener("pointermove", e => {
+    if (!drag || sel < 0) return;
+    const r = main.getBoundingClientRect();
+    const d = toData((e.clientX - r.left) * MW / r.width, (e.clientY - r.top) * MH / r.height);
+    P[sel] = [Math.max(0.1, Math.min(9.9, d[0])), Math.max(0.1, Math.min(9.9, d[1]))];
+    refresh();                       // 군집 소속은 그대로 두고 s만 다시 계산
+  });
+  const end = () => { if (!drag) return; drag = false; main.style.cursor = "grab"; recluster(); };
+  main.addEventListener("pointerup", end);
+  main.addEventListener("pointercancel", end);
+  $("sil-k").addEventListener("change", () => { recluster(); });
+  $("sil-reset").addEventListener("click", () => { P = BASE.map(p => p.slice()); sel = -1; recluster(); });
+  P = BASE.map(p => p.slice());
+  recluster();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"ox", q:"k를 늘릴수록 SSE(군집 내 제곱합)는 대체로 줄어들므로, SSE가 가장 작은 k를 고르면 된다.",
+    answer:false, explain:"k를 데이터 개수만큼 늘리면 SSE = 0이 되지만 쓸모없는 군집입니다. SSE 감소가 갑자기 완만해지는 ‘팔꿈치’ 지점을 찾는 것이 엘보 방법입니다." },
+  { type:"mc", q:"어떤 점의 a(같은 군집까지 평균 거리)가 2, b(가장 가까운 다른 군집까지 평균 거리)가 5이다. 이 점의 실루엣 계수는?",
+    choices:["0.4","0.6","1.5","2.5","3.0"], answer:1,
+    explain:"s = (b − a) ÷ max(a, b) = (5 − 2) ÷ 5 = 0.6입니다." },
+  { type:"mc", q:"실루엣 계수가 −0.15인 데이터에 대한 해석으로 가장 알맞은 것은?",
+    choices:["자기 군집의 중심에 매우 가깝다","모든 군집과 똑같이 떨어져 있다","자기 군집보다 다른 군집의 점들이 평균적으로 더 가까워, 잘못 묶였을 가능성이 있다","이상치이므로 반드시 삭제해야 한다","k를 1로 줄여야 한다는 뜻이다"], answer:2,
+    explain:"s < 0이면 a > b, 즉 다른 군집이 더 가깝다는 뜻입니다. 경계 데이터로 따로 살펴볼 필요가 있지만, 무조건 삭제할 대상은 아닙니다." },
+  { type:"mc", q:"k = 2~6의 결과가 다음과 같다. SSE: 520, 310, 170, 150, 138 / 실루엣 점수: 0.41, 0.46, 0.55, 0.49, 0.44. 가장 근거가 튼튼한 k는?",
+    choices:["2","3","4","5","6"], answer:2,
+    explain:"SSE는 k = 4까지 크게 줄다가(310→170) 이후 완만해지고(170→150→138), 실루엣 점수도 k = 4에서 0.55로 가장 높습니다. 두 도구가 같은 k를 가리킵니다." },
+  { type:"short", q:"같은 데이터를 k-평균과 병합 군집으로 5개 군집으로 나누었더니 200명 중 3명의 소속이 달랐다. 친구가 “둘 중 하나는 틀린 거야”라고 말했다. 이 말에 대해 여러분의 의견을 쓰세요.",
+    model:"틀린 것이 아니다. 군집 분석은 정답(레이블)이 없는 비지도 학습이므로 방법마다 ‘비슷함’을 판단하는 방식이 달라 경계에 있는 데이터의 소속이 달라질 수 있다. 두 결과의 실루엣 점수가 비슷하다면 둘 다 합리적인 결과이며, 분석 목적에 더 쓸모 있고 설명하기 쉬운 결과를 고르면 된다. 소속이 바뀐 3명은 경계 데이터일 가능성이 높으므로 따로 살펴볼 만하다." },
+]);
+</script>
+</body>
+</html>

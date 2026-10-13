@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ⅱ영역 미니 프로젝트 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 자전거 데이터 탐색 대시보드 */
+.dash-ctrl { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:8px 14px; margin-bottom:12px; }
+.dash-ctrl .grp { display:flex; flex-direction:column; gap:4px; font-size:.84rem; font-weight:700; color:var(--ink-soft); }
+.dash-ctrl .seg { display:flex; flex-wrap:wrap; gap:4px; }
+.dash-ctrl .seg button { padding:5px 10px; font-size:.8rem; background:#fff; color:var(--ink-soft); border:1.5px solid var(--line); }
+.dash-ctrl .seg button.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+.dash-ctrl label.chk { font-weight:600; font-size:.84rem; display:flex; gap:6px; align-items:center; }
+#dash-svg { width:100%; height:auto; background:#fff; border:1px solid var(--line); border-radius:10px; }
+.dash-verdict { margin-top:10px; padding:10px 14px; border-radius:10px; background:var(--accent-soft); font-size:.9rem; font-weight:600; }
+.flow { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:14px 0; }
+.flow span { background:var(--accent-soft); color:var(--accent); font-weight:800; font-size:.84rem; border-radius:999px; padding:5px 12px; }
+.flow b { color:var(--ink-faint); }
+</style>
+</head>
+<body data-unit="2" data-lesson="L25">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>Ⅱ영역 미니 프로젝트</h1>
+  <span class="std-badge">성취기준 12데과02-01~04</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>하나의 질문을 정하고 수집–전처리–시각화–관계 분석의 흐름으로 데이터를 분석할 수 있다.</li>
+      <li>이상치를 발견했을 때 삭제할지 유지할지 근거를 들어 판단할 수 있다.</li>
+      <li>같은 데이터에 다른 분석 방법(평균·중앙값, 조건 필터)을 적용해 결론이 어떻게 달라지는지 비교할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과02-01] 데이터를 편향되지 않도록 수집하고, 수집된 데이터의 특성을 분석한다.<br>
+    [12데과02-02] 이상치와 결측치 탐색 및 정규화를 통해 전처리하여 오류 가능성을 최소화하고, 데이터 분석을 위해 시각화한다.<br>
+    [12데과02-03] 데이터를 분석하기 위해 데이터 속성 간의 관계를 파악하고 통합한다.<br>
+    [12데과02-04] 동일한 데이터를 서로 다른 분석 방법을 적용하여 분석 결과를 비교한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span class="on">문제 정의</span><span class="on">수집</span><span class="on">전처리</span><span class="on">탐색</span><span>모델링</span><span>평가·해석</span><span class="on">공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  시청 담당자가 학생 기자단에게 부탁을 했습니다. “공공자전거를 늘리고 싶은데, <b>언제 사람들이 자전거를 많이 빌리는지</b> 데이터로 알려 줄 수 있을까요?”
+  기자단의 한 친구는 “당연히 여름이지!”라고 말하고, 다른 친구는 “비 오는 날만 빼면 날씨는 상관없어”라고 말합니다.
+  누구 말이 맞을까요? 지금까지 Ⅱ영역에서 배운 <b>수집 → 전처리 → 시각화 → 관계 분석 → 다른 분석 비교</b>를 한 번에 이어서 직접 확인해 봅시다.
+</div>
+
+<h2><span class="sec-no">1</span>프로젝트 흐름과 질문 정하기 <i class="pub-c">공통</i></h2>
+
+<p>미니 프로젝트는 Ⅱ영역의 네 성취기준을 한 줄로 꿰는 활동입니다. 다음 다섯 단계를 차례로 밟습니다.</p>
+
+<div class="flow"><span>① 질문 정하기</span><b>→</b><span>② 수집·특성 파악</span><b>→</b><span>③ 전처리</span><b>→</b><span>④ 시각화·관계 분석</span><b>→</b><span>⑤ 다른 분석과 비교·공유</span></div>
+
+<p>가장 중요한 첫 단계는 <span class="keyterm">분석 질문</span>을 구체적으로 만드는 일입니다.
+“자전거에 대해 알아보자”는 너무 넓어서 무엇을 계산해야 할지 알 수 없습니다. 좋은 분석 질문은 <b>데이터의 속성(열)</b>으로 답할 수 있어야 합니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:44%">막연한 질문</th><th>데이터로 답할 수 있는 질문</th><th style="width:120px">필요한 속성</th></tr></thead>
+  <tbody>
+    <tr><td>자전거는 언제 많이 탈까?</td><td>월별 하루 평균 대여량이 가장 많은 달은 언제인가?</td><td>월, 대여량</td></tr>
+    <tr><td>날씨가 중요할까?</td><td>기온이 높을수록 대여량이 많아지는가? 그 관계는 어느 정도로 강한가?</td><td>기온, 대여량</td></tr>
+    <tr><td>쉬는 날엔 더 탈까?</td><td>휴일과 평일의 대여량 대푯값은 얼마나 다른가? 평균과 중앙값으로 결론이 같은가?</td><td>휴일, 대여량</td></tr>
+  </tbody>
+</table></div>
+
+<p>이 차시에서는 교재 데이터 <code>bike.csv</code>(어느 도시 공공자전거의 2025년 365일 기록, 교육용 가상 데이터)를 예시로 전 과정을 따라가 보고,
+모둠별로 자신만의 주제를 정해 같은 흐름을 적용합니다.</p>
+
+<div class="box box-warn">
+  <span class="box-label">편향 점검부터</span>
+  수집 단계에서 “이 데이터가 전체를 대표하는가?”를 먼저 묻습니다. 예를 들어 한 대여소의 기록만 모았다면 도시 전체의 이야기라고 말할 수 없습니다.
+  이 데이터는 <b>1년 365일을 빠짐없이</b> 기록했으므로 특정 계절만 골라 모은 선택 편향은 없습니다. 그러나 <b>한 해</b>만의 기록이라 해마다 반복되는 패턴인지는 알 수 없다는 한계가 있습니다.
+</div>
+
+<h2><span class="sec-no">2</span>수집한 데이터의 특성 파악과 전처리 <i class="pub-c">공통</i></h2>
+
+<p>데이터를 받으면 곧바로 그래프를 그리기보다 <b>크기·자료형·결측치·기술 통계</b>부터 확인합니다. 다음 셀을 실행해 보세요.</p>
+
+<div class="pycell" data-title="① 데이터 특성 파악하기"><textarea>
+import pandas as pd
+
+bike = load_csv("bike.csv")
+print("크기(행, 열):", bike.shape)
+print(bike.head(3))
+print("\n결측치 수:", bike.isna().sum().sum())
+print(bike[["기온", "강수량", "대여량"]].describe().round(1))
+
+# ✏️ bike["요일"].value_counts() 를 추가해 요일별 기록 수가 고르게 들어 있는지 확인해 보세요.
+</textarea></div>
+
+<p>결측치는 없습니다. 그렇다면 이상치는 어떨까요? L18에서 배운 <b>IQR 1.5배 기준</b>으로 대여량의 울타리를 계산해 봅니다.</p>
+
+<div class="pycell" data-title="② 이상치 찾기와 파생 속성 만들기"><textarea>
+q1, q3 = bike["대여량"].quantile([0.25, 0.75])
+iqr = q3 - q1
+low, high = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+print(f"Q1={q1:.0f}, Q3={q3:.0f}, IQR={iqr:.0f} → 울타리 {low:.0f} ~ {high:.0f}")
+
+out = bike[(bike["대여량"] < low) | (bike["대여량"] > high)]
+print(f"\n울타리 밖 {len(out)}일")
+print(out[["날짜", "요일", "휴일", "기온", "강수량", "대여량"]].to_string(index=False))
+
+# 파생 속성: 비 여부, 계절
+bike["비"] = (bike["강수량"] > 0).map({True: "비 옴", False: "비 안 옴"})
+season = {12: "겨울", 1: "겨울", 2: "겨울", 3: "봄", 4: "봄", 5: "봄",
+          6: "여름", 7: "여름", 8: "여름", 9: "가을", 10: "가을", 11: "가을"}
+bike["계절"] = bike["월"].map(season)
+print("\n", bike["비"].value_counts().to_dict())
+
+# ✏️ 울타리를 1.5배 대신 3배(q1 - 3*iqr)로 바꾸면 이상치가 몇 일로 줄어드나요?
+</textarea></div>
+
+<p>울타리(750 ~ 6406) 밖에 있는 날은 <b>8일</b>이고 모두 대여량이 아주 적은 날입니다. 그런데 표를 자세히 보면
+8일 모두 <b>휴일</b>이고, 기온이 영하이거나 비·눈이 많이 온 날입니다. 입력 실수가 아니라 <b>실제로 일어날 법한 값</b>이지요.</p>
+
+<div class="box box-tip">
+  <span class="box-label">통계적 기준 + 논리적 판단</span>
+  IQR 기준은 “다른 값들과 동떨어졌다”는 것만 알려 줍니다. 지울지 말지는 <b>그 값이 가능한 값인가, 분석 질문에 필요한가</b>로 판단합니다.
+  “추운 휴일에는 자전거를 거의 타지 않는다”는 것 자체가 시청에 알려 줄 중요한 정보이므로, 이 프로젝트에서는 8일을 <b>지우지 않고 유지</b>합니다.
+  대신 아래 대시보드에서 이 8일을 뺐을 때 결론이 바뀌는지 따로 확인해 봅니다.
+</div>
+
+<p>셀 ②에서는 <span class="keyterm">파생 속성</span>도 만들었습니다. 강수량(연속형)에서 ‘비 옴/비 안 옴’(범주형)을, 월에서 ‘계절’을 만들면 그룹을 나누어 비교하기 쉬워집니다.
+1년 중 비가 온 날은 97일입니다.</p>
+
+<h2><span class="sec-no">3</span>시각화와 관계 분석: 대시보드로 탐색하기 <i class="pub-c">공통</i></h2>
+
+<p>이제 질문에 답할 차례입니다. 아래 대시보드는 <code>bike.csv</code> 365일 전체를 담고 있습니다.
+묶는 기준·대푯값·필터를 바꾸어 가며 “자전거를 가장 많이 빌리는 때”에 대한 결론이 어떻게 달라지는지 확인하세요.</p>
+
+<div class="sim">
+  <div class="sim-head">자전거 데이터 탐색 대시보드 — bike.csv 365일</div>
+  <div class="sim-body">
+    <div class="dash-ctrl">
+      <div class="grp">그래프
+        <div class="seg" id="seg-view"><button data-v="bar" class="on">그룹 비교(막대)</button><button data-v="scatter">기온 관계(산점도)</button></div></div>
+      <div class="grp">묶는 기준
+        <div class="seg" id="seg-group"><button data-v="month" class="on">월</button><button data-v="wday">요일</button><button data-v="hol">휴일 여부</button><button data-v="rain">비 여부</button></div></div>
+      <div class="grp">대푯값
+        <div class="seg" id="seg-stat"><button data-v="mean" class="on">평균</button><button data-v="median">중앙값</button></div></div>
+      <div class="grp">필터
+        <label class="chk"><input type="checkbox" id="f-rain"> 비 온 날 제외</label>
+        <label class="chk"><input type="checkbox" id="f-out"> IQR 이상치 제외</label></div>
+    </div>
+    <svg id="dash-svg" viewBox="0 0 640 300" role="img" aria-label="자전거 대여량 그래프"></svg>
+    <div class="sim-stats">
+      <div class="stat-chip">분석한 날 <b id="st-n">—</b></div>
+      <div class="stat-chip">전체 <span id="st-lab">평균</span> <b id="st-all">—</b></div>
+      <div class="stat-chip">기온–대여량 상관계수 r <b id="st-r">—</b></div>
+    </div>
+    <div class="dash-verdict" id="dash-verdict"></div>
+    <p class="widget-hint">관찰 포인트: ‘휴일 여부’를 평균과 중앙값으로 번갈아 보세요. 두 대푯값의 차이가 왜 휴일에서 더 클까요? 산점도에서 ‘비 온 날 제외’를 켜면 r는 어떻게 되나요?</p>
+  </div>
+</div>
+
+<p>대시보드에서 발견한 내용을 파이썬으로 다시 확인하고 그래프로 남겨 봅시다.</p>
+
+<div class="pycell" data-title="③ 월별 대여량과 기온 산점도 그리기"><textarea>
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots(1, 2, figsize=(11, 4))
+month_mean = bike.groupby("월")["대여량"].mean()
+ax[0].bar(month_mean.index, month_mean.values, color="#e8883a")
+ax[0].set_title("월별 하루 평균 대여량")
+ax[0].set_xlabel("월"); ax[0].set_xticks(range(1, 13))
+
+for label, color in [("비 안 옴", "#3a7bd5"), ("비 옴", "#d94848")]:
+    part = bike[bike["비"] == label]
+    ax[1].scatter(part["기온"], part["대여량"], s=12, alpha=0.6, color=color, label=label)
+ax[1].set_title("기온과 대여량"); ax[1].set_xlabel("기온(℃)"); ax[1].legend()
+plt.tight_layout()
+plt.show()
+
+# ✏️ 막대그래프의 기준을 "요일"로 바꾸어 그려 보세요. (순서가 뒤섞이면 reindex를 사용해 보세요.)
+</textarea></div>
+
+<div class="pycell" data-title="④ 관계 분석과 다른 분석 방법 비교"><textarea>
+print("[상관계수]")
+print(bike[["기온", "습도", "풍속", "강수량", "대여량"]].corr()["대여량"].round(3))
+
+print("\n[휴일 여부별 평균 vs 중앙값]")
+print(bike.groupby("휴일")["대여량"].agg(["mean", "median", "count"]).round(0))
+
+print("\n[같은 상관 분석, 다른 데이터 범위]")
+dry = bike[bike["강수량"] == 0]
+print("전체 365일 r =", round(bike["기온"].corr(bike["대여량"]), 3))
+print("비 안 온 날", len(dry), "일 r =", round(dry["기온"].corr(dry["대여량"]), 3))
+
+# ✏️ 계절별로 평균과 중앙값을 비교해 보세요: bike.groupby("계절")["대여량"].agg(["mean", "median"])
+</textarea></div>
+
+<p>실행 결과를 정리하면 다음과 같습니다.</p>
+<ul>
+  <li>대여량과 상관이 가장 큰 속성은 <b>기온(r = 0.517, 보통 수준의 양의 상관)</b>이고, 강수량은 <b>r = −0.364(약한 음의 상관)</b>입니다.</li>
+  <li>그런데 월별 막대를 보면 가장 많이 빌린 달은 한여름이 아니라 <b>4월(하루 평균 약 4528대)</b>이고, 7월(약 3480대)은 오히려 줄어듭니다.
+    기온과 대여량이 <b>직선이 아니라 곡선(너무 더워도 줄어드는) 관계</b>일 수 있다는 신호입니다. “당연히 여름”이라는 직관은 틀렸습니다.</li>
+  <li>휴일의 평균은 3256대, 중앙값은 3514대로 차이가 큽니다(평일은 평균 3608대로 중앙값과 차이가 작습니다). 휴일에 몰린 <b>아주 적은 이상치 날</b>들이 평균을 끌어내렸기 때문입니다.</li>
+  <li>비 온 날을 빼면 기온과의 상관계수가 0.517에서 0.531로 조금 커집니다. 비라는 다른 요인이 섞여 있던 잡음이 줄어든 것입니다.</li>
+</ul>
+
+<h2><span class="sec-no">4</span>우리 모둠 프로젝트로 확장하기 <i class="pub">씨마스</i> <i class="pub">YBM</i></h2>
+
+<p>자전거 예시에서 익힌 흐름을 모둠이 정한 주제에 그대로 적용합니다. 주제는 다음 중에서 고르거나 새로 정합니다.</p>
+
+<div class="cards">
+  <div class="cardbox"><h4>🗺️ 여행지 결정하기</h4><p>후보 도시의 숙박비와 생활 물가처럼 <b>서로 다른 두 데이터를 도시 이름(키)으로 통합</b>하고, 정규화해서 비교한 뒤 모둠 여행지를 결정합니다.</p></div>
+  <div class="cardbox"><h4>🏫 우리 반 데이터베이스</h4><p>설문 도구로 <b>학번을 첫 문항</b>에 넣어 수면·통학·취미 데이터를 모으고, 모둠별 시트를 학번으로 통합해 우리 반의 특성을 분석합니다(개인정보는 익명 처리).</p></div>
+  <div class="cardbox"><h4>🌫️ 교재 데이터 활용</h4><p><code>air.csv</code>(지역별 미세먼지), <code>health.csv</code>(건강 기록), <code>study.csv</code>(공부 습관) 중 하나로 같은 흐름을 따라 갑니다.</p></div>
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">모둠 활동</span>미니 프로젝트 계획서 <i class="pub">씨마스</i> <i class="pub">YBM</i></div>
+  <div class="act-body">
+    <ol>
+      <li>모둠의 주제와 <b>데이터로 답할 수 있는 분석 질문</b> 두 개를 쓰세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+      <li>단계별 계획을 표로 정리하세요.
+        <div class="table-wrap"><table>
+          <thead><tr><th style="width:130px">단계</th><th>할 일(사용할 속성·방법)</th><th style="width:160px">점검 질문</th></tr></thead>
+          <tbody>
+            <tr><td>수집</td><td>&nbsp;</td><td>출처는? 편향은 없는가?</td></tr>
+            <tr><td>특성 파악</td><td>&nbsp;</td><td>행·열 수, 자료형은?</td></tr>
+            <tr><td>전처리</td><td>&nbsp;</td><td>결측·이상치를 어떻게? 왜?</td></tr>
+            <tr><td>시각화</td><td>&nbsp;</td><td>질문에 맞는 그래프인가?</td></tr>
+            <tr><td>관계 분석·통합</td><td>&nbsp;</td><td>어떤 속성끼리? 키는?</td></tr>
+            <tr><td>다른 분석 비교</td><td>&nbsp;</td><td>무엇을 바꾸어 비교할까?</td></tr>
+          </tbody>
+        </table></div></li>
+      <li>“다른 분석 방법”으로 무엇과 무엇을 비교할지 정하세요. (예: 평균 vs 중앙값, 이상치 유지 vs 제거, 전체 vs 특정 조건)
+        <div class="write-lines"><div class="line"></div></div></li>
+    </ol>
+  </div>
+</div>
+
+<h2><span class="sec-no">5</span>결과 공유와 평가 기준 <i class="pub-c">공통</i></h2>
+
+<p>분석이 끝나면 한 장짜리 결과 요약을 만들어 공유합니다. 결론만 쓰지 말고 <b>어떤 전처리를 했고, 분석 방법을 바꾸면 결론이 어떻게 달라졌는지</b>를 함께 밝혀야 다른 사람이 결과를 믿을 수 있습니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:120px">평가 요소</th><th>잘함</th><th>보통</th><th>노력 필요</th></tr></thead>
+  <tbody>
+    <tr><td>분석 질문</td><td>속성으로 답할 수 있는 구체적 질문</td><td>질문은 있으나 다소 막연함</td><td>질문이 없거나 데이터와 무관함</td></tr>
+    <tr><td>수집·특성</td><td>출처·크기·자료형·편향 가능성을 밝힘</td><td>출처와 크기만 밝힘</td><td>특성 파악 없이 분석함</td></tr>
+    <tr><td>전처리</td><td>결측·이상치 처리 방법과 <b>이유</b>를 제시</td><td>처리는 했으나 이유가 없음</td><td>확인하지 않음</td></tr>
+    <tr><td>시각화·관계</td><td>질문에 맞는 그래프와 상관계수 해석</td><td>그래프는 있으나 해석이 부족함</td><td>질문과 맞지 않는 그래프</td></tr>
+    <tr><td>다른 분석 비교</td><td>두 방법의 결과 차이와 원인을 설명</td><td>차이만 제시</td><td>비교하지 않음</td></tr>
+  </tbody>
+</table></div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">개별 활동</span>자전거 분석 결과 요약 카드 쓰기</div>
+  <div class="act-body">
+    <ol>
+      <li>시청 담당자에게 보낼 결론을 두 문장으로 쓰세요. 반드시 숫자 근거를 하나 이상 넣으세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+      <li>이상치 8일을 유지한 이유와, 뺐을 때 결론이 바뀌었는지(대시보드로 확인) 쓰세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+      <li>이 분석의 한계를 한 가지 쓰세요. (힌트: 한 해의 기록, 곡선 관계, 상관 ≠ 인과)
+        <div class="write-lines"><div class="line"></div></div></li>
+    </ol>
+  </div>
+</div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  확장 차시로 50분 1차시를 쓸 때는 자전거 예시(셀 ①~④와 대시보드)를 20분, 계획서 작성을 25분, 공유를 5분으로 나누고, 실제 모둠 분석은 과제로 이어 가면 좋습니다.
+  코딩이 부담스러운 학급은 같은 과정을 스프레드시트(필터·피벗 테이블·CORREL 함수)나 Orange(File → Feature Statistics → Scatter Plot)로 진행해도 성취기준에 충분히 도달할 수 있습니다.
+  흔한 오개념: “IQR 밖이면 무조건 삭제”, “상관계수가 크면 원인”. 이상치 8일을 지울지 모둠별로 먼저 토론하게 한 뒤 대시보드로 확인하면 효과적입니다.
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>데이터 분석 프로젝트는 속성으로 답할 수 있는 구체적 질문에서 출발한다.</li>
+    <li>수집한 데이터는 크기·자료형·결측치·기술 통계와 편향 가능성부터 확인한다.</li>
+    <li>이상치는 통계적 기준으로 찾되, 지울지는 값이 가능한지와 분석 목적으로 판단한다.</li>
+    <li>평균·중앙값, 이상치 유지·제거, 조건 필터처럼 분석 방법을 바꾸면 결론이 달라질 수 있으므로 비교해서 함께 보고한다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 자전거 데이터 탐색 대시보드 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  // bike.csv의 기온·대여량·강수량·휴일(2025-01-01 ~ 12-31)
+  const TEMP=[0.2,-2,0.3,-1.2,-2.9,-1.6,-4.9,-1.2,0.2,-0.8,0.5,-2.1,-1.1,-1.1,4.5,-5.1,4.8,-3.4,-2.2,-0.3,0.6,-1.2,-0.4,3.1,6.8,0.3,1.2,-1.1,4.2,-1.1,0.9,-3.7,-8.4,6.3,2.8,2.5,-2.9,-4.9,-0.7,0.5,2.4,0.4,4.2,1.6,1.6,4.2,-1.1,2.2,-0.5,-0.7,5.9,4.8,3.3,5.8,3.2,6.2,-0.1,2.1,3.8,-0.1,1,-0.5,5.4,2.2,4.6,5.5,3.7,4.4,4.9,6,8.9,1.9,5.6,2,10,0.5,6.6,5.1,4.9,8.9,8.6,4.4,8.8,8.5,5.7,3.8,10.7,10.6,10.3,7.5,12.8,19.7,10.2,11.5,7.8,8,15.9,17.6,10.4,9.4,8.9,10,12.2,8.6,10.4,15.6,12.5,10.9,10,16.9,10.8,13.8,17.4,16.3,15.8,16,12.6,13.5,14.5,7.5,15.1,16.3,16.5,16.7,17.9,18.3,22.6,18.4,20.7,16.6,19.6,19.7,18.4,14.2,15.5,21,19.8,19.4,18.3,20.8,22.4,26.5,21.1,20.8,22.3,25.2,28.8,23.8,18,22.5,19.2,19.9,28.4,22.1,21.2,27.6,23.9,20.4,24.1,19.9,21.7,25,16.9,26.8,25.6,27.5,23.9,26.4,22.3,22.7,25.8,25.7,25.7,29.9,25.1,27.4,27.1,26.7,27.5,21.1,24.7,29.8,25.6,28.7,28,17.6,22.8,24.8,24.8,25.5,25.6,24.4,24.9,21.1,32.7,31.1,29.6,26.7,24.2,34.2,24.1,31.2,27.8,24.1,24.3,25.5,24.8,22.4,27.9,23.8,28.8,25.9,26.8,26.7,25.1,25.9,26.6,33,22.1,23.7,24.6,21.9,21.5,20.8,25.1,23.6,25.6,20.6,22.1,27.4,26.8,19.7,26.7,22.5,20.6,26,26.4,16,25.9,21.7,21.4,21.7,25.8,26.2,23.3,24.4,28.2,21.6,18.4,22.9,23.2,20.4,20.1,26.9,19.5,17.4,11.9,22.2,23.3,15.8,20.8,17.9,18.9,16.7,18.2,20.6,16.3,15.5,14.3,20.5,14.4,18.5,12.7,9.8,14.3,16.4,18.7,17.6,16,7.3,16,9.9,12,19.2,16.6,10.1,12.1,15.2,12.2,11.8,8.8,13.5,13.7,9.1,5.1,16.4,8.6,11.8,7.7,7.8,12.7,8.6,11.6,11.5,7.3,9.5,10.7,11.9,7.2,7.8,4.7,9.7,7.4,2.9,5.6,6.1,4.5,3.9,0.9,5.9,4.1,8,4.7,7.3,1.1,5.6,6.4,6.3,3.1,1,8.5,2.8,-0.4,2.4,3.8,0.6,3.8,5,2.1,5.1,1.6,0.4,6.4,3.4,1.7,-4.1,-3,-4,0.7,0.6,1.8,3.6,-4.2,-3.7,-2.6,1.4,0.8,-3.2,-2.3,0.9,-0.1,2.6,-2.9,-1,-3.6];
+  const CNT=[1749,1925,2558,1797,194,2638,1288,2983,2452,1631,2783,841,2226,1420,3159,1149,3171,603,1189,2507,2780,2837,2096,3655,3580,2359,2923,1356,3997,2028,2262,1563,150,3415,2934,3464,1119,2518,1920,2476,3302,2562,3773,2293,3133,3514,2609,2765,2335,2683,3828,3592,2971,3920,3326,3955,2361,3285,3899,2907,1962,1705,4285,3216,3065,4616,2786,3837,4069,4068,4920,2064,3509,3039,4159,2337,3687,3570,3560,4117,4335,3027,3910,4120,3346,3124,3448,4815,4413,4045,3984,3830,5195,4442,3675,3705,4553,4670,4963,4343,4859,3785,4621,4425,4992,5295,4442,3540,4313,4345,3272,4846,5147,5055,4952,4144,4895,5980,5830,3742,4436,5395,4207,4379,4741,4961,4763,4810,3921,4166,3331,4153,4503,4596,4251,4886,3871,3091,4832,2387,5040,4204,4744,4620,4355,4224,4142,5150,4293,4858,4539,4964,3799,4922,5310,2258,3711,5208,2792,3635,3635,3576,3962,3719,3222,3519,4037,3922,4933,2871,3525,3503,3046,4886,3851,3441,4110,2757,3317,3900,4347,3668,3487,4368,1909,3538,2674,3376,3808,4335,3763,4751,4479,3365,2368,3564,4168,4507,3437,1551,4103,2788,3165,4229,3843,2136,3125,4206,3361,3522,2303,3989,3202,3292,3734,3855,3308,2739,3488,2742,4081,4818,4118,3917,3527,4006,2981,4529,4840,3219,2775,4075,2972,3913,3302,3849,3357,4691,3897,4080,4575,4118,4304,2644,3802,3897,3349,4328,4135,4351,4665,4377,4353,3779,5032,3301,3710,3996,3686,3645,4034,2886,3723,3494,4107,3879,4080,4920,4532,4100,2043,4553,4239,3799,4873,4422,4252,4484,4401,3465,4617,1910,4384,4183,3362,3387,3924,5156,3942,4335,3157,4378,4469,2236,3381,5231,3525,4526,2843,4213,4850,3857,4739,4835,3012,2885,4469,4205,3802,3618,2837,3614,3932,2652,3739,2778,2947,3067,435,3786,3147,4692,3037,4354,2313,3678,3244,3329,2877,2311,3608,1397,2123,2814,3682,2546,2952,3388,2469,2181,3144,2294,5002,3339,2531,1142,714,443,2513,2426,3255,2685,1101,301,888,3397,2726,1321,150,3253,1816,3029,972,1873,1630];
+  const RAIN=[14.6,0,0,0,15.1,0,0,0,0,13.7,0,14.4,1.4,0,29.9,0,3.2,21.1,7.1,0,0,0,0,0,0,0,1.5,0,0,0,10.2,0,0,0,3.1,0,3.8,0,1,0.3,0,0,0,0,0.1,0,0,8.5,4.1,0,0,0,0,3.6,0,0,0,0,0,0,11.4,0,0,0,0,0,0,0,0,0,0,8.9,0,0,0,4.1,0,0,0,0,0,0,0,0,15.8,2.8,11,0,0,0,0,8.1,0,1.6,5.5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3.1,0,0,0,0,0,0,0.9,0,0,0,0,0,0,0,0,0,0,0,32.3,0,0,0,3.8,0,0,13.7,0,22.1,0,7.7,0,0,0,0,0,0,11,9.4,0,0,0,0,0,32.6,0,0,0,25.5,13.5,12.5,0,6.2,0,0,6.5,0,0,29.3,0,0,0,0,0,0,0,15.1,0,13.7,0,0,13.3,0,48.6,0,45.8,22.2,0.8,0,0,7.2,0,0,5.1,0,0,0,0,0,0,0,15.4,0,0,23,0,0,0,0,3.3,0,6.6,0,0,7.2,0,0,0,18.4,0,0,0,0,0,0,0,1.9,0,0,0,0,18.1,0,27.3,0,3.4,0,12.7,0,0,0,0,8.5,0,0,0,0,0,0,0,0,5.6,0,0,0,0,0,10,0,0,23.1,0,7.3,0,0,4.9,0,0,0,20.9,0,2.3,0,0,0,0,0,0,0,0,29.9,0,0,8,0,7.7,0,0,0.3,7.6,0,0,19.1,4.1,0,3.4,0,0,0,0,0,0,0,0,7.3,0,0,0,0,0,0,0,0,4.9,0,0,0,35.8,0,0,0,0,0,0,0,2.2,0,4.7,0,0,10.5,0,0,0,0,0,4.9,0,13.3,0,0,0,0,1.5,0,0,11.6,0,0,0,11.5,0,10.9,14.7,0,0,0,31.3,0,2.8,5.1,0,0,6.6];
+  const HOL="10011000001100000110000011011101100000110000011000001100000111000011000001100000110000011000001100000110000011000001100000111100011000001100000110000011000011100000110000011000001100000110000011000001100000110000011000001100001110000011000001100000110000011000001100000110000111111101100000110000011000001100000110000011000001100000110000011000001100000110001011000";
+  const N = CNT.length;
+  const WD = ["일","월","화","수","목","금","토"];
+  const days = [];
+  for (let i = 0; i < N; i++) {
+    const d = new Date(2025, 0, 1 + i);
+    days.push({ m: d.getMonth() + 1, w: d.getDay(), h: +HOL[i], t: TEMP[i], r: RAIN[i], c: CNT[i] });
+  }
+  function quantile(arr, q){           // pandas 기본(선형 보간)과 같은 방식
+    const s = [...arr].sort((a, b) => a - b), pos = (s.length - 1) * q, lo = Math.floor(pos);
+    return lo + 1 < s.length ? s[lo] + (s[lo + 1] - s[lo]) * (pos - lo) : s[lo];
+  }
+  const Q1 = quantile(CNT, .25), Q3 = quantile(CNT, .75), IQR = Q3 - Q1;
+  const LOW = Q1 - 1.5 * IQR, HIGH = Q3 + 1.5 * IQR;
+  const mean = a => a.reduce((s, v) => s + v, 0) / a.length;
+  const median = a => quantile(a, .5);
+  function corr(xs, ys){
+    const mx = mean(xs), my = mean(ys); let sxy = 0, sxx = 0, syy = 0;
+    for (let i = 0; i < xs.length; i++){ const dx = xs[i]-mx, dy = ys[i]-my; sxy += dx*dy; sxx += dx*dx; syy += dy*dy; }
+    return sxy / Math.sqrt(sxx * syy);
+  }
+  const st = { view: "bar", group: "month", stat: "mean" };
+
+  function segInit(id, key){
+    $(id).querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+      $(id).querySelectorAll("button").forEach(x => x.classList.remove("on"));
+      b.classList.add("on"); st[key] = b.dataset.v; render();
+    }));
+  }
+  segInit("seg-view", "view"); segInit("seg-group", "group"); segInit("seg-stat", "stat");
+  $("f-rain").addEventListener("change", render);
+  $("f-out").addEventListener("change", render);
+
+  const GROUPS = {
+    month: { keys: [1,2,3,4,5,6,7,8,9,10,11,12], f: d => d.m, lab: k => k + "월" },
+    wday:  { keys: [1,2,3,4,5,6,0], f: d => d.w, lab: k => WD[k] },
+    hol:   { keys: [0,1], f: d => d.h, lab: k => k ? "휴일" : "평일" },
+    rain:  { keys: [0,1], f: d => d.r > 0 ? 1 : 0, lab: k => k ? "비 옴" : "비 안 옴" }
+  };
+  const esc = s => String(s);
+
+  function render(){
+    let data = days;
+    if ($("f-rain").checked) data = data.filter(d => d.r === 0);
+    if ($("f-out").checked) data = data.filter(d => d.c >= LOW && d.c <= HIGH);
+    const agg = st.stat === "mean" ? mean : median;
+    const statName = st.stat === "mean" ? "평균" : "중앙값";
+    $("st-n").textContent = data.length + "일";
+    $("st-lab").textContent = statName;
+    $("st-all").textContent = Math.round(agg(data.map(d => d.c))) + "대";
+    $("st-r").textContent = corr(data.map(d => d.t), data.map(d => d.c)).toFixed(3);
+    const svg = $("dash-svg");
+    const W = 640, H = 300, L = 56, R = 14, T = 20, B = 40;
+    let html = "";
+    const yMax = 6000;
+    const yPix = v => T + (H - T - B) * (1 - v / yMax);
+    for (let v = 0; v <= yMax; v += 1000) {
+      html += `<line x1="${L}" x2="${W-R}" y1="${yPix(v)}" y2="${yPix(v)}" stroke="#eef1f5"/>`;
+      html += `<text x="${L-6}" y="${yPix(v)+4}" font-size="11" text-anchor="end" fill="#8595a6">${v}</text>`;
+    }
+    const verdict = $("dash-verdict");
+    if (st.view === "bar") {
+      const g = GROUPS[st.group];
+      const rows = g.keys.map(k => { const vals = data.filter(d => g.f(d) === k).map(d => d.c); return { k, n: vals.length, v: vals.length ? agg(vals) : 0 }; })
+                         .filter(r => r.n > 0);
+      const bw = (W - L - R) / rows.length;
+      const best = rows.reduce((a, b) => b.v > a.v ? b : a, rows[0]);
+      const worst = rows.reduce((a, b) => b.v < a.v ? b : a, rows[0]);
+      rows.forEach((r, i) => {
+        const x = L + i * bw + bw * 0.15, w = bw * 0.7, y = yPix(r.v);
+        const fill = r === best ? "var(--accent)" : "#b9c6d4";
+        html += `<rect x="${x}" y="${y}" width="${w}" height="${yPix(0) - y}" rx="3" fill="${fill}"/>`;
+        html += `<text x="${x + w/2}" y="${y - 4}" font-size="${rows.length > 7 ? 9.5 : 12}" text-anchor="middle" fill="#1e2733">${Math.round(r.v)}</text>`;
+        html += `<text x="${x + w/2}" y="${H - B + 16}" font-size="12" text-anchor="middle" fill="#4b5a6b">${esc(g.lab(r.k))}</text>`;
+        html += `<text x="${x + w/2}" y="${H - B + 30}" font-size="9.5" text-anchor="middle" fill="#8595a6">${r.n}일</text>`;
+      });
+      verdict.textContent = `${statName} 기준으로 가장 많이 빌린 그룹은 ‘${g.lab(best.k)}’(${Math.round(best.v)}대), 가장 적은 그룹은 ‘${g.lab(worst.k)}’(${Math.round(worst.v)}대)입니다. 차이는 ${Math.round(best.v - worst.v)}대입니다.`;
+    } else {
+      const xMin = -10, xMax = 36;
+      const xPix = v => L + (W - L - R) * (v - xMin) / (xMax - xMin);
+      for (let v = -10; v <= 35; v += 5) html += `<text x="${xPix(v)}" y="${H - B + 16}" font-size="11" text-anchor="middle" fill="#8595a6">${v}</text>`;
+      html += `<text x="${(W + L) / 2}" y="${H - 6}" font-size="11" text-anchor="middle" fill="#4b5a6b">기온(℃) · 파란 점 = 비 안 온 날, 빨간 점 = 비 온 날</text>`;
+      data.forEach(d => {
+        html += `<circle cx="${xPix(d.t).toFixed(1)}" cy="${yPix(d.c).toFixed(1)}" r="3" fill="${d.r > 0 ? '#d94848' : '#3a7bd5'}" fill-opacity=".55"/>`;
+      });
+      const r = corr(data.map(d => d.t), data.map(d => d.c));
+      const strength = Math.abs(r) >= .8 ? "매우 강한" : Math.abs(r) >= .6 ? "강한" : Math.abs(r) >= .4 ? "보통 수준의" : Math.abs(r) >= .2 ? "약한" : "매우 약한";
+      verdict.textContent = `${data.length}일 기준 기온과 대여량의 상관계수는 ${r.toFixed(3)}로 ${strength} ${r >= 0 ? "양" : "음"}의 상관입니다. 점들이 직선이 아니라 가운데가 볼록한 모양인지도 살펴보세요.`;
+    }
+    svg.innerHTML = html;
+  }
+  render();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"다음 중 ‘데이터로 답할 수 있는 분석 질문’으로 가장 알맞은 것은?",
+    choices:["자전거는 좋은 교통수단인가?","사람들은 자전거를 좋아하는가?","월별 하루 평균 대여량이 가장 많은 달은 언제인가?","자전거 정책은 성공할까?","자전거를 더 많이 타야 하는가?"], answer:2,
+    explain:"‘월’과 ‘대여량’ 속성으로 계산해서 답할 수 있는 구체적인 질문입니다. 나머지는 가치 판단이나 막연한 질문이라 데이터 열로 바로 답하기 어렵습니다." },
+  { type:"mc", q:"어떤 데이터의 Q1이 40, Q3이 60이다. IQR 1.5배 기준으로 이상치가 되는 값은?",
+    choices:["5","15","50","75","88"], answer:0,
+    explain:"IQR = 60 − 40 = 20이므로 아래 울타리 = 40 − 1.5×20 = 10, 위 울타리 = 60 + 1.5×20 = 90입니다. 10보다 작은 5만 울타리 밖에 있어 이상치로 판정됩니다." },
+  { type:"ox", q:"IQR 기준으로 이상치로 판정된 값은 분석의 정확성을 위해 항상 삭제해야 한다.",
+    answer:false, explain:"IQR 기준은 ‘동떨어진 값’을 찾아 줄 뿐입니다. 추운 휴일의 적은 대여량처럼 실제로 일어난 의미 있는 값이면 유지하고, 입력 오류처럼 불가능한 값이면 수정·삭제합니다. 판단 근거를 함께 기록해야 합니다." },
+  { type:"mc", q:"휴일 대여량의 평균이 3256대, 중앙값이 3514대였다. 가장 알맞은 해석은?",
+    choices:["휴일에는 대여량이 아주 많은 날이 몇몇 있다","휴일에 대여량이 아주 적은 날이 몇몇 있어 평균을 끌어내렸다","평균과 중앙값은 항상 같아야 하므로 계산 오류다","휴일 데이터에 결측치가 있다","휴일에는 날씨가 대여량에 영향을 주지 않는다"], answer:1,
+    explain:"평균이 중앙값보다 작다는 것은 아주 작은 값들이 평균을 아래로 끌어당겼다는 뜻입니다. 실제로 IQR 이상치 8일은 모두 휴일이었습니다." },
+  { type:"short", q:"기온과 대여량의 상관계수가 0.517인데, 월별로 보면 7월보다 4월에 더 많이 빌렸다. 이 두 결과를 함께 고려해 기온과 대여량의 관계를 한두 문장으로 설명하세요.",
+    model:"기온이 올라갈수록 대체로 대여량이 늘어나는 양의 관계가 있지만, 한여름처럼 너무 더워지면 오히려 줄어드는 곡선 관계로 보인다. 상관계수는 직선 관계의 정도만 나타내므로 산점도와 그룹별 비교를 함께 보아야 한다." },
+]);
+</script>
+</body>
+</html>

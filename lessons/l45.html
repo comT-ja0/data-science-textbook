@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>데이터 수집과 전처리 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 전처리 탐정 */
+.pp-grid { display:grid; grid-template-columns:1.15fr 1fr; gap:16px; }
+@media (max-width:780px){ .pp-grid { grid-template-columns:1fr; } }
+table.raw { font-size:.82rem; margin:0; }
+table.raw td, table.raw th { padding:5px 8px; text-align:center; }
+table.raw td.c { cursor:pointer; transition:background .15s; }
+table.raw td.c:hover { background:#f5f0ff; }
+table.raw td.cur { outline:2.5px solid var(--accent); outline-offset:-2px; }
+table.raw td.fixed { background:#eafaf0; }
+table.raw td.hint { background:#fff7e6; }
+table.raw tr.duprow td { }
+table.raw td.rowno { color:var(--ink-faint); font-weight:700; cursor:pointer; }
+.pp-panel { border:1.5px solid var(--line); border-radius:12px; padding:12px 14px; background:#fff; min-height:150px; }
+.pp-panel h4 { margin:0 0 6px; font-size:.95rem; }
+.pp-opts { display:flex; flex-direction:column; gap:6px; margin-top:8px; }
+.pp-opts button { text-align:left; background:#fff; color:var(--ink); border:1.5px solid var(--line); font-weight:600; font-size:.85rem; }
+.pp-opts button:hover { border-color:var(--accent); }
+.pp-fb { margin-top:8px; padding:8px 10px; border-radius:8px; font-size:.85rem; }
+.pp-fb.best { background:#eafaf0; border:1px solid #ace8c4; }
+.pp-fb.ok { background:#eef7ff; border:1px solid #cbe4f7; }
+.pp-fb.bad { background:#fdeeee; border:1px solid #f3b9b9; }
+.pp-log { margin-top:12px; font-family:var(--font-mono); font-size:.78rem; background:#212a36; color:#e6edf5; border-radius:10px; padding:10px 12px; min-height:60px; white-space:pre-wrap; }
+.pp-top { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px; }
+</style>
+</head>
+<body data-unit="4" data-lesson="L45">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>데이터 수집과 전처리</h1>
+  <span class="std-badge">성취기준 12데과04-02</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>공공 데이터 포털에서 프로젝트에 필요한 데이터를 찾아 내려받고, 파일 설계서(메타데이터)를 작성할 수 있다.</li>
+      <li>수집한 데이터의 자료형·결측치·이상치·형식을 점검하고 목적에 맞게 전처리할 수 있다.</li>
+      <li>전처리 과정과 그 이유를 기록으로 남길 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과04-02] 수집된 데이터를 탐색적으로 분석하여 데이터 속 의미를 파악하고, 문제 해결을 위한 창의적인 방법을 구상한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span class="on">수집</span><span class="on">전처리</span><span>탐색</span><span>모델링</span><span>평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  요리사는 장을 봐 온 재료를 바로 냄비에 넣지 않습니다. 흙을 털고, 상한 잎을 떼고, 크기를 맞춰 썰어야 요리를 시작할 수 있죠.
+  그런데 상한 줄 알고 버린 잎이 사실은 원래 그런 색의 귀한 채소였다면? 데이터도 똑같습니다.
+  내려받은 데이터에는 빈칸, 잘못된 형식, 입력 실수가 섞여 있고, 그중에는 <b>이상해 보이지만 사실은 가장 중요한 값</b>도 숨어 있습니다.
+  오늘은 예시 프로젝트의 데이터를 모으고 다듬으면서, 무엇을 고치고 무엇을 지켜야 하는지 판단하는 연습을 합니다.
+</div>
+
+<h2><span class="sec-no">1</span>공공 데이터 포털에서 수집하기 <i class="pub">YBM</i></h2>
+
+<p>예시 프로젝트에는 두 종류의 데이터가 필요합니다. 학교의 <b>일별 전력 사용량</b>(행정실의 기록, 사용 허락 필요)과 같은 기간의 <b>일평균기온</b>입니다.
+기온처럼 공공기관이 공개하는 데이터는 다음 절차로 수집합니다. 사이트 개편으로 메뉴 이름은 달라질 수 있으니, 핵심 흐름을 기억하세요.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:50px">순서</th><th>할 일</th><th style="width:300px">예: 기상청 기상자료개방포털(data.kma.go.kr)</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>필요한 데이터를 제공하는 기관·포털을 찾는다.</td><td>종합 포털인 공공데이터포털(data.go.kr)에서 ‘기온’으로 검색하면 기상청 자료로 연결된다.</td></tr>
+    <tr><td>2</td><td>데이터 종류와 설명(메타데이터)을 읽는다.</td><td>지상 관측 자료 중 ‘일자료’가 하루 단위 평균기온을 제공한다.</td></tr>
+    <tr><td>3</td><td>조건(지역·기간·항목)을 선택한다.</td><td>학교와 가장 가까운 관측 지점, 2025-03-01~2025-12-31, 평균기온</td></tr>
+    <tr><td>4</td><td>파일 형식을 골라 내려받는다.</td><td>CSV 형식으로 내려받는다. (일부 자료는 회원 가입이나 이용 신청이 필요하다.)</td></tr>
+    <tr><td>5</td><td>출처·수집일·이용 조건을 기록한다.</td><td>“기상청 기상자료개방포털, 2025-10-14 내려받음, 공공누리 출처 표시”</td></tr>
+  </tbody>
+</table></div>
+
+<div class="box box-tip">
+  <span class="box-label">모둠 프로젝트용 데이터를 찾을 수 있는 곳</span>
+  공공데이터포털(data.go.kr) · 국가통계포털 KOSIS(kosis.kr) · 기상자료개방포털(data.kma.go.kr) · 에어코리아(대기 질) ·
+  각 시·도의 열린 데이터 광장(예: 서울 열린데이터광장) · 전력통계정보시스템 등. 원하는 데이터가 없으면 L44에서 설계한 설문·측정으로 직접 모읍니다.
+</div>
+
+<p>두 파일을 내려받았다면 <b>공통 속성(키)</b>인 날짜로 연결해 하나의 표로 만듭니다(L07의 데이터 통합).
+이 교재에서는 연결까지 마친 결과를 <code>energy.csv</code>(교육용 가상 데이터)로 제공합니다.</p>
+
+<h2><span class="sec-no">2</span>파일 설계서 만들기 <i class="pub">천재</i></h2>
+
+<p>분석을 시작하기 전에 각 속성이 무엇을 뜻하는지 정리한 <span class="keyterm">파일 설계서</span>(데이터 명세서, 메타데이터)를 만듭니다.
+설계서가 있으면 “냉난방시간이 교실 전체의 합인가, 한 대의 가동 시간인가?” 같은 혼란을 막고, 값이 가능한 범위를 벗어났는지 판단하는 기준도 생깁니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th>속성명</th><th>의미</th><th>자료형</th><th>단위</th><th>가능한 범위·값</th><th>출처</th></tr></thead>
+  <tbody>
+    <tr><td><code>날짜</code></td><td>기록한 날</td><td>날짜</td><td>—</td><td>2025-03-01 ~ 2025-12-31</td><td>행정실 기록</td></tr>
+    <tr><td><code>월</code></td><td>날짜의 월</td><td>정수(범주처럼 사용)</td><td>월</td><td>3 ~ 12</td><td>날짜에서 파생</td></tr>
+    <tr><td><code>수업일</code></td><td>정규 수업이 있었는지</td><td>범주(0/1)</td><td>—</td><td>1=수업, 0=주말·방학·휴업</td><td>학사 일정</td></tr>
+    <tr><td><code>평균기온</code></td><td>하루 평균 기온</td><td>실수</td><td>℃</td><td>대략 −20 ~ 35</td><td>기상청</td></tr>
+    <tr><td><code>냉난방시간</code></td><td>냉난방기를 가동한 시간</td><td>실수</td><td>시간</td><td>0 ~ 24</td><td>시설 관리 기록</td></tr>
+    <tr><td><code>전력사용량</code></td><td>학교 전체의 하루 전력 사용량</td><td>정수</td><td>kWh</td><td>0 이상</td><td>행정실 기록</td></tr>
+  </tbody>
+</table></div>
+
+<h2><span class="sec-no">3</span>데이터 점검과 전처리 <i class="pub-c">공통</i></h2>
+
+<p>전처리는 “눈에 띄는 것을 고치는 일”이 아니라 <b>점검 → 판단 → 처리 → 기록</b>의 순서로 진행합니다.
+먼저 자료형, 빈칸, 가능한 범위(설계서 기준), 중복을 점검합니다.</p>
+
+<div class="pycell" data-title="① 자료형·빈칸·논리적 범위 점검"><textarea>
+import pandas as pd
+
+en = load_csv("energy.csv")
+print(en.dtypes, "\n")
+print("빈칸:", en.isna().sum().to_dict())
+
+# 파일 설계서의 '가능한 범위'를 벗어난 값이 있는지 점검
+checks = {
+    "전력사용량 < 0":          (en["전력사용량"] < 0).sum(),
+    "평균기온이 -20~35℃ 밖":   (~en["평균기온"].between(-20, 35)).sum(),
+    "냉난방시간이 0~24 밖":     (~en["냉난방시간"].between(0, 24)).sum(),
+    "수업일이 0/1이 아님":      (~en["수업일"].isin([0, 1])).sum(),
+    "중복된 날짜":              en["날짜"].duplicated().sum(),
+}
+for k, v in checks.items():
+    print(f"{k}: {v}건")
+
+# ✏️ 범위를 더 엄격하게(예: 평균기온 -5~30℃) 바꾸면 몇 건이 걸리나요? 그 값들은 오류일까요?
+</textarea></div>
+
+<p>빈칸과 범위 오류는 없습니다. 그런데 <code>날짜</code>의 자료형이 <code>object</code>(문자열)로 나옵니다.
+문자열로는 요일을 구하거나 날짜 순으로 계산할 수 없으므로 <b>날짜형으로 변환</b>하고, 분석에 쓸 <b>요일</b> 속성을 새로 만듭니다.
+또 ‘수업일’ 값이 학사 일정과 맞는지 교차 점검해 봅니다.</p>
+
+<div class="pycell" data-title="② 형 변환과 날짜 처리"><textarea>
+en["날짜"] = pd.to_datetime(en["날짜"])          # 문자열 → 날짜형
+en["요일"] = en["날짜"].dt.dayofweek              # 0=월 … 6=일
+names = ["월", "화", "수", "목", "금", "토", "일"]
+
+tab = pd.crosstab(en["요일"], en["수업일"]).rename(index=dict(enumerate(names)))
+print(tab, "\n")
+
+off = en[(en["요일"] < 5) & (en["수업일"] == 0)]
+print("평일인데 수업이 없는 날:", len(off), "일 →", off["날짜"].min().date(), "~", off["날짜"].max().date())
+print(off["월"].value_counts().sort_index().to_dict())
+
+# 공휴일과 교차 점검
+hol = en[en["날짜"].isin(pd.to_datetime(["2025-06-06", "2025-10-03", "2025-12-25"]))]
+print(hol[["날짜", "수업일", "전력사용량"]])
+
+# ✏️ 수업일(1)인 날의 전력사용량 최솟값과, 쉬는 날(0)의 최댓값을 비교해 보세요.
+</textarea></div>
+
+<p>주말은 모두 수업일이 0이고, 평일에 수업이 없는 20일은 7~8월(여름 방학)에 몰려 있어 자연스럽습니다.
+그런데 현충일·개천절·성탄절이 <b>수업일 1</b>로 기록되어 있고 전력 사용량도 수업일 수준입니다.
+기록 자체는 서로 일관되지만 공휴일에 정규 수업을 했다는 것은 드문 일이므로, 이런 경우 <b>행정실에 학사 일정을 확인</b>해야 합니다.
+이 교재에서는 “해당 학교가 그날 수업(또는 보충 수업)을 운영했다”고 확인했다고 보고 그대로 둡니다. 이 판단 역시 기록에 남깁니다.</p>
+
+<h3>이상치: 오류인가, 진짜인가?</h3>
+<p>이제 IQR 규칙(Q1 − 1.5×IQR 미만 또는 Q3 + 1.5×IQR 초과)으로 전력 사용량의 이상치를 찾아봅니다.
+여기서 주의할 점이 있습니다. 이 데이터에는 <b>수업일과 쉬는 날이라는 성격이 전혀 다른 두 집단</b>이 섞여 있습니다.</p>
+
+<div class="pycell" data-title="③ 이상치 점검: 전체 기준 vs 집단별 기준"><textarea>
+import matplotlib.pyplot as plt
+
+def iqr_flag(s):
+    q1, q3 = s.quantile([0.25, 0.75])
+    iqr = q3 - q1
+    return (s < q1 - 1.5 * iqr) | (s > q3 + 1.5 * iqr)
+
+print("전체 기준 이상치:", iqr_flag(en["전력사용량"]).sum(), "건")
+flag = en.groupby("수업일")["전력사용량"].transform(iqr_flag)
+print("수업일/쉬는 날 따로 본 이상치:", flag.sum(), "건")
+print(en[flag][["날짜", "수업일", "평균기온", "냉난방시간", "전력사용량"]].to_string(index=False))
+
+en.boxplot(column="전력사용량", by="수업일", figsize=(6, 3.6))
+plt.suptitle(""); plt.title("수업일(1)과 쉬는 날(0)의 전력 사용량")
+plt.ylabel("kWh")
+plt.show()
+
+# ✏️ 월별로 나누어(en.groupby("월")) 이상치를 찾으면 결과가 어떻게 달라지나요?
+</textarea></div>
+
+<p>전체를 한꺼번에 보면 이상치가 <b>0건</b>입니다. 두 집단이 섞여 사분위 범위가 넓어졌기 때문입니다.
+집단별로 나누어 보면 <b>11건</b>이 걸리는데, 쉬는 날 1건(214kWh)을 빼면 모두 기온이 30℃를 넘거나 영하인 수업일이며 냉난방시간도 길었습니다.
+즉 입력 실수가 아니라 <b>냉난방이 실제로 많이 필요했던 날</b>입니다. (쉬는 날의 214kWh도 유난히 적을 뿐 오류라는 근거가 없어 유지합니다.) 이런 값은 우리 질문(“언제 전기를 많이 쓰는가?”)의 핵심 정보이므로 지우지 않고 유지합니다.
+통계 규칙은 이상치 <b>후보</b>를 알려 줄 뿐, 지울지 말지는 설계서·원자료·상식에 비추어 사람이 판단합니다.</p>
+
+<h2><span class="sec-no">4</span>전처리 기록 남기기 <i class="pub-c">공통</i></h2>
+
+<p><code>energy.csv</code>는 이미 연결·정리된 파일이지만, 여러분이 실제로 내려받는 원자료에는 훨씬 많은 문제가 있습니다.
+아래 실험실은 전력 기록을 처음 받았을 때의 모습을 흉내 낸 원자료입니다. 문제가 있는 칸을 찾아 누르고 처리 방법을 고르면, 아래에 <b>전처리 기록</b>이 자동으로 쌓입니다.</p>
+
+<div class="sim">
+  <div class="sim-head">전처리 탐정 — 원자료 10행 점검하기</div>
+  <div class="sim-body">
+    <div class="pp-top">
+      <span class="stat-chip">찾은 문제 <b id="pp-found">0</b> / <span id="pp-total">7</span></span>
+      <span class="stat-chip">최선의 처리 <b id="pp-best">0</b></span>
+      <button type="button" id="pp-hint" class="ghost">💡 힌트: 문제 칸 표시</button>
+      <button type="button" id="pp-reset" class="gray">↺ 처음부터</button>
+    </div>
+    <div class="pp-grid">
+      <div class="table-wrap"><table class="raw" id="pp-table"></table></div>
+      <div class="pp-panel" id="pp-panel"></div>
+    </div>
+    <div class="pp-log" id="pp-log"></div>
+    <p class="widget-hint">관찰 포인트: 모든 ‘이상해 보이는 값’이 오류는 아닙니다. 파일 설계서의 범위와 그날의 상황(기온)을 함께 보고 판단하세요.</p>
+  </div>
+</div>
+
+<p>파이썬으로 전처리할 때도 같은 원칙을 지킵니다. 원본은 그대로 두고 복사본을 고치며, <b>무엇을, 왜, 몇 건</b> 처리했는지 기록을 함께 남깁니다.</p>
+
+<div class="pycell" data-title="④ 원자료 정리 + 전처리 기록 템플릿"><textarea>
+raw = pd.DataFrame({
+    "날짜":       ["2025-06-09", "2025-06-10", "2025.6.11", "2025-06-12", "2025-06-12", "2025-06-13"],
+    "수업일":     ["1", "1", "1", "O", "O", "1"],
+    "평균기온":   [22.8, None, 24.1, 25.0, 25.0, 31.7],
+    "전력사용량": ["1,204", "1,251", "1,236", "12630", "12630", "2,154"],
+})
+df, log = raw.copy(), []           # 원본(raw)은 건드리지 않는다
+
+n = len(df); df = df.drop_duplicates()
+log.append(f"중복 행 {n - len(df)}개 삭제")
+
+df["날짜"] = pd.to_datetime(df["날짜"].str.replace(".", "-", regex=False), format="mixed")
+log.append("날짜 형식 통일(. → -) 후 날짜형으로 변환")
+
+df["수업일"] = df["수업일"].replace({"O": "1"}).astype(int)
+log.append("수업일 'O' 표기를 1로 통일 후 정수형 변환")
+
+df["전력사용량"] = df["전력사용량"].str.replace(",", "", regex=False).astype(int)
+log.append("전력사용량 쉼표 제거 후 정수형 변환")
+
+df.loc[df["전력사용량"] > 5000, "전력사용량"] = 1263
+log.append("06-12 전력 12630 → 1263 수정 (원자료 확인: 0이 하나 더 입력된 오류)")
+
+df["평균기온"] = df["평균기온"].interpolate()
+log.append("06-10 평균기온 빈칸을 앞뒤 날의 평균으로 채움(선형 보간)")
+
+print(df.reset_index(drop=True))
+print("\n[전처리 기록]")
+for i, s in enumerate(log, 1):
+    print(f"{i}. {s}")
+
+# ✏️ 06-13의 31.7℃, 2154kWh는 왜 고치지 않았을까요? 기록에 '유지 이유'를 한 줄 추가해 보세요.
+</textarea></div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  파이썬을 쓰지 않는 반은 스프레드시트의 <b>찾기·바꾸기</b>(쉼표 제거), <b>데이터 → 중복 항목 삭제</b>, 필터로 범위 점검을 할 수 있고,
+  Orange에서는 <b>Impute</b>(결측), <b>Select Rows</b>(범위), <b>Edit Domain</b>(형 변환) 위젯으로 같은 과정을 수행합니다.
+  흔한 오개념은 “이상치 = 지워야 할 값”입니다. 11건 중 10건이 실제 폭염·한파일이라는 점을 꼭 짚어 주세요.
+  모둠이 실제 포털에서 데이터를 받는 데 시간이 오래 걸리므로, 가능하면 전 차시 과제로 내려받기를 끝내 두게 합니다.
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">모둠 활동</span>우리 모둠 데이터 수집·점검 기록지 <i class="pub">천재</i></div>
+  <div class="act-body">
+    <ol>
+      <li>모둠 주제에 필요한 데이터를 내려받고(또는 수집하고) 출처를 기록하세요.
+        <div class="table-wrap"><table>
+          <thead><tr><th>파일 이름</th><th>제공 기관·사이트</th><th>내려받은 날</th><th>기간·범위</th><th>행 수</th><th>이용 조건</th></tr></thead>
+          <tbody><tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr></tbody>
+        </table></div></li>
+      <li>주요 속성 4개 이상에 대한 파일 설계서를 작성하세요.
+        <div class="table-wrap"><table>
+          <thead><tr><th>속성명</th><th>의미</th><th>자료형</th><th>단위</th><th>가능한 범위·값</th></tr></thead>
+          <tbody><tr><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr></tbody>
+        </table></div></li>
+      <li>점검 결과와 처리 내용을 전처리 기록표에 남기세요. ‘유지’로 판단한 값도 이유와 함께 적습니다.
+        <div class="table-wrap"><table>
+          <thead><tr><th>발견한 문제(속성·행)</th><th>건수</th><th>처리 방법</th><th>그렇게 판단한 이유</th></tr></thead>
+          <tbody><tr><td>&nbsp;</td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td></tr></tbody>
+        </table></div></li>
+    </ol>
+  </div>
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>공공 데이터는 기관·포털 찾기 → 설명 읽기 → 조건 선택 → 내려받기 → 출처·이용 조건 기록의 순서로 수집한다.</li>
+    <li>파일 설계서(메타데이터)는 속성의 의미·자료형·단위·가능한 범위를 정리한 것으로, 오류 판단의 기준이 된다.</li>
+    <li>전처리는 점검 → 판단 → 처리 → 기록의 순서로 하고, 원본은 덮어쓰지 않는다.</li>
+    <li>성격이 다른 집단이 섞이면 이상치 판단이 달라진다. 통계적 이상치라도 실제 값이면 유지한다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 전처리 탐정 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const COLS = ["날짜", "수업일", "평균기온", "전력사용량"];
+  const ROWS = [
+    ["2025-06-02", "1", "23.7", "1058"],
+    ["2025-06-03", "1", "24.9", "1,187"],
+    ["2025/06/04", "1", "24.0", "1224"],
+    ["2025-06-05", "1", "", "1301"],
+    ["2025-06-09", "O", "25.6", "1340"],
+    ["2025-06-10", "1", "26.3", "13920"],
+    ["2025-06-11", "1", "26.9", "1402"],
+    ["2025-06-11", "1", "26.9", "1402"],
+    ["2025-06-12", "1", "29.8", "1985"],
+    ["2025-06-13", "1", "31.7", "2154"]
+  ];
+  // 문제 정의: key = "행,열" (열 -1 = 행 전체)
+  const ISSUES = {
+    "1,3": { name:"숫자에 쉼표가 들어간 문자열", opts:[
+      ["쉼표를 지우고 숫자(정수)로 변환한다", "best", "맞습니다. 값은 올바르고 표기만 문제입니다. 문자열 상태로는 평균·합계를 계산할 수 없습니다."],
+      ["숫자가 아니므로 행을 삭제한다", "bad", "멀쩡한 하루치 기록을 잃습니다. 표기만 고치면 됩니다."],
+      ["그대로 둔다", "bad", "이 열 전체가 문자열로 인식되어 계산이 되지 않습니다."] ] },
+    "2,0": { name:"날짜 형식이 다름 (/ 사용)", opts:[
+      ["다른 행과 같은 YYYY-MM-DD 형식으로 통일한다", "best", "맞습니다. 형식이 섞이면 날짜로 정렬·연결(기온 자료와 통합)할 때 이 행이 빠지거나 오류가 납니다."],
+      ["형식이 틀렸으므로 행을 삭제한다", "bad", "날짜 정보는 올바르므로 삭제할 이유가 없습니다."],
+      ["그대로 둔다", "bad", "날짜형 변환이나 기온 자료와의 연결에서 문제가 생깁니다."] ] },
+    "3,2": { name:"평균기온 결측(빈칸)", opts:[
+      ["기상청 원자료에서 그날 값을 다시 찾아 채운다", "best", "가장 좋습니다. 공공 데이터라 원래 값을 다시 확인할 수 있습니다."],
+      ["앞뒤 날 기온의 평균으로 채운다(보간)", "ok", "괜찮은 방법입니다. 기온은 하루 사이에 급변하지 않아 보간이 잘 맞습니다. 채웠다는 사실을 기록하세요."],
+      ["0으로 채운다", "bad", "0℃는 실제 온도로 오해됩니다. 6월에 0℃라니요!"],
+      ["행을 삭제한다", "ok", "가능하지만 전력 사용량 정보까지 함께 버립니다. 다른 방법이 있다면 우선 고려하세요."] ] },
+    "4,1": { name:"범주 코드가 다름 ('O')", opts:[
+      ["학사 일정을 확인하고 1로 통일한다", "best", "맞습니다. 같은 뜻을 다른 기호로 적은 경우입니다. 설계서의 코드(0/1)로 통일합니다."],
+      ["알 수 없는 값이므로 결측으로 처리한다", "ok", "안전하지만, 확인만 하면 살릴 수 있는 정보를 버리는 셈입니다."],
+      ["그대로 둔다", "bad", "‘O’는 0도 1도 아니어서 수업일 집계에서 빠지거나 오류가 납니다."] ] },
+    "5,3": { name:"입력 실수로 보이는 값 (13920)", opts:[
+      ["원자료를 확인해 1392로 고친다", "best", "맞습니다. 앞뒤 날(1340, 1402)과 비교하면 0이 하나 더 들어간 입력 실수로 보입니다. 원자료 확인 후 수정하고 기록합니다."],
+      ["결측으로 바꾸고 이유를 기록한다", "ok", "원자료를 확인할 수 없을 때의 차선책입니다."],
+      ["큰 값도 데이터이므로 그대로 둔다", "bad", "평소의 10배는 설계서 기준으로도 비현실적입니다. 평균과 모델을 크게 왜곡합니다."] ] },
+    "7,-1": { name:"중복 행 (06-11이 두 번)", opts:[
+      ["중복된 행 하나만 삭제한다", "best", "맞습니다. 같은 날이 두 번 들어가면 그날의 영향이 두 배로 계산됩니다."],
+      ["두 행을 모두 삭제한다", "bad", "원래 있어야 할 하루치 기록까지 사라집니다."],
+      ["그대로 둔다", "bad", "합계·평균이 왜곡되고, 날짜 기준 통합에서도 문제가 생깁니다."] ] },
+    "9,3": { name:"매우 큰 값 (2154) — 오류일까?", opts:[
+      ["기온 31.7℃인 폭염일의 실제 값이므로 유지하고, 확인했다고 기록한다", "best", "정답! 냉방으로 전기를 많이 쓴 진짜 값입니다. ‘언제 전기를 많이 쓰는가’라는 질문의 핵심 정보이므로 지우면 안 됩니다."],
+      ["통계적 이상치이므로 삭제한다", "bad", "가장 중요한 정보를 지우는 셈입니다. 모델이 더운 날의 사용량을 과소 예측하게 됩니다."],
+      ["평균값으로 바꾼다", "bad", "실제로 일어난 일을 없는 일로 만듭니다."] ] }
+  };
+  const KEYS = Object.keys(ISSUES);
+  $("pp-total").textContent = KEYS.length;
+  let done = {}, cur = null, hint = false;
+
+  function cellKey(r, c){ return ISSUES[r + "," + c] ? r + "," + c : (ISSUES[r + ",-1"] ? r + ",-1" : null); }
+
+  function renderTable(){
+    let h = `<thead><tr><th>행</th>${COLS.map(c => `<th>${c}</th>`).join("")}</tr></thead><tbody>`;
+    ROWS.forEach((row, r) => {
+      h += `<tr><td class="rowno" data-r="${r}" data-c="-1">${r + 1}</td>`;
+      row.forEach((v, c) => {
+        const k = cellKey(r, c);
+        const cls = ["c"];
+        if (k && done[k]) cls.push("fixed");
+        else if (k && hint) cls.push("hint");
+        if (cur && k === cur) cls.push("cur");
+        h += `<td class="${cls.join(" ")}" data-r="${r}" data-c="${c}">${v === "" ? '<span style="color:#dc2626">(빈칸)</span>' : v}</td>`;
+      });
+      h += `</tr>`;
+    });
+    $("pp-table").innerHTML = h + "</tbody>";
+  }
+
+  function renderPanel(msg){
+    const p = $("pp-panel");
+    if (msg){ p.innerHTML = msg; return; }
+    if (!cur){ p.innerHTML = `<h4>칸을 눌러 점검하세요</h4><p style="font-size:.88rem;margin:0">문제가 있어 보이는 칸(또는 행 번호)을 누르면 처리 방법을 고를 수 있습니다. 7개의 문제가 숨어 있습니다.</p>`; return; }
+    const it = ISSUES[cur];
+    p.innerHTML = `<h4>🔎 ${it.name}</h4><div class="pp-opts">${it.opts.map((o, i) => `<button type="button" data-i="${i}">${o[0]}</button>`).join("")}</div>
+      <div id="pp-fb"></div>`;
+    if (done[cur]){ showFb(done[cur].i); }
+  }
+  function showFb(i){
+    const o = ISSUES[cur].opts[i];
+    const lab = { best:"✔ 최선", ok:"△ 가능", bad:"✘ 부적절" }[o[1]];
+    const fb = document.getElementById("pp-fb");
+    if (fb) fb.innerHTML = `<div class="pp-fb ${o[1]}"><b>${lab}</b> — ${o[2]}</div>`;
+  }
+  function renderLog(){
+    const lines = KEYS.filter(k => done[k]).map((k, n) => {
+      const [r] = k.split(",").map(Number); const o = ISSUES[k].opts[done[k].i];
+      const tag = { best:"최선", ok:"가능", bad:"재검토 필요" }[o[1]];
+      return `${n + 1}. [${r + 1}행] ${ISSUES[k].name} → ${o[0]} (${tag})`;
+    });
+    $("pp-log").textContent = "# 전처리 기록\n" + (lines.length ? lines.join("\n") : "(아직 기록 없음)");
+    $("pp-found").textContent = lines.length;
+    $("pp-best").textContent = KEYS.filter(k => done[k] && ISSUES[k].opts[done[k].i][1] === "best").length;
+  }
+
+  $("pp-table").addEventListener("click", e => {
+    const td = e.target.closest("td"); if (!td) return;
+    const r = +td.dataset.r, c = +td.dataset.c;
+    const k = c === -1 ? (ISSUES[r + ",-1"] ? r + ",-1" : null) : cellKey(r, c);
+    if (!k){
+      cur = null; renderTable();
+      renderPanel(`<h4>👍 문제 없음</h4><p style="font-size:.88rem;margin:0">${r + 1}행의 ${c === -1 ? "행 전체" : COLS[c] + " 값"}은(는) 설계서 기준에 맞는 정상 값으로 보입니다. 다른 칸을 살펴보세요.</p>`);
+      return;
+    }
+    cur = k; renderTable(); renderPanel();
+  });
+  $("pp-panel").addEventListener("click", e => {
+    const b = e.target.closest("button[data-i]"); if (!b || !cur) return;
+    done[cur] = { i:+b.dataset.i }; showFb(+b.dataset.i); renderTable(); renderLog();
+  });
+  $("pp-hint").addEventListener("click", () => { hint = !hint; renderTable(); });
+  $("pp-reset").addEventListener("click", () => { done = {}; cur = null; hint = false; renderTable(); renderPanel(); renderLog(); });
+  renderTable(); renderPanel(); renderLog();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"전력사용량 열에 “1,204”처럼 쉼표가 들어간 값이 섞여 있어 pandas가 이 열을 object(문자열)로 읽었다. 가장 알맞은 처리는?",
+    choices:["해당 행을 모두 삭제한다","열 전체를 삭제한다","쉼표를 제거한 뒤 정수형으로 변환한다","0으로 바꾼다","그대로 두고 평균을 구한다"], answer:2,
+    explain:"값 자체는 올바르고 표기만 문제입니다. str.replace(\",\", \"\")로 쉼표를 지운 뒤 astype(int)로 변환합니다." },
+  { type:"ox", q:"IQR 규칙으로 이상치로 판정된 값은 입력 오류이므로 항상 삭제해야 한다.",
+    answer:false, explain:"통계 규칙은 이상치 ‘후보’를 알려 줄 뿐입니다. 예시 데이터에서 걸린 11건 중 10건은 폭염·한파로 냉난방을 많이 한 실제 값이라 유지했습니다. 원자료·설계서·상황을 함께 보고 판단합니다." },
+  { type:"mc", q:"수업일과 쉬는 날이 섞인 전력 데이터 전체에 IQR 규칙을 적용했더니 이상치가 0건이었지만, 두 집단을 나누어 적용하니 11건이 나왔다. 그 이유로 가장 알맞은 것은?",
+    choices:["데이터에 결측치가 있어서","성격이 다른 두 집단이 섞여 사분위 범위(IQR)가 크게 넓어졌기 때문에","IQR 규칙은 정수 데이터에만 쓸 수 있어서","날짜가 문자열이어서","집단을 나누면 데이터가 늘어나서"], answer:1,
+    explain:"쉬는 날(약 200~500kWh)과 수업일(약 1000~2300kWh)이 섞이면 Q1과 Q3의 간격이 매우 커져 울타리가 넓어지고, 각 집단 안에서 튀는 값이 가려집니다." },
+  { type:"mc", q:"어떤 속성의 Q1이 1200, Q3가 1500일 때 IQR 규칙의 위쪽 경계(이 값보다 크면 이상치 후보)는?",
+    choices:["1500","1650","1800","1950","2250"], answer:3,
+    explain:"IQR = 1500 − 1200 = 300, 위쪽 경계 = Q3 + 1.5 × IQR = 1500 + 450 = 1950입니다." },
+  { type:"short", q:"모둠이 전처리 기록을 남겨야 하는 이유를 두 가지 쓰세요.",
+    model:"① 나중에 결과가 이상하거나 다른 사람이 질문했을 때 어떤 데이터를 왜 고치거나 지웠는지 근거를 설명하고, 필요하면 되돌리거나 다시 처리할 수 있다(재현성). ② 모둠원 모두가 같은 기준으로 작업할 수 있고, 결측·이상치 처리 방식이 분석 결과에 준 영향을 보고서에 밝혀 결과의 신뢰성을 판단할 수 있게 한다." },
+]);
+</script>
+</body>
+</html>

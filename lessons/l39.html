@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>과대적합과 교차 검증 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 다항 차수 실험기 */
+.of-grid { display:grid; grid-template-columns:1.35fr 1fr; gap:16px; }
+@media (max-width:760px){ .of-grid { grid-template-columns:1fr; } }
+.of-grid canvas { width:100%; height:auto; border:1px solid var(--line); background:#fbfcfd; }
+.of-verdict { margin-top:10px; padding:9px 14px; border-radius:10px; font-weight:700; font-size:.9rem; }
+.of-verdict.under { background:#eef7ff; border:1.5px solid #cbe4f7; color:#1d6fb8; }
+.of-verdict.good { background:#eafaf0; border:1.5px solid #ace8c4; color:#127a3c; }
+.of-verdict.over { background:#fdeeee; border:1.5px solid #f3b9b9; color:#b32424; }
+.folds { display:grid; grid-template-columns:70px 1fr; gap:4px 8px; align-items:center; font-size:.8rem; margin:10px 0; }
+.folds .bar { display:grid; grid-template-columns:repeat(5,1fr); gap:3px; }
+.folds .bar span { height:20px; border-radius:5px; background:#dbe8f6; text-align:center; font-size:.72rem; line-height:20px; color:#1d4f7a; }
+.folds .bar span.v { background:var(--accent); color:#fff; font-weight:700; }
+</style>
+</head>
+<body data-unit="3" data-lesson="L39">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>과대적합과 교차 검증</h1>
+  <span class="std-badge">성취기준 12데과03-05</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>훈련 성능과 테스트 성능을 비교하여 과대적합과 과소적합을 판단할 수 있다.</li>
+      <li>k-겹 교차 검증으로 모델의 성능을 안정적으로 추정하고 모델의 복잡도를 정할 수 있다.</li>
+      <li>데이터 누수가 무엇인지 설명하고 분석 과정에서 이를 피할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과03-05] 데이터 분석 방법에 따른 데이터 모델의 분석 결과를 비교하고 평가한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span>수집</span><span>전처리</span><span>탐색</span><span class="on">모델링</span><span class="on">평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  수학 시험을 앞둔 두 친구가 있습니다. 민재는 문제집 50문제의 <b>답을 통째로 외웠고</b>, 서윤이는 풀이 원리를 이해하며 공부했습니다.
+  문제집을 다시 풀게 하면 민재가 100점, 서윤이가 90점입니다. 그런데 실제 시험에서는 숫자만 바뀐 새 문제가 나왔습니다.
+  누가 더 잘 볼까요? 모델도 똑같습니다. 이미 본 데이터(문제집)만 잘 맞히는 모델은 새 데이터(시험)에서 무너질 수 있습니다.
+</div>
+
+<div class="box box-tip">
+  <span class="box-label">확장 차시 안내</span>
+  이 차시는 훈련/테스트 분할(L29)과 의사결정트리(L37)를 간단히 안다고 가정합니다.
+  회귀 모델의 성능은 <b>결정계수 R²</b>로 비교합니다. R²는 ‘정확도’가 아니라, 평균값 하나로 예측할 때보다 오차를 얼마나 줄였는지를 나타내며(1에 가까울수록 좋음),
+  평균보다도 못한 모델이면 음수가 될 수도 있습니다.
+</div>
+
+<h2><span class="sec-no">1</span>과대적합과 과소적합 <i class="pub-c">공통</i></h2>
+
+<div class="cards">
+  <div class="cardbox"><h4>과소적합 (underfitting)</h4><p>모델이 너무 단순해 데이터의 패턴조차 잡지 못함. <b>훈련 성능도 테스트 성능도 낮다.</b> 예: 곡선 관계를 직선 하나로 설명</p></div>
+  <div class="cardbox"><h4>적절한 적합</h4><p>핵심 패턴은 잡고 잡음은 무시함. 훈련 성능과 테스트 성능이 <b>모두 괜찮고 차이가 작다.</b></p></div>
+  <div class="cardbox"><h4>과대적합 (overfitting)</h4><p>훈련 데이터의 잡음까지 외움. <b>훈련 성능은 매우 높은데 테스트 성능은 낮다.</b> 예: 답만 외운 민재</p></div>
+</div>
+
+<p>과대적합은 <b>모델이 복잡할수록</b>(트리가 깊을수록, 다항식 차수가 높을수록, k-NN의 k가 작을수록), 그리고 <b>데이터가 적을수록</b> 잘 일어납니다.
+그래서 모델을 평가할 때는 반드시 학습에 쓰지 않은 데이터로 성능을 확인하고, 훈련 성능과 비교해야 합니다.</p>
+
+<div class="sim">
+  <div class="sim-head">다항 차수 실험기 — 곡선을 얼마나 구부려야 할까?</div>
+  <div class="sim-body">
+    <div class="sim-controls">
+      <label for="of-deg">다항식 차수</label><input type="range" id="of-deg" min="0" max="9" value="1"><b id="of-deg-v">1</b>
+      <label>훈련 데이터 <select id="of-n"><option value="10">10개</option><option value="30">30개</option><option value="80">80개</option></select></label>
+      <label><input type="checkbox" id="of-test" checked> 테스트 데이터 보기</label>
+      <label><input type="checkbox" id="of-true"> 실제 패턴 보기</label>
+      <button id="of-new" class="gray">🎲 새 표본 뽑기</button>
+    </div>
+    <div class="of-grid">
+      <canvas id="of-canvas" width="540" height="360"></canvas>
+      <div>
+        <div class="sim-stats" style="margin-top:0">
+          <div class="stat-chip">훈련 오차(MSE) <b id="of-tr">—</b></div>
+          <div class="stat-chip">테스트 오차(MSE) <b id="of-te">—</b></div>
+        </div>
+        <div style="font-size:.78rem;font-weight:700;color:var(--ink-faint);margin:10px 0 3px">차수에 따른 오차 (세로축은 로그 눈금)</div>
+        <canvas id="of-curve" width="400" height="230"></canvas>
+      </div>
+    </div>
+    <div class="of-verdict" id="of-verdict"></div>
+    <p class="widget-hint">● 채운 점 = 훈련 데이터(모델이 보고 학습), ○ 빈 점 = 테스트 데이터 150개(모델이 못 본 새 데이터).
+    훈련 데이터 10개에서 차수를 9까지 올려 보고, 같은 차수에서 훈련 데이터를 80개로 늘려 보세요.</p>
+  </div>
+</div>
+
+<h2><span class="sec-no">2</span>데이터가 적으면 더 쉽게 외운다 <i class="pub">삼양</i></h2>
+
+<p><code>bike.csv</code>(가상의 공공자전거 1년 대여 기록)로 확인해 봅시다. 기온·습도·풍속·강수량·휴일로 하루 대여량을 예측하는 의사결정트리를
+깊이 제한 없이 학습시키되, 훈련에 쓰는 날 수를 10일부터 늘려 갑니다. 테스트 데이터(110일)는 항상 같습니다.</p>
+
+<div class="pycell" data-title="훈련 데이터 양과 과대적합"><textarea>
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeRegressor
+
+df = load_csv("bike.csv")
+feat = ["기온", "습도", "풍속", "강수량", "휴일"]
+X_tr, X_te, y_tr, y_te = train_test_split(df[feat], df["대여량"], test_size=0.3, random_state=0)
+print("훈련", len(X_tr), "/ 테스트", len(X_te))
+
+for n in [10, 30, 100, len(X_tr)]:
+    t = DecisionTreeRegressor(random_state=0).fit(X_tr[:n], y_tr[:n])   # 깊이 제한 없음
+    print(f"훈련 {n:3d}일: 훈련 R² {t.score(X_tr[:n], y_tr[:n]):.3f}  테스트 R² {t.score(X_te, y_te):.3f}")
+
+# ✏️ DecisionTreeRegressor(max_depth=3, ...)으로 바꾸면 10일로 학습할 때의 차이가 줄어드나요?
+</textarea></div>
+
+<p>깊이 제한이 없는 트리는 훈련 데이터를 모두 외워서 훈련 R²가 늘 <b>1.000</b>입니다. 하지만 10일만으로 학습하면 테스트 R²는 <b>0.095</b>에 불과합니다.
+훈련 데이터를 30일, 100일, 255일로 늘리자 테스트 R²가 0.288 → 0.454 → 0.571로 올라갑니다. 데이터가 많을수록 우연한 잡음을 ‘규칙’으로 착각하기 어렵기 때문입니다.</p>
+
+<h2><span class="sec-no">3</span>복잡도 고르기와 k-겹 교차 검증 <i class="pub">삼양</i></h2>
+
+<p>이번에는 훈련 데이터 전체(255일)로 트리의 최대 깊이를 1부터 15까지 바꿔 봅니다.</p>
+
+<div class="pycell" data-title="트리 깊이별 훈련·테스트 R²"><textarea>
+rows = []
+for d in range(1, 16):
+    t = DecisionTreeRegressor(max_depth=d, random_state=0).fit(X_tr, y_tr)
+    rows.append((d, t.score(X_tr, y_tr), t.score(X_te, y_te)))
+res = pd.DataFrame(rows, columns=["깊이", "훈련R2", "테스트R2"]).round(3)
+print(res.to_string(index=False))
+
+plt.plot(res["깊이"], res["훈련R2"], "o-", label="훈련")
+plt.plot(res["깊이"], res["테스트R2"], "s-", label="테스트")
+plt.xlabel("최대 깊이"); plt.ylabel("결정계수 R²"); plt.title("트리 깊이와 과대적합"); plt.legend()
+plt.show()
+
+# ✏️ 훈련 R²와 테스트 R²의 차이가 0.2를 넘기 시작하는 깊이는 어디인가요?
+</textarea></div>
+
+<p>깊이를 늘리면 훈련 R²는 0.519에서 0.999까지 계속 오르지만, 테스트 R²는 깊이 5에서 <b>0.700</b>으로 가장 높았다가 다시 떨어져 깊이 15에서는 0.580입니다.
+깊이 1~2는 과소적합, 깊이 10 이상은 과대적합 구간입니다.</p>
+
+<div class="box box-warn">
+  <span class="box-label">테스트 데이터로 깊이를 고르면 안 되는 이유</span>
+  위 표를 보고 “테스트 R²가 가장 높은 깊이 5를 고르자”고 하면, 테스트 데이터를 모델 선택에 사용한 셈입니다.
+  그러면 테스트 데이터가 더 이상 ‘처음 보는 시험’이 아니어서, 최종 성능을 부풀리게 됩니다. 이것도 <b>데이터 누수</b>의 한 종류입니다.
+  모델의 설정(깊이, k 등)은 <b>훈련 데이터 안에서</b> 정하고, 테스트 데이터는 마지막에 딱 한 번만 씁니다.
+</div>
+
+<p>그렇다면 훈련 데이터 안에서 어떻게 성능을 비교할까요? 훈련 데이터를 한 번만 나누면 어떤 날들이 검증용으로 뽑혔느냐에 따라 점수가 들쭉날쭉합니다.
+<span class="keyterm">k-겹 교차 검증(k-fold cross validation)</span>은 훈련 데이터를 k개 묶음(폴드)으로 나눈 뒤, <b>돌아가며 한 묶음씩 검증용으로 쓰고</b> 나머지로 학습합니다.
+k번의 점수를 평균하면 운에 덜 좌우되는 성능 추정치를 얻습니다.</p>
+
+<figure>
+<div class="folds" aria-label="5겹 교차 검증 도식">
+  <span>1회차</span><div class="bar"><span class="v">검증</span><span>학습</span><span>학습</span><span>학습</span><span>학습</span></div>
+  <span>2회차</span><div class="bar"><span>학습</span><span class="v">검증</span><span>학습</span><span>학습</span><span>학습</span></div>
+  <span>3회차</span><div class="bar"><span>학습</span><span>학습</span><span class="v">검증</span><span>학습</span><span>학습</span></div>
+  <span>4회차</span><div class="bar"><span>학습</span><span>학습</span><span>학습</span><span class="v">검증</span><span>학습</span></div>
+  <span>5회차</span><div class="bar"><span>학습</span><span>학습</span><span>학습</span><span>학습</span><span class="v">검증</span></div>
+</div>
+<figcaption>그림 1. 5겹 교차 검증 — 모든 데이터가 한 번씩 검증에 쓰이고, 테스트 데이터는 따로 떼어 둡니다.</figcaption>
+</figure>
+
+<div class="pycell" data-title="교차 검증으로 깊이 고르기"><textarea>
+from sklearn.model_selection import cross_val_score, KFold
+
+cv = KFold(n_splits=5, shuffle=True, random_state=0)       # 섞어서 5묶음, 섞는 방식 고정
+s = cross_val_score(DecisionTreeRegressor(max_depth=5, random_state=0), X_tr, y_tr, cv=cv, scoring="r2")
+print("깊이 5의 폴드별 R²:", s.round(3), " 평균", round(s.mean(), 3), " 표준편차", round(s.std(), 3))
+
+for d in [2, 3, 4, 5, 6, 8, 12, None]:
+    s = cross_val_score(DecisionTreeRegressor(max_depth=d, random_state=0), X_tr, y_tr, cv=cv, scoring="r2")
+    print(f"깊이 {str(d):>4}: 교차 검증 평균 R² {s.mean():.3f}")
+
+best = DecisionTreeRegressor(max_depth=5, random_state=0).fit(X_tr, y_tr)   # 고른 깊이로 훈련 데이터 전체 학습
+print("최종 테스트 R²(딱 한 번):", round(best.score(X_te, y_te), 3))
+
+# ✏️ n_splits를 10으로 바꾸면 가장 좋은 깊이가 달라지나요?
+</textarea></div>
+
+<p>깊이 5의 다섯 폴드 점수는 0.617~0.762로 꽤 차이가 납니다. 검증 데이터를 한 번만 나눴다면 이 중 어느 값을 받았을지 모르는 셈입니다.
+교차 검증 평균은 깊이 5에서 <b>0.684</b>로 가장 높으므로, 테스트 데이터를 보지 않고도 깊이 5를 고를 수 있습니다.
+마지막으로 테스트 데이터로 한 번 평가한 결과는 <b>0.700</b>입니다.</p>
+
+<h2><span class="sec-no">4</span>너무 좋은 결과를 의심하라: 데이터 누수 <i class="pub">YBM</i> <i class="pub">씨마스</i></h2>
+
+<p><span class="keyterm">데이터 누수(data leakage)</span>는 예측하는 시점에는 알 수 없는 정보, 또는 테스트 데이터의 정보가 학습에 섞여 들어가는 것입니다.
+누수가 있으면 평가 점수는 훌륭하지만 실제로 쓰면 형편없는 모델이 됩니다. 대표적인 경우는 다음과 같습니다.</p>
+<ul>
+  <li><b>미래 정보를 입력으로 사용</b>: 오늘 대여량을 예측하는데 ‘오늘 반납된 자전거 수’를 입력으로 쓰기 (반납량은 하루가 끝나야 알 수 있음)</li>
+  <li><b>테스트 데이터로 전처리 기준 정하기</b>: 전체 데이터의 평균·표준편차로 표준화한 뒤 나누기 → 훈련 데이터로만 기준을 정해야 함(파이프라인 사용)</li>
+  <li><b>테스트 데이터로 모델 설정 고르기</b>: 위에서 본 깊이 고르기 문제</li>
+</ul>
+
+<div class="pycell" data-title="데이터 누수 체험: 너무 좋은 R²"><textarea>
+import numpy as np
+from sklearn.linear_model import LinearRegression
+
+rng = np.random.default_rng(0)
+df["반납량"] = df["대여량"] + rng.normal(0, 60, len(df)).round()   # 반납 수는 대여 수와 거의 같다(가상)
+
+for cols in [feat, feat + ["반납량"]]:
+    A_tr, A_te, b_tr, b_te = train_test_split(df[cols], df["대여량"], test_size=0.3, random_state=0)
+    m = LinearRegression().fit(A_tr, b_tr)
+    print(cols[-1], "까지 사용 → 테스트 R²", round(m.score(A_te, b_te), 4))
+
+# ✏️ 이 모델로 '내일' 대여량을 예측하려면 무엇이 문제인지 옆 친구에게 설명해 보세요.
+</textarea></div>
+
+<p>반납량을 넣자 테스트 R²가 <b>0.4048 → 0.9965</b>로 치솟았습니다. 하지만 내일 대여량을 예측하려는 시점에 내일의 반납량은 알 수 없으므로
+이 모델은 실제로 쓸 수 없습니다. 결과가 <b>믿기 어려울 만큼 좋다면</b> 먼저 누수를 의심해야 합니다.</p>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">탐구 활동</span>누수 탐정과 과대적합 진단 <i class="pub">YBM</i> <i class="pub">씨마스</i></div>
+  <div class="act-body">
+    <ol>
+      <li>다음 분석에서 데이터 누수가 있는지 판단하고, 있다면 이유를 쓰세요.
+        <div class="table-wrap"><table>
+          <thead><tr><th>분석 계획</th><th>누수? (O/X)</th><th>이유</th></tr></thead>
+          <tbody>
+            <tr><td>기말고사 점수를 예측하는데 입력에 ‘기말고사 과목별 석차’를 넣었다.</td><td></td><td></td></tr>
+            <tr><td>환자의 입원 여부를 예측하는데 입력에 ‘입원 중 처방된 약 개수’를 넣었다.</td><td></td><td></td></tr>
+            <tr><td>훈련 데이터로만 평균·표준편차를 구해 훈련·테스트 데이터를 표준화했다.</td><td></td><td></td></tr>
+            <tr><td>여러 k 값 중 테스트 정확도가 가장 높은 k를 골라 “테스트 정확도 0.95”라고 보고했다.</td><td></td><td></td></tr>
+          </tbody>
+        </table></div></li>
+      <li>다항 차수 실험기에서 훈련 데이터 10개일 때와 80개일 때, 테스트 오차가 가장 작은 차수를 각각 찾아 쓰고 차이가 생기는 이유를 설명하세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+      <li>한 친구가 “훈련 R² 0.99인 모델을 만들었어!”라고 자랑합니다. 이 모델이 좋은지 판단하기 위해 추가로 확인해야 할 것 두 가지를 쓰세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+    </ol>
+  </div>
+</div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  도입의 ‘답 외우기 vs 원리 이해’ 비유를 위젯의 차수 9(훈련 오차 0, 테스트 오차 폭발)와 연결하면 과대적합 개념이 빠르게 잡힙니다.
+  교차 검증은 학생 25명을 5모둠으로 나눠 ‘한 모둠씩 돌아가며 시험 감독’을 하는 역할극으로 설명할 수 있습니다.
+  Orange 학급은 <b>Test and Score</b> 위젯의 Cross validation(Number of folds)과 Test on train data 결과를 비교하게 합니다.
+  흔한 오개념: “훈련 점수가 높을수록 좋은 모델”, “교차 검증은 테스트 데이터를 여러 번 쓰는 것”(테스트 데이터는 따로 떼어 둠), “R²는 맞힌 비율(정확도)”.
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>과소적합은 훈련·테스트 성능이 모두 낮고, 과대적합은 훈련 성능은 높은데 테스트 성능이 낮다.</li>
+    <li>모델이 복잡할수록, 데이터가 적을수록 과대적합이 일어나기 쉽다 — 데이터를 늘리거나 복잡도를 줄인다.</li>
+    <li>k-겹 교차 검증은 훈련 데이터를 k묶음으로 나눠 돌아가며 검증해, 운에 덜 좌우되는 성능으로 모델 설정을 고르게 한다.</li>
+    <li>테스트 데이터는 마지막에 한 번만 쓴다. 미래 정보·테스트 정보가 학습에 섞이는 데이터 누수를 경계하고, 너무 좋은 결과는 의심한다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 다항 차수 실험기 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const cv = $("of-canvas"), ctx = cv.getContext("2d"), W = cv.width, H = cv.height, P = 26;
+  const cc = $("of-curve"), c2 = cc.getContext("2d"), CW = cc.width, CH = cc.height;
+  const YMIN = -0.2, YMAX = 1.2, MAXD = 9, NOISE = 0.13;
+  const truth = x => 0.5 + 0.32 * Math.sin(5.2 * x - 0.6) + 0.12 * x;
+  let seed = 11, train = [], test = [];
+
+  function rng(s){ return () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function sample(){
+    const r = rng(seed), g = () => { let u = 0; while (!u) u = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * r()); };
+    const n = +$("of-n").value;
+    train = []; test = [];
+    for (let i = 0; i < n; i++){ const x = 0.03 + 0.94 * r(); train.push({ x, y: truth(x) + g() * NOISE }); }
+    for (let i = 0; i < 150; i++){ const x = 0.03 + 0.94 * r(); test.push({ x, y: truth(x) + g() * NOISE }); }
+  }
+
+  // 최소제곱 다항식: x를 [-1,1]로 옮겨 정규방정식을 가우스 소거로 풂
+  const tr = x => 2 * x - 1;
+  function fit(pts, d){
+    const m = d + 1, A = Array.from({ length: m }, () => new Array(m).fill(0)), b = new Array(m).fill(0);
+    pts.forEach(p => {
+      const t = tr(p.x), pw = [1];
+      for (let i = 1; i < m; i++) pw.push(pw[i - 1] * t);
+      for (let i = 0; i < m; i++){ b[i] += pw[i] * p.y; for (let j = 0; j < m; j++) A[i][j] += pw[i] * pw[j]; }
+    });
+    for (let i = 0; i < m; i++) A[i][i] += 1e-10;        // 아주 작은 값으로 수치 안정화
+    for (let c = 0; c < m; c++){
+      let piv = c; for (let r = c + 1; r < m; r++) if (Math.abs(A[r][c]) > Math.abs(A[piv][c])) piv = r;
+      [A[c], A[piv]] = [A[piv], A[c]]; [b[c], b[piv]] = [b[piv], b[c]];
+      for (let r = c + 1; r < m; r++){ const f = A[r][c] / A[c][c]; for (let k = c; k < m; k++) A[r][k] -= f * A[c][k]; b[r] -= f * b[c]; }
+    }
+    const w = new Array(m).fill(0);
+    for (let i = m - 1; i >= 0; i--){ let s = b[i]; for (let k = i + 1; k < m; k++) s -= A[i][k] * w[k]; w[i] = s / A[i][i]; }
+    return x => { const t = tr(x); let s = 0, p = 1; for (let i = 0; i < m; i++){ s += w[i] * p; p *= t; } return s; };
+  }
+  const mse = (f, pts) => pts.reduce((s, p) => s + (f(p.x) - p.y) ** 2, 0) / pts.length;
+
+  const px = x => P + x * (W - 2 * P), py = y => H - P - (y - YMIN) / (YMAX - YMIN) * (H - 2 * P);
+
+  function render(){
+    const d = +$("of-deg").value;
+    $("of-deg-v").textContent = d;
+    const f = fit(train, d);
+    // 모든 차수의 오차
+    const errs = [];
+    for (let k = 0; k <= MAXD; k++){ const g = fit(train, k); errs.push({ k, tr: Math.max(mse(g, train), 1e-6), te: mse(g, test) }); }
+    const best = errs.reduce((a, b) => b.te < a.te ? b : a);
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.save(); ctx.beginPath(); ctx.rect(P, P - 10, W - 2 * P, H - 2 * P + 10); ctx.clip();
+    if ($("of-true").checked){
+      ctx.setLineDash([6, 5]); ctx.strokeStyle = "#8595a6"; ctx.lineWidth = 2; ctx.beginPath();
+      for (let i = 0; i <= 200; i++){ const x = i / 200; i ? ctx.lineTo(px(x), py(truth(x))) : ctx.moveTo(px(x), py(truth(x))); }
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+    ctx.strokeStyle = "#d97706"; ctx.lineWidth = 3; ctx.beginPath();
+    for (let i = 0; i <= 300; i++){ const x = i / 300; const y = Math.max(YMIN - 5, Math.min(YMAX + 5, f(x))); i ? ctx.lineTo(px(x), py(y)) : ctx.moveTo(px(x), py(y)); }
+    ctx.stroke();
+    ctx.restore();
+    if ($("of-test").checked) test.forEach(p => { ctx.beginPath(); ctx.arc(px(p.x), py(p.y), 3.2, 0, Math.PI * 2); ctx.strokeStyle = "#2e86de99"; ctx.lineWidth = 1.3; ctx.stroke(); });
+    train.forEach(p => { ctx.beginPath(); ctx.arc(px(p.x), py(p.y), 5, 0, Math.PI * 2); ctx.fillStyle = "#1e2733"; ctx.fill(); });
+    ctx.strokeStyle = "#c9d2dc"; ctx.lineWidth = 1; ctx.strokeRect(P, P, W - 2 * P, H - 2 * P);
+    ctx.fillStyle = "#4b5a6b"; ctx.font = "12px sans-serif"; ctx.fillText(`차수 ${d} 다항식`, P + 6, P + 16);
+
+    const e = errs[d];
+    $("of-tr").textContent = e.tr < 1e-5 ? "≈ 0" : e.tr.toFixed(4);
+    $("of-te").textContent = e.te > 99 ? "> 99" : e.te.toFixed(4);
+
+    // 오차 곡선
+    c2.clearRect(0, 0, CW, CH);
+    const L = 44, R = 12, T = 12, B = 30;
+    const lo = Math.max(Math.log10(Math.min(...errs.map(o => o.tr))) - 0.1, -4), hi = Math.min(Math.log10(Math.max(...errs.map(o => o.te))) + 0.1, 2);
+    const X = k => L + k / MAXD * (CW - L - R), Y = v => T + (hi - Math.max(lo, Math.min(hi, Math.log10(v)))) / (hi - lo) * (CH - T - B);
+    c2.strokeStyle = "#dde4ec"; c2.strokeRect(L, T, CW - L - R, CH - T - B);
+    c2.fillStyle = "#eafaf0"; c2.fillRect(X(best.k) - 9, T, 18, CH - T - B);
+    const line = (key, col, dash) => { c2.setLineDash(dash); c2.strokeStyle = col; c2.lineWidth = 2; c2.beginPath(); errs.forEach((o, i) => i ? c2.lineTo(X(o.k), Y(o[key])) : c2.moveTo(X(o.k), Y(o[key]))); c2.stroke(); c2.setLineDash([]);
+      errs.forEach(o => { c2.beginPath(); c2.arc(X(o.k), Y(o[key]), o.k === d ? 5 : 3, 0, Math.PI * 2); c2.fillStyle = col; c2.fill(); }); };
+    line("tr", "#1e2733", []); line("te", "#2e86de", [5, 4]);
+    c2.fillStyle = "#4b5a6b"; c2.font = "11px sans-serif"; c2.textAlign = "center";
+    for (let k = 0; k <= MAXD; k++) c2.fillText(k, X(k), CH - 14);
+    c2.fillText("다항식 차수", (L + CW - R) / 2, CH - 2);
+    c2.textAlign = "left";
+    c2.fillStyle = "#1e2733"; c2.fillText("— 훈련 오차", L + 6, T + 14); c2.fillStyle = "#2e86de"; c2.fillText("- - 테스트 오차", L + 86, T + 14);
+    c2.save(); c2.translate(12, (T + CH - B) / 2); c2.rotate(-Math.PI / 2); c2.textAlign = "center"; c2.fillStyle = "#4b5a6b"; c2.fillText("MSE (로그)", 0, 0); c2.restore();
+    c2.strokeStyle = "#d97706"; c2.lineWidth = 1.5; c2.beginPath(); c2.moveTo(X(d), T); c2.lineTo(X(d), CH - B); c2.stroke();
+
+    const v = $("of-verdict");
+    const gap = e.te / Math.max(e.tr, 1e-6);
+    if (d < best.k && e.te > best.te * 1.25){ v.className = "of-verdict under"; v.textContent = `과소적합 쪽 — 곡선이 너무 단순해 데이터의 굴곡을 충분히 따라가지 못합니다. (이 표본에서 테스트 오차가 가장 작은 차수는 ${best.k})`; }
+    else if (d > best.k && e.te > best.te * 1.25){ v.className = "of-verdict over"; v.textContent = `과대적합 쪽 — 훈련 오차는 작지만 테스트 오차가 커졌습니다(${gap > 50 ? "50배 이상" : gap.toFixed(1) + "배"}). 잡음까지 외우고 있어요. (가장 좋은 차수는 ${best.k})`; }
+    else { v.className = "of-verdict good"; v.textContent = `적절한 적합 — 테스트 오차가 가장 작은 차수(${best.k})와 비슷한 수준입니다.`; }
+  }
+
+  $("of-deg").addEventListener("input", render);
+  $("of-n").addEventListener("change", () => { sample(); render(); });
+  $("of-test").addEventListener("change", render);
+  $("of-true").addEventListener("change", render);
+  $("of-new").addEventListener("click", () => { seed = Math.floor(Math.random() * 1e9); sample(); render(); });
+  sample(); render();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"다음 중 과대적합이 의심되는 모델은?",
+    choices:["훈련 R² 0.45, 테스트 R² 0.43","훈련 R² 0.98, 테스트 R² 0.41","훈련 R² 0.72, 테스트 R² 0.70","훈련 R² 0.30, 테스트 R² 0.28","훈련 R² 0.65, 테스트 R² 0.66"], answer:1,
+    explain:"훈련 성능은 매우 높은데 테스트 성능이 크게 낮으면 훈련 데이터의 잡음까지 외운 과대적합입니다. ①④는 둘 다 낮아 과소적합에 가깝습니다." },
+  { type:"ox", q:"k-겹 교차 검증에서는 테스트 데이터를 k개로 나누어 k번 평가한다.",
+    answer:false, explain:"교차 검증은 훈련 데이터를 k묶음으로 나누어 돌아가며 검증합니다. 테스트 데이터는 따로 떼어 두었다가 모델을 모두 정한 뒤 마지막에 한 번만 씁니다." },
+  { type:"mc", q:"5겹 교차 검증의 폴드별 R²가 0.60, 0.70, 0.65, 0.75, 0.80이었다. 교차 검증 평균 R²는?",
+    choices:["0.65","0.68","0.70","0.72","0.75"], answer:2,
+    explain:"(0.60 + 0.70 + 0.65 + 0.75 + 0.80) ÷ 5 = 3.50 ÷ 5 = 0.70입니다. 폴드마다 0.60~0.80으로 차이가 있으므로 한 번만 나눠 평가하면 운에 따라 점수가 크게 달라질 수 있습니다." },
+  { type:"mc", q:"다음 중 데이터 누수에 해당하는 것은?",
+    choices:["random_state를 고정해 데이터를 나눈다","훈련 데이터로만 표준화 기준을 정한다","내일 날씨로 내일 매출을 예측하면서, 입력에 ‘내일 실제 방문객 수’를 넣는다","교차 검증으로 트리 깊이를 고른다","테스트 데이터를 마지막에 한 번만 사용한다"], answer:2,
+    explain:"내일 실제 방문객 수는 예측하는 시점에 알 수 없는 미래 정보입니다. 이런 정보를 넣으면 평가 점수는 좋아지지만 실제로는 쓸 수 없는 모델이 됩니다." },
+  { type:"short", q:"의사결정트리의 최대 깊이를 정해야 한다. 테스트 데이터를 쓰지 않고 적절한 깊이를 고르는 방법과 그 이유를 설명하세요.",
+    model:"훈련 데이터에 대해 k-겹 교차 검증(예: 5겹)을 하여 깊이별 평균 검증 점수를 비교하고, 평균 점수가 가장 높은(또는 비슷하면 더 단순한) 깊이를 고른다. 테스트 데이터로 깊이를 고르면 테스트 데이터가 모델 선택에 쓰여 최종 성능이 부풀려지는 데이터 누수가 생기기 때문이다. 깊이를 정한 뒤 훈련 데이터 전체로 학습하고 테스트 데이터로 한 번만 평가한다." },
+]);
+</script>
+</body>
+</html>

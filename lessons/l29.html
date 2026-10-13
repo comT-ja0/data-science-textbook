@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>기계학습 회귀: 경사 하강법 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 경사 하강법 실행기 */
+.gd-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media (max-width:760px){ .gd-grid { grid-template-columns:1fr; } }
+.gd-panel { border:1px solid var(--line); border-radius:10px; background:#fff; padding:6px; }
+.gd-panel .cap { font-size:.78rem; font-weight:800; color:var(--ink-soft); margin:2px 4px 4px; }
+.gd-panel svg, .gd-panel canvas { width:100%; height:auto; display:block; }
+.gd-ctrl { display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; margin:12px 0 6px; }
+.gd-ctrl .lr { flex:1 1 260px; font-size:.88rem; font-weight:700; }
+.gd-ctrl .lr input { width:100%; }
+.gd-msg { margin-top:10px; padding:9px 14px; border-radius:10px; font-size:.88rem; font-weight:700; background:var(--accent-soft); }
+.gd-msg.bad { background:#fdeeee; color:#b32424; }
+.gd-msg.good { background:#eafaf0; color:#127a3c; }
+.split-bar { display:flex; height:28px; border-radius:8px; overflow:hidden; font-size:.8rem; font-weight:800; color:#fff; margin:12px 0; }
+.split-bar div { display:flex; align-items:center; justify-content:center; }
+</style>
+</head>
+<body data-unit="3" data-lesson="L29">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>기계학습 회귀: 경사 하강법</h1>
+  <span class="std-badge">성취기준 12데과03-02</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>기계학습에서 ‘학습’이 손실 함수(MSE)를 줄이도록 모델의 매개변수를 고쳐 가는 과정임을 설명할 수 있다.</li>
+      <li>경사 하강법의 원리와 학습률의 역할을 설명하고, 학습률에 따른 결과 차이를 비교할 수 있다.</li>
+      <li>훈련·테스트 데이터로 나누어 회귀 모델을 학습시키고, 처음 보는 데이터에서 예측 성능을 평가할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과03-02] 동일한 데이터를 통계적 회귀 모델과 기계학습을 통한 회귀 모델로 분석하여 결과 해석 내용을 비교한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span>수집</span><span>전처리</span><span>탐색</span><span class="on">모델링</span><span class="on">평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  짙은 안개가 낀 산 위에서 길을 잃었다고 상상해 보세요. 앞이 보이지 않아 산 전체 지도를 그릴 수는 없습니다.
+  그래도 발밑의 경사는 느낄 수 있지요. <b>가장 가파르게 내려가는 쪽으로 한 걸음씩</b> 옮기다 보면 결국 골짜기 바닥에 도착합니다.
+  지난 차시의 최소제곱법이 ‘지도를 보고 한 번에 바닥 위치를 계산하는 방법’이었다면,
+  오늘 배울 경사 하강법은 ‘발밑의 기울기만 보고 조금씩 내려가는 방법’입니다. 기계학습 모델은 대부분 이렇게 학습합니다.
+</div>
+
+<h2><span class="sec-no">1</span>기계학습에서 ‘학습’이란 <i class="pub-c">공통</i></h2>
+
+<p>기계학습 회귀 모델도 ŷ = w·x + b 꼴의 식을 씁니다. 기계학습에서는 기울기를 <span class="keyterm">가중치(weight) w</span>, 절편을 <span class="keyterm">편향(bias) b</span>이라고 부르는 경우가 많습니다.
+처음에는 w와 b를 아무 값(예: 0)으로 두고, 예측이 얼마나 틀렸는지를 재어 조금씩 고쳐 나갑니다. 이 과정이 <span class="keyterm">학습(훈련)</span>입니다.</p>
+
+<p>“얼마나 틀렸는지”를 하나의 숫자로 재는 식을 <span class="keyterm">손실 함수(loss function)</span>라고 합니다. 회귀에서는 주로 <b>평균 제곱 오차(MSE)</b>를 씁니다.</p>
+
+<span class="formula">MSE = (1/n) × Σ(y − ŷ)²
+<small>오차 제곱합(SSE)을 데이터 개수 n으로 나눈 값입니다. MSE를 가장 작게 하는 w, b는 SSE를 가장 작게 하는 w, b와 같습니다. 곧 최소제곱법과 목표가 같습니다.</small></span>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:120px"></th><th>통계적 회귀(최소제곱 공식)</th><th>기계학습 회귀(경사 하강법)</th></tr></thead>
+  <tbody>
+    <tr><td><b>찾는 방법</b></td><td>공식으로 <b>한 번에</b> 계산</td><td>손실이 줄어드는 방향으로 <b>반복해서</b> 조금씩 이동</td></tr>
+    <tr><td><b>목표</b></td><td colspan="2" style="text-align:center">오차 제곱의 합(평균)을 가장 작게 — <b>같은 답</b>에 도착</td></tr>
+    <tr><td><b>장점</b></td><td>정확하고 빠름(선형 회귀처럼 공식이 있을 때)</td><td>공식이 없는 복잡한 모델(신경망 등)에도 쓸 수 있음</td></tr>
+  </tbody>
+</table></div>
+
+<h2><span class="sec-no">2</span>경사 하강법과 학습률 <i class="pub-c">공통</i></h2>
+
+<p><span class="keyterm">경사 하강법(gradient descent)</span>은 손실 함수의 기울기(경사)를 계산해 <b>손실이 줄어드는 반대 방향</b>으로 매개변수를 조금 옮기는 일을 반복하는 방법입니다.
+한 번에 얼마나 옮길지를 정하는 값이 <span class="keyterm">학습률(learning rate)</span>입니다.</p>
+
+<span class="formula">w ← w − 학습률 × (∂MSE/∂w)　　b ← b − 학습률 × (∂MSE/∂b)
+<small>∂MSE/∂w = −(2/n)·Σ x(y − ŷ),　∂MSE/∂b = −(2/n)·Σ (y − ŷ). 기울기가 음수(내리막이 오른쪽)면 w를 키우고, 양수면 w를 줄입니다.</small></span>
+
+<h3>한 걸음 손으로 계산해 보기</h3>
+<p>지난 차시의 5명 데이터(공부시간 1~5시간, 성적 55·60·70·75·90점)로 w = 0, b = 0, 학습률 0.01에서 시작합니다.</p>
+<ul>
+  <li>처음 예측은 모두 0점이므로 오차는 55, 60, 70, 75, 90. MSE = (55² + 60² + 70² + 75² + 90²) ÷ 5 = 25250 ÷ 5 = <b>5050</b></li>
+  <li>∂MSE/∂w = −(2/5) × (1×55 + 2×60 + 3×70 + 4×75 + 5×90) = −(2/5) × 1135 = <b>−454</b></li>
+  <li>∂MSE/∂b = −(2/5) × (55 + 60 + 70 + 75 + 90) = −(2/5) × 350 = <b>−140</b></li>
+  <li>새 w = 0 − 0.01 × (−454) = <b>4.54</b>, 새 b = 0 − 0.01 × (−140) = <b>1.4</b> → MSE는 약 <b>3059.7</b>로 줄어듭니다.</li>
+</ul>
+<p>이 걸음을 계속 반복하면 w와 b는 지난 차시에 공식으로 구한 <b>8.5와 44.5</b>에 점점 가까워집니다. 아래 실행기로 직접 확인해 보세요.</p>
+
+<div class="sim">
+  <div class="sim-head">경사 하강법 실행기 — 학습률을 바꾸며 골짜기 바닥 찾기</div>
+  <div class="sim-body">
+    <div class="gd-grid">
+      <div class="gd-panel"><div class="cap">① 데이터와 현재 직선 (주황) · 정답 직선 (점선)</div><svg id="gd-data" viewBox="0 0 320 230"></svg></div>
+      <div class="gd-panel"><div class="cap">② 손실 지형(w–b 평면, 어두울수록 MSE 작음)과 이동 경로</div><canvas id="gd-land" width="320" height="230"></canvas></div>
+    </div>
+    <div class="gd-ctrl">
+      <div class="lr">학습률 = <span id="lr-val"></span><input type="range" id="lr" min="0" max="7" step="1" value="2"></div>
+      <button id="gd-step">한 걸음</button>
+      <button id="gd-step10" class="ghost">10걸음</button>
+      <button id="gd-run" class="ghost">▶ 자동 실행</button>
+      <button id="gd-reset" class="gray">처음으로</button>
+    </div>
+    <div class="gd-panel"><div class="cap">③ 반복 횟수에 따른 손실(MSE, 로그 눈금)</div><svg id="gd-loss" viewBox="0 0 660 130"></svg></div>
+    <div class="sim-stats">
+      <div class="stat-chip">반복 <b id="gd-it">0</b></div>
+      <div class="stat-chip">w <b id="gd-w">0</b></div>
+      <div class="stat-chip">b <b id="gd-b">0</b></div>
+      <div class="stat-chip">MSE <b id="gd-mse">—</b></div>
+      <div class="stat-chip">목표: w 8.5, b 44.5, MSE 5.5</div>
+    </div>
+    <div class="gd-msg" id="gd-msg"></div>
+    <p class="widget-hint">실험: 학습률 0.001(너무 작음), 0.05(적당함), 0.085·0.09(너무 큼)를 각각 실행해 보세요. 손실 지형에서 경로가 처음엔 한 방향으로 빠르게, 그 뒤 골짜기를 따라 천천히 움직이는 모습도 관찰해 보세요.</p>
+  </div>
+</div>
+
+<div class="cards">
+  <div class="cardbox"><h4>학습률이 너무 작으면</h4><p>한 걸음이 너무 짧아 바닥까지 <b>아주 오래</b> 걸린다. 정해진 반복 횟수 안에 도착하지 못할 수 있다.</p></div>
+  <div class="cardbox"><h4>학습률이 적당하면</h4><p>손실이 빠르게 줄어들다 바닥 근처에서 안정된다. 최소제곱 해와 <b>같은 답</b>에 도착한다.</p></div>
+  <div class="cardbox"><h4>학습률이 너무 크면</h4><p>바닥을 지나쳐 반대편으로 튀어 오르며 손실이 오히려 커진다. 계속되면 값이 폭발하는 <b>발산</b>이 일어난다.</p></div>
+</div>
+
+<h2><span class="sec-no">3</span>훈련 데이터와 테스트 데이터 <i class="pub-c">공통</i></h2>
+
+<p>기계학습의 목적은 <b>이미 본 데이터를 잘 맞히는 것이 아니라, 처음 보는 데이터를 잘 예측하는 것</b>입니다.
+시험 문제를 미리 보고 공부하면 점수가 높아도 실력을 알 수 없듯이, 모델을 학습시킨 데이터로 채점하면 성능을 믿을 수 없습니다.
+그래서 데이터를 둘로 나눕니다.</p>
+
+<div class="split-bar"><div style="width:80%;background:#3a7bd5">훈련 데이터 80% — 모델 학습(w, b 찾기)</div><div style="width:20%;background:#e8883a">테스트 20%</div></div>
+
+<ul>
+  <li><span class="keyterm">훈련 데이터</span>: 경사 하강법으로 w, b를 찾는 데 쓴다.</li>
+  <li><span class="keyterm">테스트 데이터</span>: 학습이 끝날 때까지 <b>절대 보여 주지 않았다가</b> 마지막에 예측 성능을 평가하는 데만 쓴다.</li>
+  <li>무작위로 나누되 <code>random_state</code>(난수 씨앗)를 고정하면 누가 실행해도 같은 방식으로 나뉘어 결과를 다시 확인(재현)할 수 있다.</li>
+</ul>
+
+<div class="box box-warn">
+  <span class="box-label">데이터 누수 주의</span>
+  평균·표준편차로 표준화할 때도 <b>훈련 데이터로만</b> 평균과 표준편차를 구해야 합니다. 테스트 데이터의 정보가 학습에 섞여 들어가면(데이터 누수) 성능이 실제보다 좋게 나옵니다.
+</div>
+
+<h2><span class="sec-no">4</span>파이썬 실습: 기온으로 자전거 대여량 예측하기 <i class="pub-c">공통</i> <i class="pub">삼양</i></h2>
+
+<p><code>bike.csv</code>의 기온(x)으로 대여량(y)을 예측하는 회귀 모델을 ① 경사 하강법을 numpy로 직접 구현해서, ② scikit-learn으로 만들어 비교합니다.</p>
+
+<div class="pycell" data-title="① 데이터를 훈련·테스트로 나누기"><textarea>
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+
+bike = load_csv("bike.csv")
+X = bike[["기온"]]            # 독립 변수(2차원 표 모양)
+y = bike["대여량"]            # 종속 변수
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+print("훈련:", len(X_train), "일 / 테스트:", len(X_test), "일")
+print("훈련 데이터 기온 평균:", round(X_train["기온"].mean(), 2))
+
+# ✏️ random_state를 다른 숫자로 바꾸면 훈련 데이터 기온 평균이 달라지나요? 다시 42로 되돌려 두세요.
+</textarea></div>
+
+<p>기온은 −8℃부터 34℃까지 범위가 넓어서 그대로 경사 하강법을 쓰면 학습률을 아주 작게 해야 하고 반복도 많이 필요합니다.
+그래서 기온을 <b>표준화</b>(평균 0, 표준편차 1)한 뒤 학습하고, 끝나면 원래 단위의 기울기·절편으로 되돌립니다.</p>
+
+<div class="pycell" data-title="② 경사 하강법 직접 구현하기"><textarea>
+x = X_train["기온"].values
+t = y_train.values
+mu, sd = x.mean(), x.std()          # 훈련 데이터로만 평균·표준편차 계산
+z = (x - mu) / sd                    # 표준화한 기온
+
+w, b = 0.0, 0.0
+lr = 0.1                             # 학습률
+history = []
+for step in range(1, 301):
+    pred = w * z + b
+    err = t - pred
+    dw = -2 * np.mean(z * err)       # MSE를 w로 미분한 값
+    db = -2 * np.mean(err)           # MSE를 b로 미분한 값
+    w -= lr * dw
+    b -= lr * db
+    history.append(np.mean(err ** 2))
+    if step in (1, 10, 50, 100, 300):
+        print(f"{step:4d}번째  MSE {history[-1]:12.1f}")
+
+# 표준화 단위 → 원래 단위(℃당 대여량)로 되돌리기
+w_gd = w / sd
+b_gd = b - w * mu / sd
+print(f"\n경사 하강법 결과: 대여량 = {w_gd:.3f} × 기온 + {b_gd:.3f}")
+
+# ✏️ lr을 0.01, 0.5, 1.05로 바꾸어 실행해 보세요. 300번 안에 수렴하나요, 발산하나요?
+</textarea></div>
+
+<p>이번에는 scikit-learn의 <code>LinearRegression</code>으로 같은 훈련 데이터를 학습합니다.
+<code>LinearRegression</code>은 경사 하강법처럼 반복하지 않고 <b>최소제곱 해를 행렬 계산으로 바로 구합니다</b>.
+반면 <code>SGDRegressor</code>는 경사 하강법(데이터를 조금씩 나누어 쓰는 확률적 경사 하강법)으로 반복 학습하는 모델입니다.</p>
+
+<div class="pycell" data-title="③ scikit-learn과 비교하고 테스트 데이터로 평가하기"><textarea>
+from sklearn.linear_model import LinearRegression, SGDRegressor
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_squared_error, r2_score
+
+lr_model = LinearRegression()
+lr_model.fit(X_train, y_train)                       # 최소제곱 해를 바로 계산
+print(f"LinearRegression : 대여량 = {lr_model.coef_[0]:.3f} × 기온 + {lr_model.intercept_:.3f}")
+print(f"직접 구현 경사 하강법: 대여량 = {w_gd:.3f} × 기온 + {b_gd:.3f}")
+
+scaler = StandardScaler().fit(X_train)               # 훈련 데이터로만 표준화 기준 학습
+sgd = SGDRegressor(max_iter=1000, tol=1e-6, random_state=42)
+sgd.fit(scaler.transform(X_train), y_train)
+w_sgd = sgd.coef_[0] / scaler.scale_[0]
+b_sgd = sgd.intercept_[0] - sgd.coef_[0] * scaler.mean_[0] / scaler.scale_[0]
+print(f"SGDRegressor      : 대여량 = {w_sgd:.3f} × 기온 + {b_sgd:.3f}")
+
+pred = lr_model.predict(X_test)                      # 처음 보는 테스트 데이터로 평가
+mse = mean_squared_error(y_test, pred)
+print(f"\n[테스트 {len(y_test)}일] MSE {mse:.0f}, RMSE {np.sqrt(mse):.0f}대, R² {r2_score(y_test, pred):.3f}")
+print("기온 25℃일 때 예측 대여량:", round(lr_model.predict(pd.DataFrame({"기온": [25]}))[0]), "대")
+
+# ✏️ test_size를 0.3으로 바꾸면 테스트 성능은 어떻게 달라지나요?
+</textarea></div>
+
+<div class="pycell" data-title="④ 학습 곡선과 예측 직선 그리기"><textarea>
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots(1, 2, figsize=(11, 4))
+ax[0].plot(range(1, len(history) + 1), history, color="#e8883a")
+ax[0].set_yscale("log"); ax[0].set_title("경사 하강법 학습 곡선")
+ax[0].set_xlabel("반복 횟수"); ax[0].set_ylabel("훈련 MSE(로그 눈금)")
+
+ax[1].scatter(X_train["기온"], y_train, s=10, alpha=0.4, label="훈련 데이터")
+ax[1].scatter(X_test["기온"], y_test, s=16, color="#d94848", label="테스트 데이터")
+xs = np.linspace(-9, 35, 50)
+ax[1].plot(xs, lr_model.coef_[0] * xs + lr_model.intercept_, color="black", label="학습한 직선")
+ax[1].set_xlabel("기온(℃)"); ax[1].set_ylabel("대여량"); ax[1].legend()
+ax[1].set_title("기온–대여량 선형 회귀")
+plt.tight_layout(); plt.show()
+
+# ✏️ 산점도를 보면 직선이 잘 맞지 않는 구간이 있나요? 어떤 모델이 더 알맞을지 생각해 보세요.
+</textarea></div>
+
+<p id="gd-result">실행 결과를 정리해 봅시다. 직접 구현한 경사 하강법은 약 50번 반복하자 훈련 MSE가 더 줄어들지 않는 바닥(약 912210)에 도착했고,
+최종 식 <code>대여량 = 50.972 × 기온 + 2848.372</code>는 <code>LinearRegression</code>이 한 번에 계산한 답과 소수점 셋째 자리까지 같습니다.
+<code>SGDRegressor</code>도 거의 같은 값(약 51.1, 2846.5)을 찾았습니다. 세 방법은 <b>계산하는 길만 다를 뿐, MSE를 가장 작게 하는 같은 답</b>에 도착합니다.
+기울기 약 51은 “기온이 1℃ 높은 날 대여량이 평균 약 51대 많은 경향”을 뜻합니다.
+처음 보는 테스트 73일에 대해서는 RMSE 약 798대, R² 0.435였습니다. 예측이 평균적으로 800대 가까이 빗나가고, 대여량 흩어짐의 절반도 설명하지 못한다는 뜻입니다.
+산점도를 보면 기온이 아주 높은 날 대여량이 다시 줄어드는 <b>곡선 관계</b>가 보이므로, 다음 차시들에서 변수를 늘리거나 다른 모델을 써서 개선해 봅니다.</p>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">탐구 활동</span>학습률 실험 보고서</div>
+  <div class="act-body">
+    <ol>
+      <li>경사 하강법 실행기에서 학습률을 바꾸어 가며 표를 채우세요.
+        <div class="table-wrap"><table>
+          <thead><tr><th>학습률</th><th>100번 반복 후 MSE</th><th>w, b</th><th>수렴 / 느림 / 발산</th></tr></thead>
+          <tbody><tr><td>0.001</td><td></td><td></td><td></td></tr><tr><td>0.01</td><td></td><td></td><td></td></tr><tr><td>0.05</td><td></td><td></td><td></td></tr><tr><td>0.09</td><td></td><td></td><td></td></tr></tbody>
+        </table></div></li>
+      <li>파이썬 셀 ②의 lr을 0.01, 0.5, 1.05로 바꾸어 300번째 MSE를 기록하고, 실행기의 결과와 공통점을 쓰세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+      <li>“선형 회귀는 공식이 있는데 왜 굳이 경사 하강법을 배울까?”라는 친구의 질문에 답해 보세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+    </ol>
+  </div>
+</div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  실행기에서 먼저 학습률 0.05로 목표값(8.5, 44.5)에 도착하는 모습을 보여 주고 “지난 시간 공식의 답과 같다”는 점을 확인시키세요. 흔한 오개념은 ① “경사 하강법이 최소제곱법보다 더 정확한 답을 준다”(같은 목표, 같은 답), ② “학습률은 클수록 빨리 배운다”(발산), ③ “훈련 데이터 점수가 곧 실력”입니다.
+  코딩이 어려운 학급은 Orange의 Linear Regression → Test and Score(Random Sampling 80%) 흐름으로 훈련·테스트 분할을 체험하게 하고, 스프레드시트에서 w, b를 한 행씩 갱신하는 표(반복 10행)를 만들어 경사 하강법을 손으로 따라가게 할 수 있습니다.
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>기계학습의 학습은 손실 함수(회귀에서는 주로 MSE)가 작아지도록 가중치 w와 편향 b를 반복해서 고치는 과정이다.</li>
+    <li>경사 하강법은 손실의 기울기 반대 방향으로 학습률만큼 이동한다. 학습률이 너무 작으면 느리고, 너무 크면 발산한다.</li>
+    <li>LinearRegression은 최소제곱 해를 바로 계산하고, 경사 하강법(SGDRegressor 등)은 반복으로 같은 답에 다가간다.</li>
+    <li>모델은 훈련 데이터로 학습하고, 한 번도 보지 않은 테스트 데이터로 평가한다. random_state로 분할을 재현할 수 있게 한다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 경사 하강법 실행기 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const XS = [1, 2, 3, 4, 5], YS = [55, 60, 70, 75, 90], N = 5;
+  const LRS = [0.001, 0.005, 0.01, 0.02, 0.05, 0.08, 0.085, 0.09];
+  const W_OPT = 8.5, B_OPT = 44.5;
+  const mse = (w, b) => XS.reduce((s, x, i) => s + (YS[i] - (w * x + b)) ** 2, 0) / N;
+  let w = 0, b = 0, it = 0, path = [[0, 0]], losses = [mse(0, 0)], timer = null, diverged = false, arrived = 0;
+
+  /* ② 손실 지형: 한 번만 그려 두고 경로만 덧그림 */
+  const cv = $("gd-land"), ctx = cv.getContext("2d");
+  const CW = cv.width, CH = cv.height;
+  const WMIN = -6, WMAX = 22, BMIN = -15, BMAX = 75;
+  const cx = w => (w - WMIN) / (WMAX - WMIN) * CW;
+  const cy = b => CH - (b - BMIN) / (BMAX - BMIN) * CH;
+  const base = ctx.createImageData(CW, CH);
+  (function(){
+    const lmin = Math.log(5.5), lmax = Math.log(mse(WMAX, BMAX));
+    for (let j = 0; j < CH; j++) for (let i = 0; i < CW; i++) {
+      const ww = WMIN + i / CW * (WMAX - WMIN), bb = BMAX - j / CH * (BMAX - BMIN);
+      let t = (Math.log(mse(ww, bb)) - lmin) / (lmax - lmin); t = Math.max(0, Math.min(1, t));
+      const band = Math.floor(t * 14) % 2 ? 10 : 0;          // 등고선 느낌의 띠
+      const k = (j * CW + i) * 4;
+      base.data[k] = 40 + 205 * t + band; base.data[k + 1] = 60 + 170 * t + band; base.data[k + 2] = 110 + 120 * t + band; base.data[k + 3] = 255;
+    }
+  })();
+  function drawLand(){
+    ctx.putImageData(base, 0, 0);
+    ctx.fillStyle = "rgba(255,255,255,.85)"; ctx.font = "11px sans-serif";
+    ctx.fillText("w →", CW - 30, CH - 6); ctx.fillText("b ↑", 4, 12);
+    ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.beginPath(); ctx.moveTo(cx(0), 0); ctx.lineTo(cx(0), CH); ctx.moveTo(0, cy(0)); ctx.lineTo(CW, cy(0)); ctx.stroke();
+    ctx.fillStyle = "#1f9d55"; ctx.beginPath(); ctx.arc(cx(W_OPT), cy(B_OPT), 5, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#e8883a"; ctx.lineWidth = 2; ctx.beginPath();
+    path.forEach((p, i) => { const X = Math.max(-50, Math.min(CW + 50, cx(p[0]))), Y = Math.max(-50, Math.min(CH + 50, cy(p[1]))); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
+    ctx.stroke();
+    const last = path[path.length - 1];
+    ctx.fillStyle = "#e8883a"; ctx.beginPath(); ctx.arc(Math.max(4, Math.min(CW - 4, cx(last[0]))), Math.max(4, Math.min(CH - 4, cy(last[1]))), 5, 0, 7); ctx.fill();
+  }
+
+  /* ① 데이터와 직선 */
+  function drawData(){
+    const W = 320, H = 230, L = 34, R = 8, T = 8, B = 24;
+    const px = x => L + (W - L - R) * x / 6, py = y => T + (H - T - B) * (1 - y / 110);
+    let h = "";
+    for (let y = 0; y <= 100; y += 20) h += `<line x1="${L}" x2="${W-R}" y1="${py(y)}" y2="${py(y)}" stroke="#eef1f5"/><text x="${L-4}" y="${py(y)+4}" font-size="10" text-anchor="end" fill="#8595a6">${y}</text>`;
+    for (let x = 0; x <= 6; x++) h += `<text x="${px(x)}" y="${H-8}" font-size="10" text-anchor="middle" fill="#8595a6">${x}</text>`;
+    h += `<line x1="${px(0)}" y1="${py(B_OPT)}" x2="${px(6)}" y2="${py(W_OPT*6+B_OPT)}" stroke="#1f9d55" stroke-dasharray="5 4" stroke-width="1.5"/>`;
+    const clip = y => Math.max(-200, Math.min(400, y));
+    h += `<line x1="${px(0)}" y1="${clip(py(b))}" x2="${px(6)}" y2="${clip(py(w*6+b))}" stroke="#e8883a" stroke-width="3"/>`;
+    XS.forEach((x, i) => { h += `<circle cx="${px(x)}" cy="${py(YS[i])}" r="5" fill="#3a7bd5"/>`; });
+    $("gd-data").innerHTML = `<defs><clipPath id="gdc"><rect x="${L}" y="${T}" width="${W-L-R}" height="${H-T-B}"/></clipPath></defs>` + h.replace(/(<line x1="[^"]*" y1="[^"]*" x2="[^"]*" y2="[^"]*" stroke="#e8883a"[^>]*>)/, '<g clip-path="url(#gdc)">$1</g>');
+  }
+
+  /* ③ 손실 곡선 */
+  function drawLoss(){
+    const W = 660, H = 130, L = 44, R = 10, T = 8, B = 20;
+    const n = Math.max(losses.length, 50);
+    const lg = v => Math.log10(Math.max(v, 1e-3));
+    const lo = 0, hi = Math.max(4, Math.min(12, Math.ceil(lg(Math.max(...losses)))));
+    const px = i => L + (W - L - R) * i / (n - 1), py = v => T + (H - T - B) * (1 - (Math.min(lg(v), hi) - lo) / (hi - lo));
+    let h = "";
+    for (let e = lo; e <= hi; e += (hi > 6 ? 2 : 1)) h += `<line x1="${L}" x2="${W-R}" y1="${py(10**e)}" y2="${py(10**e)}" stroke="#eef1f5"/><text x="${L-4}" y="${py(10**e)+4}" font-size="10" text-anchor="end" fill="#8595a6">1e${e}</text>`;
+    h += `<line x1="${L}" x2="${W-R}" y1="${py(5.5)}" y2="${py(5.5)}" stroke="#1f9d55" stroke-dasharray="4 3"/>`;
+    h += `<polyline fill="none" stroke="#e8883a" stroke-width="2" points="${losses.map((v, i) => px(i).toFixed(1) + "," + py(v).toFixed(1)).join(" ")}"/>`;
+    h += `<text x="${W-R}" y="${H-4}" font-size="10" text-anchor="end" fill="#8595a6">반복 ${losses.length - 1}회</text>`;
+    $("gd-loss").innerHTML = h;
+  }
+
+  function stats(){
+    const m = losses[losses.length - 1];
+    $("gd-it").textContent = it;
+    $("gd-w").textContent = Math.abs(w) < 1e6 ? w.toFixed(3) : w.toExponential(2);
+    $("gd-b").textContent = Math.abs(b) < 1e6 ? b.toFixed(3) : b.toExponential(2);
+    $("gd-mse").textContent = m < 1e6 ? m.toFixed(2) : m.toExponential(2);
+    const msg = $("gd-msg");
+    if (diverged){ msg.className = "gd-msg bad"; msg.textContent = "💥 발산! 학습률이 너무 커서 바닥을 지나쳐 점점 더 멀리 튕겨 나갔습니다. 학습률을 줄이고 ‘처음으로’를 누르세요."; }
+    else if (it > 1 && losses[losses.length - 1] > losses[losses.length - 2]){ msg.className = "gd-msg bad"; msg.textContent = "⚠ 손실이 커지고 있습니다. 학습률이 너무 큰 것 같아요."; }
+    else if (arrived && Math.abs(w - W_OPT) < 0.01 && Math.abs(b - B_OPT) < 0.01){ msg.className = "gd-msg good"; msg.textContent = `✔ ${arrived}번 반복 만에 최소제곱 해(w = 8.5, b = 44.5)에 도착했습니다! 공식으로 한 번에 구한 답과 같습니다.`; }
+    else if (it === 0){ msg.className = "gd-msg"; msg.textContent = "w = 0, b = 0에서 출발합니다. ‘한 걸음’을 눌러 보세요."; }
+    else { msg.className = "gd-msg"; msg.textContent = `기울기 방향으로 이동 중… 목표까지 w는 ${(W_OPT - w).toFixed(2)}, b는 ${(B_OPT - b).toFixed(2)} 남았습니다.`; }
+  }
+  function draw(){ drawData(); drawLand(); drawLoss(); stats(); }
+
+  function step(k){
+    const lr = LRS[+$("lr").value];
+    for (let s = 0; s < k && !diverged; s++) {
+      let gw = 0, gb = 0;
+      XS.forEach((x, i) => { const e = YS[i] - (w * x + b); gw += -2 * x * e / N; gb += -2 * e / N; });
+      w -= lr * gw; b -= lr * gb; it++;
+      const m = mse(w, b);
+      path.push([w, b]); losses.push(m);
+      if (!isFinite(m) || m > 1e12) diverged = true;
+      if (!arrived && Math.abs(w - W_OPT) < 0.01 && Math.abs(b - B_OPT) < 0.01) arrived = it;
+    }
+    if (diverged) stop();
+    draw();
+  }
+  function stop(){ if (timer){ clearInterval(timer); timer = null; } $("gd-run").textContent = "▶ 자동 실행"; }
+  function reset(){ stop(); w = 0; b = 0; it = 0; path = [[0, 0]]; losses = [mse(0, 0)]; diverged = false; arrived = 0; draw(); }
+
+  $("lr").addEventListener("input", () => { $("lr-val").textContent = LRS[+$("lr").value]; reset(); });
+  $("gd-step").addEventListener("click", () => step(1));
+  $("gd-step10").addEventListener("click", () => step(10));
+  $("gd-run").addEventListener("click", () => {
+    if (timer){ stop(); return; }
+    $("gd-run").textContent = "⏸ 멈춤";
+    timer = setInterval(() => { step(it < 50 ? 1 : 5); if (it >= 3000) stop(); }, 60);
+  });
+  $("gd-reset").addEventListener("click", reset);
+  $("lr-val").textContent = LRS[+$("lr").value];
+  draw();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"경사 하강법에서 현재 w = 2, 손실의 기울기 ∂MSE/∂w = −10, 학습률 0.1일 때 한 걸음 뒤의 w는?",
+    choices:["1","2","3","12","−8"], answer:2,
+    explain:"w ← w − 학습률 × 기울기 = 2 − 0.1 × (−10) = 2 + 1 = 3입니다. 기울기가 음수이면 손실이 줄어드는 쪽은 w가 커지는 방향입니다." },
+  { type:"mc", q:"학습률을 너무 크게 설정했을 때 일어날 수 있는 일로 가장 알맞은 것은?",
+    choices:["손실이 한 번에 0이 된다","학습이 매우 느려진다","최솟값을 지나쳐 손실이 오히려 커지고 발산할 수 있다","테스트 데이터가 훈련에 섞인다","모델이 자동으로 곡선으로 바뀐다"], answer:2,
+    explain:"한 걸음이 너무 크면 골짜기 바닥을 지나 반대편으로 더 높이 튀어 오르며 손실이 커집니다. 계속되면 값이 폭발(발산)합니다. 학습이 느린 것은 학습률이 너무 작을 때입니다." },
+  { type:"ox", q:"같은 훈련 데이터에 대해 LinearRegression(최소제곱 해를 바로 계산)과 충분히 반복한 경사 하강법은 거의 같은 기울기와 절편을 얻는다.",
+    answer:true, explain:"두 방법은 모두 MSE(오차 제곱합)를 가장 작게 하는 w, b를 찾습니다. 하나는 공식으로 한 번에, 하나는 반복으로 다가갈 뿐 같은 답에 도착합니다." },
+  { type:"mc", q:"테스트 데이터에 대한 설명으로 옳은 것은?",
+    choices:["모델이 더 잘 학습하도록 훈련 데이터에 합쳐 사용한다","학습이 끝날 때까지 사용하지 않고 마지막 성능 평가에만 쓴다","표준화할 평균·표준편차를 구하는 데 쓴다","학습률을 계산하는 데 쓴다","데이터가 많으면 필요 없다"], answer:1,
+    explain:"테스트 데이터는 ‘처음 보는 문제’ 역할을 하므로 학습 과정(표준화 기준 계산 포함)에 섞이면 안 됩니다. 섞이면 데이터 누수로 성능이 부풀려집니다." },
+  { type:"short", q:"기계학습에서 데이터를 훈련 데이터와 테스트 데이터로 나누는 이유를, 시험 공부에 빗대어 설명하세요.",
+    model:"시험 문제를 미리 보고 외우면 그 시험 점수는 높아도 진짜 실력을 알 수 없다. 모델도 학습에 쓴 데이터로 채점하면 성능이 부풀려지므로, 학습에 쓰지 않은 테스트 데이터로 처음 보는 데이터를 얼마나 잘 예측하는지(일반화 성능) 확인하기 위해 나눈다." },
+]);
+</script>
+</body>
+</html>

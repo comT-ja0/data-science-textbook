@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>전처리 ② 이상치 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* IQR 울타리 계산기 */
+#iqr-svg { width:100%; height:auto; background:#fff; border:1px solid var(--line); border-radius:10px; touch-action:none; user-select:none; }
+#iqr-svg .pt { cursor:grab; }
+#iqr-svg .pt:active { cursor:grabbing; }
+.iqr-table { width:auto; min-width:280px; font-size:.86rem; margin:0; }
+.iqr-table td { padding:5px 10px; }
+.iqr-table td:last-child { text-align:right; font-variant-numeric:tabular-nums; font-weight:700; }
+.iqr-wrap { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:12px; }
+@media (max-width:760px){ .iqr-wrap { grid-template-columns:1fr; } }
+.iqr-msg { padding:10px 14px; border-radius:10px; background:var(--accent-soft); font-size:.9rem; }
+</style>
+</head>
+<body data-unit="2" data-lesson="L18">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>전처리 ② 이상치</h1>
+  <span class="std-badge">성취기준 12데과02-02</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>논리적 기준과 통계적 기준(IQR 1.5배 규칙)으로 이상치를 찾을 수 있다.</li>
+      <li>사분위수와 상자그림을 이용해 이상치의 경계(울타리)를 계산하고 해석할 수 있다.</li>
+      <li>이상치의 원인을 추론하여 수정·삭제·유지 중 알맞은 처리 방법을 선택하고, 처리 전후 결과를 비교할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과02-02] 이상치와 결측치 탐색 및 정규화를 통해 전처리하여 오류 가능성을 최소화하고, 데이터 분석을 위해 시각화한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span>수집</span><span class="on">전처리</span><span class="on">탐색</span><span>모델링</span><span>평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  지난 시간의 보건 조사 표를 다시 보니 이상한 값이 눈에 띕니다. 키가 <b>1712cm</b>인 학생, 몸무게가 <b>585kg</b>인 학생,
+  하루에 <b>42시간</b>을 잔 학생이 있습니다. 걸음 수가 <b>41250보</b>인 학생도 있네요.
+  이 값들은 모두 틀린 걸까요? 넷 중 셋은 누가 봐도 입력 실수 같은데, 마지막 하나는 어떨까요?
+  그날 그 학생이 마라톤 대회에 나갔다면요? 오늘은 <b>튀는 값을 찾고, 그 값을 어떻게 다룰지</b> 판단하는 방법을 배웁니다.
+</div>
+
+<h2><span class="sec-no">1</span>이상치란 무엇인가 <i class="pub-c">공통</i></h2>
+
+<p>다른 값들과 동떨어져 <b>유난히 크거나 작은 값</b>을 <span class="keyterm">이상치(outlier)</span>라고 합니다.
+이상치는 평균·표준편차·상관계수·회귀 직선처럼 모든 값을 더해 계산하는 통계를 크게 흔들어 놓습니다.
+그래서 분석 전에 이상치를 찾아 원인을 확인하는 것이 전처리의 중요한 단계입니다.
+그런데 이상치가 모두 ‘오류’는 아닙니다. 이상치가 생기는 이유는 크게 세 가지입니다.</p>
+
+<div class="cards">
+  <div class="cardbox"><h4>⌨️ 입력 오류</h4><p>소수점을 빠뜨리거나(171.2 → 1712) 단위를 헷갈려 적은 값. 원래 값을 추정해 <b>수정</b>할 수 있다.</p></div>
+  <div class="cardbox"><h4>📡 측정 오류</h4><p>센서 고장, 기기 오작동으로 생긴 값. 원래 값을 알 수 없으면 <b>삭제</b>하거나 결측으로 바꾼다.</p></div>
+  <div class="cardbox"><h4>🌟 실제로 드문 값</h4><p>마라톤을 뛴 날의 걸음 수처럼 진짜로 일어난 극단적인 값. 함부로 지우면 안 되며, 때로는 <b>가장 중요한 정보</b>다.</p></div>
+</div>
+
+<h2><span class="sec-no">2</span>논리적 기준과 통계적 기준 <i class="pub">천재</i></h2>
+
+<p>이상치를 찾는 기준은 두 가지로 나눌 수 있습니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:130px">기준</th><th>방법</th><th style="width:280px">예</th></tr></thead>
+  <tbody>
+    <tr><td><b>논리적 기준</b></td><td>상식이나 정의상 <b>불가능한 값</b>을 찾는다. 데이터의 의미를 알아야 정할 수 있다.</td><td>수면 시간은 0~24시간, 시험 점수는 0~100점, 나이는 음수일 수 없다.</td></tr>
+    <tr><td><b>통계적 기준</b></td><td>데이터의 분포에서 <b>다른 값들과 멀리 떨어진 값</b>을 찾는다. 가능한 값이어도 이상치로 표시될 수 있다.</td><td>IQR 1.5배 규칙(상자그림), 평균에서 표준편차의 3배 이상 떨어진 값</td></tr>
+  </tbody>
+</table></div>
+
+<p>논리적 기준은 확실하지만 ‘가능은 한데 수상한 값’은 잡지 못합니다. 통계적 기준은 수상한 값을 자동으로 찾아 주지만,
+찾은 값이 오류인지 진짜인지는 알려 주지 않습니다. 그래서 두 기준을 <b>함께</b> 쓰고, 최종 판단은 데이터의 맥락으로 합니다.</p>
+
+<div class="pycell" data-title="논리적 기준으로 불가능한 값 찾기"><textarea>
+import pandas as pd
+
+df = load_csv("health.csv")
+print(df.describe().round(1))
+
+# 논리적 기준: 사람의 키·몸무게·수면 시간으로 불가능한 범위
+불가능 = (df["키"] > 250) | (df["몸무게"] > 300) | (df["수면시간"] > 24)
+print("\n논리적으로 불가능한 값이 있는 행")
+print(df[불가능])
+
+# ✏️ 걸음 수에 대한 논리적 기준을 스스로 정해 조건에 추가해 보세요. 기준을 몇으로 정했고, 왜 그렇게 정했나요?
+</textarea></div>
+
+<p><code>describe()</code>의 최댓값(max)만 보아도 키 1712cm, 몸무게 585kg, 수면 42시간이 바로 드러납니다.
+세 값은 논리적으로 불가능하므로 확실한 오류입니다. 하지만 걸음 수 41250보는 하루 종일 걸었다면 불가능하지 않아서 논리적 기준에는 걸리지 않습니다.</p>
+
+<h2><span class="sec-no">3</span>IQR 규칙과 상자그림 <i class="pub-c">공통</i></h2>
+
+<p>데이터를 크기 순서로 늘어놓고 4등분하는 값을 <span class="keyterm">사분위수</span>라고 합니다.
+아래에서 25% 위치의 값이 <b>제1사분위수(Q1)</b>, 50% 위치가 중앙값(Q2), 75% 위치가 <b>제3사분위수(Q3)</b>입니다.
+가운데 50%의 데이터가 퍼져 있는 폭 <b>Q3 − Q1</b>을 <span class="keyterm">사분위수 범위(IQR)</span>라고 합니다.</p>
+
+<span class="formula">아래 울타리 = Q1 − 1.5 × IQR &nbsp;&nbsp;&nbsp; 위 울타리 = Q3 + 1.5 × IQR
+<small>두 울타리 밖에 있는 값을 이상치로 봅니다. (IQR = Q3 − Q1)</small></span>
+
+<figure>
+<svg viewBox="0 0 620 150" role="img" aria-label="상자그림의 구조">
+  <line x1="30" y1="110" x2="590" y2="110" stroke="#8595a6"/>
+  <line x1="110" y1="40" x2="110" y2="110" stroke="#dc2626" stroke-dasharray="5 4"/>
+  <line x1="470" y1="40" x2="470" y2="110" stroke="#dc2626" stroke-dasharray="5 4"/>
+  <text x="110" y="32" font-size="12" text-anchor="middle" fill="#dc2626">아래 울타리</text>
+  <text x="470" y="32" font-size="12" text-anchor="middle" fill="#dc2626">위 울타리</text>
+  <rect x="220" y="55" width="140" height="40" fill="#e8effe" stroke="#2563eb" stroke-width="2"/>
+  <line x1="275" y1="55" x2="275" y2="95" stroke="#2563eb" stroke-width="3"/>
+  <line x1="140" y1="75" x2="220" y2="75" stroke="#2563eb" stroke-width="2"/><line x1="140" y1="63" x2="140" y2="87" stroke="#2563eb" stroke-width="2"/>
+  <line x1="360" y1="75" x2="430" y2="75" stroke="#2563eb" stroke-width="2"/><line x1="430" y1="63" x2="430" y2="87" stroke="#2563eb" stroke-width="2"/>
+  <circle cx="545" cy="75" r="6" fill="#dc2626"/>
+  <text x="220" y="128" font-size="12" text-anchor="middle" fill="#4b5a6b">Q1</text>
+  <text x="275" y="128" font-size="12" text-anchor="middle" fill="#4b5a6b">중앙값</text>
+  <text x="360" y="128" font-size="12" text-anchor="middle" fill="#4b5a6b">Q3</text>
+  <text x="290" y="145" font-size="12" text-anchor="middle" fill="#2563eb">← 상자의 폭 = IQR →</text>
+  <text x="545" y="128" font-size="12" text-anchor="middle" fill="#dc2626">이상치</text>
+  <text x="140" y="128" font-size="11" text-anchor="middle" fill="#4b5a6b">수염 끝</text>
+  <text x="430" y="128" font-size="11" text-anchor="middle" fill="#4b5a6b">수염 끝</text>
+</svg>
+<figcaption>상자그림: 상자는 Q1~Q3, 가운데 선은 중앙값, 수염은 울타리 안쪽의 가장 먼 값까지, 울타리 밖의 점은 이상치입니다.</figcaption>
+</figure>
+
+<h3>손으로 계산해 보기</h3>
+<p>학생 9명의 하루 스마트폰 사용 시간(분)이 <code>60, 75, 80, 90, 95, 100, 110, 120, 300</code>입니다(이미 정렬됨).</p>
+<ul>
+  <li>이 교재는 파이썬 pandas와 같은 방법으로 사분위수를 구합니다. 값이 9개이면 Q1은 작은 쪽에서 <b>3번째</b> 값, 중앙값은 5번째, Q3는 <b>7번째</b> 값입니다. → Q1 = <b>80</b>, 중앙값 = 95, Q3 = <b>110</b></li>
+  <li>IQR = 110 − 80 = <b>30</b></li>
+  <li>아래 울타리 = 80 − 1.5 × 30 = 80 − 45 = <b>35</b>, 위 울타리 = 110 + 45 = <b>155</b></li>
+  <li>155보다 큰 <b>300분</b>이 이상치입니다. 평균은 1030 ÷ 9 ≈ <b>114.4분</b>이지만 300을 빼면 730 ÷ 8 = <b>91.25분</b>으로 크게 달라집니다. 중앙값(95분)은 이상치에 거의 흔들리지 않습니다.</li>
+</ul>
+
+<div class="box box-tip">
+  <span class="box-label">사분위수 계산법은 여러 가지</span>
+  사분위수를 구하는 방법은 여러 가지가 있어 교과서·계산기·프로그램마다 결과가 조금씩 다를 수 있습니다.
+  이 교재는 파이썬 pandas의 기본 방법(스프레드시트의 <code>QUARTILE.INC</code>와 같음)을 씁니다.
+  값이 n개일 때 정렬한 뒤 (n−1)×0.25번째 칸(0번부터 셈)을 Q1으로 하고, 칸 사이에 걸리면 두 값 사이를 비율대로 나눕니다.
+</div>
+
+<div class="sim">
+  <div class="sim-head">IQR 울타리 계산기 — 점을 끌어 보세요</div>
+  <div class="sim-body">
+    <div class="sim-controls">
+      <label>데이터
+        <select id="iqr-set">
+          <option value="phone">스마트폰 사용 시간(분) 9명</option>
+          <option value="sleep">수면 시간(시간) 12명</option>
+          <option value="score">수학 점수(점) 15명</option>
+        </select></label>
+      <label>배수 k
+        <select id="iqr-k"><option value="1.5" selected>1.5 (보통 이상치)</option><option value="3">3 (극단 이상치)</option></select></label>
+      <button id="iqr-reset" class="gray">↺ 처음 값으로</button>
+    </div>
+    <p style="margin:0 0 8px;font-size:.88rem">점을 <b>좌우로 끌면</b> 값이 바뀝니다. 빈 곳을 클릭하면 점이 추가되고, 점을 <b>더블클릭</b>하면 지워집니다.</p>
+    <svg id="iqr-svg" viewBox="0 0 640 210" role="img" aria-label="상자그림과 데이터 점"></svg>
+    <div class="iqr-wrap">
+      <table class="iqr-table"><tbody id="iqr-tbody"></tbody></table>
+      <div class="iqr-msg" id="iqr-msg"></div>
+    </div>
+    <p class="widget-hint">관찰 포인트: 가장 큰 점을 오른쪽 끝까지 끌어가도 Q1·중앙값·Q3는 거의 변하지 않지만 평균은 계속 따라 움직입니다. 그리고 이상치 하나를 지우면 울타리도 조금 움직여 새 이상치가 생길 수 있습니다.</p>
+  </div>
+</div>
+
+<h2><span class="sec-no">4</span>파이썬으로 이상치 찾고 처리하기 <i class="pub-c">공통</i></h2>
+
+<p>IQR 규칙을 함수로 만들어 네 가지 수치 속성에 한꺼번에 적용해 봅시다. <code>quantile(0.25)</code>가 Q1, <code>quantile(0.75)</code>가 Q3입니다.</p>
+
+<div class="pycell" data-title="IQR 규칙으로 이상치 찾기"><textarea>
+def iqr_울타리(s, k=1.5):
+    q1, q3 = s.quantile(0.25), s.quantile(0.75)
+    iqr = q3 - q1
+    return q1 - k * iqr, q3 + k * iqr
+
+for 열 in ["키", "몸무게", "수면시간", "걸음수"]:
+    아래, 위 = iqr_울타리(df[열])
+    이상 = df[(df[열] < 아래) | (df[열] > 위)]
+    print(f"{열:5s} 울타리 [{아래:.2f}, {위:.2f}]  이상치: {이상[열].tolist()} (번호 {이상['번호'].tolist()})")
+
+# ✏️ k=3으로 바꾸면 이상치 목록이 어떻게 달라지나요?
+</textarea></div>
+
+<p>네 속성에서 이상치가 하나씩 찾아집니다. 키(울타리 138.25~198.65)에서 1712, 몸무게(35.09~89.19)에서 585,
+수면 시간(4.05~9.25)에서 42, 걸음 수(−510~16850)에서 41250입니다.
+처음 세 값은 논리적 기준과도 일치하는 오류이고, 걸음 수는 <b>통계적으로만</b> 튀는 값입니다.
+원인에 따라 처리 방법을 달리해 봅시다. 앞의 세 값은 소수점을 빠뜨린 것으로 보고 10으로 나누어 <b>수정</b>하고,
+걸음 수는 학생에게 확인해 보니 그날 걷기 대회에 참가했다고 가정하여 <b>유지</b>합니다.</p>
+
+<div class="pycell" data-title="처리 전후 비교: 삭제 vs 수정, 상자그림"><textarea>
+import matplotlib.pyplot as plt
+
+수정 = df.copy()
+수정.loc[수정["키"] > 250, "키"] = 수정["키"] / 10            # 1712 → 171.2
+수정.loc[수정["몸무게"] > 300, "몸무게"] = 수정["몸무게"] / 10  # 585 → 58.5
+수정.loc[수정["수면시간"] > 24, "수면시간"] = 수정["수면시간"] / 10  # 42 → 4.2
+
+삭제 = df[(df["키"] <= 250) & (df["몸무게"] <= 300) & (df["수면시간"] <= 24)]   # 결측도 함께 빠짐에 주의
+
+비교 = pd.DataFrame({
+    "처리 전 평균": df[["키", "몸무게", "수면시간"]].mean(),
+    "삭제 후 평균": 삭제[["키", "몸무게", "수면시간"]].mean(),
+    "수정 후 평균": 수정[["키", "몸무게", "수면시간"]].mean(),
+    "처리 전 중앙값": df[["키", "몸무게", "수면시간"]].median(),
+}).round(2)
+print(비교)
+print("삭제 후 남은 행:", len(삭제))
+
+fig, ax = plt.subplots(1, 2, figsize=(9, 3.5))
+ax[0].boxplot(df["몸무게"].dropna()); ax[0].set_title("처리 전 몸무게")
+ax[1].boxplot(수정["몸무게"].dropna()); ax[1].set_title("수정 후 몸무게")
+plt.show()
+
+# ✏️ 걸음수 열로 상자그림을 그려 보세요. 41250을 지웠을 때와 남겼을 때 평균은 얼마나 다른가요?
+</textarea></div>
+
+<p>처리 전 키 평균은 <b>220.44cm</b>로 말이 안 되는 값이었지만, 수정 후에는 <b>167.31cm</b>로 돌아옵니다.
+처리 전 중앙값(167.4cm)이 이미 그럴듯한 값이었다는 점에 주목하세요. 이상치가 있을 때 중앙값이 더 믿을 만한 이유입니다.
+또 조건으로 행을 걸러 삭제하면 이상치뿐 아니라 <b>결측이 있던 행도 함께 빠져</b> 30행이 23행으로 줄어듭니다.
+삭제는 생각보다 많은 데이터를 잃게 할 수 있습니다.</p>
+
+<h2><span class="sec-no">5</span>지울까, 고칠까, 남길까 <i class="pub">YBM</i> <i class="pub">씨마스</i></h2>
+
+<p>통계적 기준으로 찾은 이상치를 기계적으로 지우면 안 됩니다. 예를 들어 어느 동아리 졸업생 10명의 평균 연봉을 조사했는데
+그중 한 명이 유명 프로 운동선수라면, 평균 연봉은 터무니없이 높게 나옵니다. 이 값은 오류가 아니라 <b>사실</b>입니다.
+이때는 값을 지우기보다 <b>중앙값</b>을 대푯값으로 쓰거나, “한 명을 빼면 평균이 얼마”라고 <b>둘 다 보고</b>하는 것이 정직한 분석입니다.
+또 카드 부정 사용 탐지, 공장 설비 고장 감지처럼 <b>이상치 자체를 찾는 것이 목적</b>인 분석도 있습니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:170px">이상치의 원인</th><th style="width:160px">처리</th><th>근거와 주의점</th></tr></thead>
+  <tbody>
+    <tr><td>입력 오류 (원래 값 추정 가능)</td><td><b>수정</b></td><td>원자료나 응답자에게 확인. 수정 내역을 기록한다.</td></tr>
+    <tr><td>측정·입력 오류 (원래 값 모름)</td><td><b>삭제</b> 또는 <b>결측 처리</b></td><td>결측으로 바꾼 뒤 결측치 처리 방법(L17)을 적용할 수 있다.</td></tr>
+    <tr><td>실제로 일어난 드문 값</td><td><b>유지</b></td><td>중앙값 등 이상치에 강한 통계를 쓰거나, 포함·제외 결과를 모두 보고한다.</td></tr>
+    <tr><td>분석 대상이 아닌 값</td><td><b>분석에서 제외</b></td><td>예: ‘고등학생’ 분석에 교사 응답이 섞임. 제외 기준을 미리 밝힌다.</td></tr>
+  </tbody>
+</table></div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  Orange에서는 <b>Box Plot</b> 위젯으로 상자그림을, <b>Outliers</b> 위젯으로 이상치 행을 골라낼 수 있습니다.
+  스프레드시트는 <code>QUARTILE.INC</code>로 Q1·Q3를 구하면 pandas와 같은 결과가 나옵니다(학생이 손으로 ‘중앙값의 중앙값’ 방식으로 구하면 값이 다를 수 있음을 미리 안내).
+  흔한 오개념은 “상자그림 밖의 점 = 잘못된 값 = 삭제”입니다. 걸음 수 41250을 두고 ‘지울까 남길까’ 짧은 토론을 붙이면 효과적입니다.
+  활동의 ‘더 생각하기’ 답: 585를 58.5로 수정하면 몸무게 울타리가 약 42.08~78.48kg으로 좁아져 35.3, 38.7, 81.3kg이 새로 이상치가 됩니다. IQR 규칙을 반복 적용하면 끝없이 값이 잘려 나갈 수 있으므로 ‘표시 → 원인 확인’ 도구로만 쓰게 지도하세요.
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">개별 활동</span>이상치 탐정 보고서 <i class="pub">천재</i></div>
+  <div class="act-body">
+    <p style="margin-top:0">health.csv에서 찾은 이상치 네 개를 조사하고 처리 방법을 정하세요.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>번호·속성</th><th>값</th><th>논리적 기준 위반?</th><th>IQR 기준 이상치?</th><th>추정 원인</th><th>처리(수정/삭제/유지)와 근거</th></tr></thead>
+      <tbody>
+        <tr><td>5번 키</td><td>1712</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td>18번 몸무게</td><td>585</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td>23번 수면시간</td><td>42</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td>10번 걸음수</td><td>41250</td><td></td><td></td><td></td><td></td></tr>
+      </tbody>
+    </table></div>
+    <p><b>더 생각하기</b> — 몸무게의 아래 울타리는 약 35.09kg이고, 26번 학생의 몸무게는 35.3kg으로 울타리 바로 안쪽입니다.
+    585를 수정하면 울타리가 달라집니다. 수정 후에도 이 학생은 이상치가 아닐까요? 파이썬으로 확인하고, ‘울타리에 걸린 값’을 어떻게 다룰지 쓰세요.</p>
+    <div class="write-lines"><div class="line"></div><div class="line"></div></div>
+  </div>
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>이상치는 다른 값과 동떨어진 값이다. 원인은 입력 오류, 측정 오류, 실제로 드문 값으로 나뉜다.</li>
+    <li>논리적 기준은 불가능한 값을, 통계적 기준(IQR 1.5배 규칙)은 분포에서 멀리 떨어진 값을 찾는다.</li>
+    <li>IQR = Q3 − Q1이고, Q1 − 1.5×IQR보다 작거나 Q3 + 1.5×IQR보다 큰 값이 이상치다. 상자그림으로 한눈에 볼 수 있다.</li>
+    <li>평균은 이상치에 크게 흔들리지만 중앙값은 강하다. 이상치는 원인을 따져 수정·삭제·유지하고 처리 내용을 기록한다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- IQR 울타리 계산기 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const SETS = {
+    phone: { unit:"분", min:0, max:360, step:5, dec:0, vals:[60, 75, 80, 90, 95, 100, 110, 120, 300] },
+    sleep: { unit:"시간", min:0, max:14, step:0.1, dec:1, vals:[6.5, 7.0, 5.5, 8.0, 6.0, 7.5, 4.5, 6.5, 9.0, 5.0, 7.0, 12.5] },
+    score: { unit:"점", min:0, max:100, step:1, dec:0, vals:[12, 55, 58, 62, 64, 66, 68, 70, 71, 73, 75, 78, 80, 84, 98] },
+  };
+  let key = "phone", vals = [], drag = -1, moved = false, downOnPoint = false;
+  const svg = $("iqr-svg");
+  const L = 40, R = 610, AX = 170;
+  const cur = () => SETS[key];
+  const X = v => L + (v - cur().min) / (cur().max - cur().min) * (R - L);
+  const V = x => cur().min + (x - L) / (R - L) * (cur().max - cur().min);
+  const snap = v => { const s = cur(); v = Math.round(v / s.step) * s.step; return +Math.min(s.max, Math.max(s.min, v)).toFixed(s.dec === 0 ? 0 : 1); };
+  const fmt = v => (Math.round(v * 100) / 100).toString();
+
+  function quant(sorted, p){      // pandas 기본(선형 보간) 방식
+    const pos = (sorted.length - 1) * p, lo = Math.floor(pos), hi = Math.ceil(pos);
+    return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+  }
+  function stats(){
+    const s = [...vals].sort((a, b) => a - b);
+    const q1 = quant(s, .25), med = quant(s, .5), q3 = quant(s, .75), iqr = q3 - q1;
+    const k = +$("iqr-k").value;
+    const lo = q1 - k * iqr, hi = q3 + k * iqr;
+    const inside = s.filter(v => v >= lo && v <= hi);
+    const out = s.filter(v => v < lo || v > hi);
+    const mean = s.reduce((a, b) => a + b, 0) / s.length;
+    const meanIn = inside.length ? inside.reduce((a, b) => a + b, 0) / inside.length : NaN;
+    return { q1, med, q3, iqr, lo, hi, k, out, mean, meanIn, wlo: inside[0], whi: inside[inside.length - 1] };
+  }
+  function toSvgX(evt){
+    const r = svg.getBoundingClientRect();
+    return (evt.clientX - r.left) / r.width * 640;
+  }
+
+  function render(){
+    const s = cur(), st = stats();
+    let h = "";
+    // 축
+    h += `<line x1="${L}" y1="${AX}" x2="${R}" y2="${AX}" stroke="#8595a6"/>`;
+    const ticks = 8;
+    for (let t = 0; t <= ticks; t++) {
+      const v = s.min + (s.max - s.min) * t / ticks, x = X(v);
+      h += `<line x1="${x}" y1="${AX-4}" x2="${x}" y2="${AX+4}" stroke="#8595a6"/><text x="${x}" y="${AX+18}" font-size="11" text-anchor="middle" fill="#4b5a6b">${fmt(v)}</text>`;
+    }
+    h += `<text x="${R}" y="${AX+34}" font-size="11" text-anchor="end" fill="#8595a6">(${s.unit})</text>`;
+    // 울타리
+    [["lo", st.lo, "아래 울타리"], ["hi", st.hi, "위 울타리"]].forEach(([k, v, t]) => {
+      if (v < s.min || v > s.max) return;
+      h += `<line x1="${X(v)}" y1="18" x2="${X(v)}" y2="${AX}" stroke="#dc2626" stroke-dasharray="5 4"/><text x="${X(v)}" y="13" font-size="11" text-anchor="middle" fill="#dc2626">${t} ${fmt(v)}</text>`;
+    });
+    // 상자그림 (y 45~85)
+    h += `<line x1="${X(st.wlo)}" y1="65" x2="${X(st.q1)}" y2="65" stroke="#2563eb" stroke-width="2"/>`;
+    h += `<line x1="${X(st.q3)}" y1="65" x2="${X(st.whi)}" y2="65" stroke="#2563eb" stroke-width="2"/>`;
+    h += `<line x1="${X(st.wlo)}" y1="55" x2="${X(st.wlo)}" y2="75" stroke="#2563eb" stroke-width="2"/><line x1="${X(st.whi)}" y1="55" x2="${X(st.whi)}" y2="75" stroke="#2563eb" stroke-width="2"/>`;
+    h += `<rect x="${X(st.q1)}" y="45" width="${Math.max(1, X(st.q3) - X(st.q1))}" height="40" fill="#e8effe" stroke="#2563eb" stroke-width="2"/>`;
+    h += `<line x1="${X(st.med)}" y1="45" x2="${X(st.med)}" y2="85" stroke="#2563eb" stroke-width="3"/>`;
+    st.out.forEach(v => h += `<circle cx="${X(v)}" cy="65" r="5" fill="#dc2626"/>`);
+    // 평균 표시
+    h += `<path d="M${X(st.mean)} 95 l-6 10 h12 z" fill="#f59e0b"/><text x="${X(st.mean)}" y="118" font-size="10.5" text-anchor="middle" fill="#b4700a">평균</text>`;
+    // 데이터 점
+    vals.forEach((v, i) => {
+      const isOut = v < st.lo || v > st.hi;
+      const y = 140 + (i % 3) * 9;
+      h += `<circle class="pt" data-i="${i}" cx="${X(v)}" cy="${y}" r="7" fill="${isOut ? "#dc2626" : "#2563eb"}" fill-opacity=".85" stroke="#fff" stroke-width="1.5"/>`;
+    });
+    svg.innerHTML = h;
+
+    const u = s.unit;
+    $("iqr-tbody").innerHTML = [
+      ["값의 개수", vals.length + "개"],
+      ["Q1 / 중앙값 / Q3", `${fmt(st.q1)} / ${fmt(st.med)} / ${fmt(st.q3)}`],
+      ["IQR = Q3 − Q1", fmt(st.iqr)],
+      [`아래 울타리 = Q1 − ${st.k}×IQR`, fmt(st.lo)],
+      [`위 울타리 = Q3 + ${st.k}×IQR`, fmt(st.hi)],
+      ["평균 (전체)", fmt(st.mean) + u],
+      ["평균 (이상치 제외)", isNaN(st.meanIn) ? "—" : fmt(st.meanIn) + u],
+    ].map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join("");
+    $("iqr-msg").innerHTML = st.out.length
+      ? `이상치 <b>${st.out.length}개</b>: ${st.out.map(fmt).join(", ")}${u}<br>이상치를 빼면 평균이 <b>${fmt(st.mean)}${u}에서 ${fmt(st.meanIn)}${u}</b>이 됩니다. 중앙값은 ${fmt(st.med)}${u}입니다.<br><small>이 값이 오류인지, 실제로 드문 값인지는 그래프가 알려 주지 않습니다. 맥락으로 판단하세요.</small>`
+      : `울타리 밖의 값이 없습니다. 이상치 없음 ✔<br>평균은 ${fmt(st.mean)}${u}, 중앙값은 ${fmt(st.med)}${u}입니다. 두 값이 비슷한지 비교해 보세요.`;
+  }
+
+  function load(){ vals = [...cur().vals]; render(); }
+
+  svg.addEventListener("pointerdown", e => {
+    const c = e.target.closest(".pt");
+    moved = false; downOnPoint = !!c;
+    if (c) { drag = +c.dataset.i; svg.setPointerCapture(e.pointerId); e.preventDefault(); }
+  });
+  svg.addEventListener("pointermove", e => {
+    if (drag < 0) return;
+    moved = true;
+    vals[drag] = snap(V(toSvgX(e)));
+    render();
+  });
+  const end = () => { drag = -1; };
+  svg.addEventListener("pointerup", end);
+  svg.addEventListener("pointercancel", end);
+  svg.addEventListener("click", e => {
+    if (e.target.closest(".pt") || moved || downOnPoint) { downOnPoint = false; return; }
+    const x = toSvgX(e);
+    if (x < L || x > R) return;
+    if (vals.length >= 30) return;
+    vals.push(snap(V(x)));
+    render();
+  });
+  svg.addEventListener("dblclick", e => {
+    const c = e.target.closest(".pt");
+    if (!c || vals.length <= 4) return;
+    vals.splice(+c.dataset.i, 1);
+    render();
+  });
+  $("iqr-set").addEventListener("change", e => { key = e.target.value; load(); });
+  $("iqr-k").addEventListener("change", render);
+  $("iqr-reset").addEventListener("click", load);
+  load();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"어떤 데이터의 Q1 = 40, Q3 = 60이다. IQR 1.5배 규칙으로 이상치가 되는 값은?",
+    choices:["12","25","65","85","95"], answer:4,
+    explain:"IQR = 60 − 40 = 20이므로 아래 울타리 = 40 − 1.5×20 = 10, 위 울타리 = 60 + 1.5×20 = 90입니다. 10보다 작거나 90보다 큰 값이 이상치이므로 95만 해당합니다. 12는 Q1보다 작지만 울타리(10) 안쪽입니다." },
+  { type:"ox", q:"상자그림에서 울타리 밖에 표시된 점은 모두 잘못 입력된 값이므로 삭제해야 한다.",
+    answer:false, explain:"울타리 밖의 점은 ‘통계적으로 멀리 떨어진 값’일 뿐입니다. 마라톤 날의 걸음 수처럼 실제로 일어난 값일 수 있으므로 원인을 확인한 뒤 수정·삭제·유지를 결정합니다." },
+  { type:"mc", q:"다음 중 ‘논리적 기준’으로 이상치를 찾은 예는?",
+    choices:["평균에서 표준편차의 3배 이상 떨어진 값을 표시했다","Q3 + 1.5×IQR보다 큰 값을 표시했다","하루 수면 시간이 25시간 이상인 값을 표시했다","상자그림의 수염 밖 값을 표시했다","가장 큰 값 5%를 표시했다"], answer:2,
+    explain:"하루는 24시간이므로 수면 시간 25시간은 정의상 불가능한 값입니다. 나머지는 모두 분포를 기준으로 한 통계적 기준입니다." },
+  { type:"mc", q:"데이터 10, 12, 13, 15, 200이 있다. 이상치 200의 영향을 가장 적게 받는 통계량은?",
+    choices:["평균","합계","표준편차","중앙값","최댓값"], answer:3,
+    explain:"중앙값은 가운데 위치의 값(13)이라 200이 20이든 2000이든 변하지 않습니다. 평균은 (10+12+13+15+200) ÷ 5 = 50으로 크게 끌려 올라갑니다." },
+  { type:"short", q:"health.csv의 걸음 수 41250보는 IQR 기준으로는 이상치이지만 논리적으로 불가능한 값은 아니다. 이 값을 어떻게 처리할지 정하고, 그 근거와 보고서에 남길 내용을 쓰세요.",
+    model:"먼저 해당 학생에게 그날 특별한 활동(걷기 대회, 등산 등)이 있었는지 확인한다. 실제 값이라면 삭제하지 않고 유지하되, 평균 대신 중앙값을 대푯값으로 쓰거나 포함·제외 두 경우의 평균을 함께 보고한다. 기기 오류로 확인되면 결측으로 바꾼다. 보고서에는 이상치 탐지 기준(IQR 1.5배), 확인 결과, 처리 방법을 기록한다." },
+]);
+</script>
+</body>
+</html>

@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>전처리 ① 결측치 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 결측 처리 비교기 */
+.na-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(82px,1fr)); gap:6px; margin-bottom:12px; }
+.na-cell { background:#fff; color:var(--ink); border:1.5px solid var(--line); border-radius:9px; padding:6px 4px; font-weight:600; font-size:.84rem; line-height:1.35; text-align:center; }
+.na-cell:hover { border-color:var(--accent); filter:none; }
+.na-cell small { display:block; font-size:.7rem; color:var(--ink-faint); font-weight:700; }
+.na-cell.miss { background:#fdeeee; border-color:#f3b9b9; color:var(--no); }
+.na-cell.miss .fillv { display:block; font-size:.72rem; color:#b4700a; }
+.method-row { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 12px; }
+.method-row label { display:inline-flex; align-items:center; gap:4px; background:var(--paper); border:1.5px solid var(--line); border-radius:999px; padding:4px 12px; font-size:.84rem; font-weight:700; cursor:pointer; }
+.method-row input { accent-color:var(--accent); }
+.na-verdict { margin-top:12px; padding:10px 14px; border-radius:10px; font-size:.9rem; background:var(--accent-soft); border:1.5px solid var(--line); }
+#na-plot { width:100%; height:auto; background:#fff; border:1px solid var(--line); border-radius:10px; }
+</style>
+</head>
+<body data-unit="2" data-lesson="L17">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>전처리 ① 결측치</h1>
+  <span class="std-badge">성취기준 12데과02-02</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>결측치가 생기는 이유를 설명하고, 데이터에서 결측치를 찾아 개수와 비율을 확인할 수 있다.</li>
+      <li>삭제·대푯값 대체·보간 등 결측치 처리 방법을 적용하고, 방법에 따라 분석 결과가 어떻게 달라지는지 비교할 수 있다.</li>
+      <li>데이터의 맥락을 고려하여 상황에 알맞은 결측치 처리 방법을 선택할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과02-02] 이상치와 결측치 탐색 및 정규화를 통해 전처리하여 오류 가능성을 최소화하고, 데이터 분석을 위해 시각화한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span>수집</span><span class="on">전처리</span><span>탐색</span><span>모델링</span><span>평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  보건 동아리가 우리 반 30명의 키·몸무게·수면 시간·하루 걸음 수를 조사했습니다.
+  그런데 표를 받아 보니 군데군데 칸이 비어 있습니다. 몸무게를 적기 싫었던 친구, 스마트워치를 충전하느라 걸음 수를 못 잰 친구도 있었지요.
+  “빈칸이 있는 친구는 그냥 빼고 계산하면 되지 않나?” “아니야, 빈칸은 0으로 채우면 돼!”
+  두 친구의 말 중 누구 말이 맞을까요? 어쩌면 둘 다 위험할 수도 있습니다. 오늘은 <b>빈칸을 다루는 방법</b>을 배웁니다.
+</div>
+
+<h2><span class="sec-no">1</span>결측치란 무엇인가 <i class="pub-c">공통</i></h2>
+
+<p>데이터를 수집하다 보면 값이 기록되지 않은 칸이 생깁니다. 이렇게 <b>있어야 할 값이 비어 있는 것</b>을
+<span class="keyterm">결측치(missing value)</span>라고 합니다. 파이썬 pandas에서는 결측치를 <code>NaN</code>(Not a Number)으로 표시합니다.
+결측치를 그대로 둔 채 분석하면 계산이 되지 않거나, 되더라도 결과가 한쪽으로 치우칠 수 있습니다.
+그래서 분석 전에 결측치를 찾아 처리하는 과정이 꼭 필요합니다. 이것이 <span class="keyterm">데이터 전처리(preprocessing)</span>의 첫걸음입니다.</p>
+
+<div class="cards">
+  <div class="cardbox"><h4>📝 응답하지 않음</h4><p>설문에서 답하기 싫거나 곤란한 문항(몸무게, 소득 등)을 비워 둔다.</p></div>
+  <div class="cardbox"><h4>📡 측정 실패</h4><p>센서 고장, 배터리 방전, 통신 끊김으로 값이 기록되지 않는다.</p></div>
+  <div class="cardbox"><h4>⌨️ 입력·통합 실수</h4><p>옮겨 적다가 빠뜨리거나, 두 표를 합칠 때 짝이 맞지 않아 빈칸이 생긴다.</p></div>
+</div>
+
+<div class="box box-warn">
+  <span class="box-label">0은 결측이 아니다 <i class="pub">YBM</i></span>
+  ‘결석 일수 0일’은 결석을 한 번도 하지 않았다는 <b>실제 값</b>입니다. 반대로 스마트워치를 차지 않은 날의 ‘걸음 수 0’은
+  사실 걸음 수를 <b>모르는</b> 것이므로 결측치로 보아야 합니다. 겉모습(0이냐 빈칸이냐)이 아니라 <b>값이 실제를 나타내는지</b>를 따져야 합니다.
+  빈칸을 아무 생각 없이 0으로 채우면, 모르는 값을 ‘거짓 값’으로 바꾸는 셈입니다.
+</div>
+
+<h2><span class="sec-no">2</span>결측치 찾기와 삭제의 딜레마 <i class="pub">삼양</i></h2>
+
+<p>먼저 결측치가 <b>어느 열에, 몇 개</b> 있는지 확인합니다. pandas의 <code>isna()</code>는 칸마다 결측이면 True, 아니면 False를 돌려주고,
+여기에 <code>sum()</code>을 붙이면 열별 결측 개수가 나옵니다. 보건 조사 데이터 <code>health.csv</code>(30명)로 확인해 봅시다.</p>
+
+<div class="pycell" data-title="결측치 찾기와 행 삭제의 손실"><textarea>
+import pandas as pd
+
+df = load_csv("health.csv")
+print("열별 결측 개수")
+print(df.isna().sum())
+
+# 결측이 하나라도 있는 행만 골라 보기
+print(df[df.isna().any(axis=1)])
+
+전체칸 = df.size                     # 30행 × 6열
+결측칸 = df.isna().sum().sum()
+print(f"결측 칸 비율: {결측칸}/{전체칸} = {결측칸/전체칸:.1%}")
+
+삭제후 = df.dropna()                  # 결측이 있는 행을 통째로 삭제
+print(f"행 삭제 전 {len(df)}행 → 삭제 후 {len(삭제후)}행 (잃은 행 {1 - len(삭제후)/len(df):.1%})")
+
+# ✏️ df.dropna(subset=["몸무게"]) 로 바꾸면 몇 행이 남나요? 어떤 차이가 있나요?
+</textarea></div>
+
+<p>결측 칸은 전체 180칸 중 5칸, 약 <b>2.8%</b>에 불과합니다. 그런데 결측이 서로 다른 5명에게 흩어져 있어서
+<code>dropna()</code>로 결측이 있는 행을 지우면 30명 중 5명, 즉 <b>16.7%</b>의 학생이 통째로 사라집니다.
+3번 학생은 몸무게 하나만 비었을 뿐인데 키·수면·걸음 수 정보까지 모두 버려지는 것이지요.
+열이 많고 결측이 여기저기 흩어진 큰 데이터일수록 이 손실은 더 커집니다. 이것이 <b>삭제의 딜레마</b>입니다.</p>
+
+<h2><span class="sec-no">3</span>삭제할까, 채울까 <i class="pub-c">공통</i></h2>
+
+<p>결측치를 처리하는 대표적인 방법은 다음과 같습니다. 어느 방법이 항상 옳은 것은 아니며, 데이터의 양과 맥락에 따라 고릅니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:150px">방법</th><th>내용</th><th style="width:250px">주의할 점</th></tr></thead>
+  <tbody>
+    <tr><td><b>행(목록) 삭제</b></td><td>결측이 있는 행을 지운다. <code>dropna()</code></td><td>데이터가 줄어든다. 결측이 특정 집단에 몰려 있으면 결과가 치우친다.</td></tr>
+    <tr><td><b>열 삭제</b></td><td>결측이 너무 많은 속성(열)을 통째로 지운다. <code>drop(columns=…)</code></td><td>그 속성이 분석에 중요하다면 쓸 수 없다.</td></tr>
+    <tr><td><b>대푯값 대체</b></td><td>평균·중앙값·최빈값으로 채운다. <code>fillna()</code></td><td>극단값이 있으면 평균 대신 중앙값. 범주형은 최빈값. 흩어짐(표준편차)이 작아진다.</td></tr>
+    <tr><td><b>집단별 대체</b></td><td>성별·학년 등 비슷한 집단의 대푯값으로 채운다.</td><td>집단 나누는 기준이 결측 값과 관련 있어야 효과가 있다.</td></tr>
+    <tr><td><b>보간·앞 값 채우기</b></td><td>시간 순서 데이터에서 앞뒤 값으로 추정한다. <code>interpolate()</code>, <code>ffill()</code></td><td>순서에 의미가 있는 데이터(날짜·시간)에만 쓴다.</td></tr>
+  </tbody>
+</table></div>
+
+<h3>손으로 계산해 보기</h3>
+<p>7명의 수면 시간(시간)이 <code>7, ?, 6, 9, ?, 5, 6</code>으로 기록되었습니다. 방법마다 평균이 어떻게 달라질까요?</p>
+<ul>
+  <li><b>행 삭제</b>: 남은 5개 값의 평균 = (7+6+9+5+6) ÷ 5 = 33 ÷ 5 = <b>6.6시간</b></li>
+  <li><b>평균 대체</b>: 빈칸 2개를 6.6으로 채움 → (33 + 6.6 + 6.6) ÷ 7 = 46.2 ÷ 7 = <b>6.6시간</b> (평균은 그대로)</li>
+  <li><b>중앙값 대체</b>: 5, 6, 6, 7, 9의 중앙값 6으로 채움 → (33 + 6 + 6) ÷ 7 = 45 ÷ 7 ≈ <b>6.43시간</b></li>
+  <li><b>0으로 채우기</b>: (33 + 0 + 0) ÷ 7 = 33 ÷ 7 ≈ <b>4.71시간</b> — 잠을 0시간 잔 학생은 없으므로 명백히 왜곡된 값</li>
+</ul>
+
+<div class="sim">
+  <div class="sim-head">결측 처리 비교기 — 12명의 수면 시간</div>
+  <div class="sim-body">
+    <p style="margin-top:0;font-size:.92rem">칸을 클릭하면 그 값이 <b>결측</b>이 됩니다(다시 클릭하면 복구). 처리 방법을 바꾸며 평균과 표준편차가 어떻게 변하는지 보세요.
+    이 위젯은 지워진 ‘실제 값’도 알고 있어서, 추정이 실제와 얼마나 다른지 비교해 줍니다.</p>
+    <div class="na-grid" id="na-grid"></div>
+    <div class="method-row" id="na-methods">
+      <label><input type="radio" name="na-m" value="drop" checked>행 삭제</label>
+      <label><input type="radio" name="na-m" value="mean">평균 대체</label>
+      <label><input type="radio" name="na-m" value="median">중앙값 대체</label>
+      <label><input type="radio" name="na-m" value="zero">0으로 채우기</label>
+      <label><input type="radio" name="na-m" value="ffill">앞 값으로 채우기</label>
+    </div>
+    <div class="sim-controls">
+      <button id="na-rand" class="ghost">🎲 무작위로 3칸 지우기</button>
+      <button id="na-bias" class="ghost">😪 잠이 적은 3명이 응답 안 함</button>
+      <button id="na-reset" class="gray">↺ 모두 되돌리기</button>
+    </div>
+    <svg id="na-plot" viewBox="0 0 640 150" role="img" aria-label="수면 시간 점 그래프"></svg>
+    <div class="sim-stats">
+      <div class="stat-chip">분석에 쓰인 값 <b id="na-n">12</b>개</div>
+      <div class="stat-chip">추정 평균 <b id="na-mean">—</b></div>
+      <div class="stat-chip">실제 평균 <b id="na-tmean">—</b></div>
+      <div class="stat-chip">평균 오차 <b id="na-err">—</b></div>
+      <div class="stat-chip">추정 표준편차 <b id="na-sd">—</b></div>
+      <div class="stat-chip">실제 표준편차 <b id="na-tsd">—</b></div>
+    </div>
+    <div class="na-verdict" id="na-verdict"></div>
+    <p class="widget-hint">관찰 포인트: ① 평균 대체는 평균을 바꾸지 않는데 표준편차는 왜 줄어들까요? ② ‘잠이 적은 3명이 응답 안 함’을 누르면 어떤 방법을 써도 평균이 실제보다 높게 나옵니다. 왜 그럴까요?</p>
+  </div>
+</div>
+
+<div class="box box-tip">
+  <span class="box-label">결측이 ‘무작위’인가?</span>
+  결측이 우연히 생겼다면(무작위 결측) 삭제나 대체를 해도 평균은 크게 흔들리지 않습니다.
+  하지만 <b>잠을 적게 자는 학생일수록 수면 시간을 적지 않는다</b>처럼 결측 자체가 값과 관련이 있으면,
+  남은 값만으로는 실제 모습을 알 수 없습니다. 이때는 어떤 방법으로 채워도 편향이 남으므로,
+  <b>왜 비었는지</b>를 먼저 조사하고 결과를 해석할 때 이 한계를 밝혀야 합니다.
+</div>
+
+<h2><span class="sec-no">4</span>파이썬으로 처리 방법 비교하기 <i class="pub-c">공통</i></h2>
+
+<p><code>fillna(값)</code>은 결측 칸을 지정한 값으로 채웁니다. 몸무게 열의 빈칸 2개를 평균과 중앙값으로 각각 채워 비교해 봅시다.</p>
+
+<div class="pycell" data-title="평균 대체 vs 중앙값 대체 vs 집단별 대체"><textarea>
+몸무게 = df["몸무게"]
+print("몸무게 평균  :", round(몸무게.mean(), 2))
+print("몸무게 중앙값:", 몸무게.median())
+
+비교 = pd.DataFrame({
+    "원래":        몸무게,
+    "평균 대체":   몸무게.fillna(몸무게.mean()).round(2),
+    "중앙값 대체": 몸무게.fillna(몸무게.median()),
+})
+print(비교[몸무게.isna()])          # 빈칸이었던 행만 보기
+
+# 집단별 대체: 성별 중앙값으로 채우기
+성별중앙값 = df.groupby("성별")["몸무게"].transform("median")
+print(df.groupby("성별")["몸무게"].median())
+df["몸무게_채움"] = 몸무게.fillna(성별중앙값)
+print(df.loc[몸무게.isna(), ["번호", "성별", "몸무게", "몸무게_채움"]])
+
+# ✏️ "몸무게"를 "키"로 바꿔 같은 비교를 해 보세요. 키의 평균은 왜 이상하게 클까요?
+</textarea></div>
+
+<p>평균이 <b>78.87kg</b>인데 중앙값은 <b>62.5kg</b>입니다. 데이터 안에 <b>585kg</b>이라는 말도 안 되는 값(아마 58.5를 잘못 입력한 값)이 있어서
+평균이 크게 끌려 올라갔기 때문입니다. 이런 평균으로 빈칸을 채우면 실제보다 훨씬 무거운 몸무게가 들어갑니다.
+극단값이 있을 때는 <b>중앙값 대체</b>가 더 안전하고, 성별처럼 몸무게와 관련 있는 집단 정보가 있으면
+<b>집단별 중앙값</b>(남 64.15kg, 여 55.95kg)으로 채우는 것이 더 그럴듯합니다.
+이렇게 결측치 처리는 이상치 처리와 이어져 있습니다. 이상치는 다음 차시에서 자세히 다룹니다.</p>
+
+<h2><span class="sec-no">5</span>맥락으로 빈칸 추론하기 <i class="pub">천재</i></h2>
+
+<p>오래된 기상 관측 기록을 살펴보면 특정 시기의 값이 통째로 비어 있는 경우가 있습니다.
+예를 들어 우리나라의 일부 관측소 기록에는 <b>한국 전쟁 시기</b>에 관측이 중단되어 생긴 공백이 있습니다.
+이 빈칸은 실수가 아니라 <b>역사적 맥락</b>이 만든 결측입니다.
+이런 경우 “왜 비었는가?”를 알면 “어떻게 채울까?”도 판단할 수 있습니다.
+기온처럼 <b>시간에 따라 서서히 변하는 값</b>은 앞뒤 값을 이어 추정하는 <span class="keyterm">보간(interpolation)</span>이 자연스럽고,
+전체 평균으로 채우면 계절의 흐름이 끊겨 버립니다.</p>
+
+<p>아래는 가상의 도시 월평균 기온(℃)에서 4~6월이 비어 있는 예입니다.</p>
+
+<div class="pycell" data-title="시간 순서 데이터의 결측: 평균 대체 vs 앞 값 채우기 vs 보간"><textarea>
+import numpy as np
+
+기온 = pd.Series([-2.4, 0.5, 5.8, np.nan, np.nan, np.nan, 25.3, 26.1, 21.4, 14.6, 7.2, 0.3],
+                index=range(1, 13), name="월평균기온")
+
+결과 = pd.DataFrame({
+    "원래":      기온,
+    "평균 대체": 기온.fillna(기온.mean()).round(1),
+    "앞 값":     기온.ffill(),
+    "선형 보간": 기온.interpolate().round(1),
+})
+print(결과)
+
+import matplotlib.pyplot as plt
+for 열, 모양 in [("평균 대체", "s--"), ("앞 값", "^--"), ("선형 보간", "o-")]:
+    plt.plot(결과.index, 결과[열], 모양, label=열)
+plt.title("빈칸(4~6월)을 채우는 세 가지 방법")
+plt.xlabel("월"); plt.ylabel("기온(℃)"); plt.legend(); plt.show()
+
+# ✏️ 보간 결과가 실제 계절 변화와 비교해 그럴듯한가요? 5월 기온으로 몇 ℃가 들어갔는지 확인하세요.
+</textarea></div>
+
+<p>평균 대체는 4·5·6월에 모두 나머지 9개월의 평균인 <b>11.0℃</b>를 넣어 봄에서 여름으로 가는 흐름을 망가뜨리고,
+앞 값 채우기는 3월 기온 5.8℃를 6월까지 그대로 끌고 갑니다.
+선형 보간은 3월(5.8℃)과 7월(25.3℃) 사이를 일정하게 나누어 4월 10.7℃, 5월 15.6℃, 6월 20.4℃로 채워 계절 흐름에 가장 가깝습니다.
+단, 보간값도 어디까지나 <b>추정값</b>이므로 보고서에는 “4~6월은 보간한 값”이라고 기록해 두어야 합니다.</p>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  비코딩 학급은 Orange의 <b>Impute</b> 위젯(평균·최빈값·제거·고정값)을 Data Table과 연결해 처리 전후를 비교하게 하면 됩니다.
+  스프레드시트에서는 <code>COUNTBLANK</code>로 결측을 세고 <code>AVERAGE</code>·<code>MEDIAN</code>으로 대체값을 구해 보게 합니다.
+  흔한 오개념은 ① “빈칸 = 0”, ② “평균 대체는 아무 영향이 없다”입니다. 위젯의 표준편차 변화와 ‘잠이 적은 3명’ 시나리오로 반례를 직접 보게 하세요.
+  시간 배분: 개념·손계산 10분, 위젯 10분, 파이썬 20분, 활동 10분.
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">모둠 활동</span>결측치 처리 방법 결정하기 <i class="pub-c">공통</i></div>
+  <div class="act-body">
+    <p style="margin-top:0">다음 상황마다 알맞은 처리 방법을 고르고 이유를 쓰세요. 정답이 하나가 아닐 수 있으니 모둠에서 근거를 들어 토의합니다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th style="width:44%">상황</th><th style="width:20%">처리 방법</th><th>이유</th></tr></thead>
+      <tbody>
+        <tr><td>① 1만 명 설문에서 ‘좋아하는 과목’(범주형)이 30명 비어 있다.</td><td></td><td></td></tr>
+        <tr><td>② 교실 온도 센서가 10분 간격으로 기록하다가 20분 동안 꺼졌다.</td><td></td><td></td></tr>
+        <tr><td>③ 50명 조사에서 ‘한 달 용돈’ 열이 35명이나 비어 있다.</td><td></td><td></td></tr>
+        <tr><td>④ 몸무게 열에 결측 3칸이 있고, 입력 실수로 보이는 아주 큰 값이 하나 있다.</td><td></td><td></td></tr>
+        <tr><td>⑤ 우울감 설문에서 우울감이 높은 학생일수록 응답하지 않은 것 같다.</td><td></td><td></td></tr>
+      </tbody>
+    </table></div>
+    <p><b>생각 더하기</b> — 결측치를 처리한 뒤 보고서에 반드시 남겨야 할 기록은 무엇일까요? 세 가지 이상 쓰세요.</p>
+    <div class="write-lines"><div class="line"></div><div class="line"></div></div>
+  </div>
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>결측치는 있어야 할 값이 비어 있는 것이다. <code>isna().sum()</code>으로 열별 개수를 먼저 확인한다. 0은 결측이 아니다.</li>
+    <li>행 삭제는 간단하지만 결측이 흩어져 있으면 많은 데이터를 잃고, 결측이 특정 집단에 몰리면 결과가 치우친다.</li>
+    <li>대푯값 대체는 극단값이 있으면 중앙값, 범주형은 최빈값을 쓰며, 대체하면 흩어짐이 실제보다 작아진다.</li>
+    <li>시간 순서 데이터는 보간이 자연스럽다. 어떤 방법이든 “왜 비었는가”를 먼저 생각하고 처리 내용을 기록한다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 결측 처리 비교기 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const TRUE = [6.5, 7.0, 5.5, 8.0, 6.0, 7.5, 4.5, 6.5, 9.0, 5.0, 7.0, 6.0];
+  const N = TRUE.length;
+  let hidden = new Set();
+  let scenario = "";   // "bias"일 때 경고
+
+  const mean = a => a.reduce((s, x) => s + x, 0) / a.length;
+  const median = a => { const b = [...a].sort((x, y) => x - y), n = b.length; return n % 2 ? b[(n - 1) / 2] : (b[n / 2 - 1] + b[n / 2]) / 2; };
+  const sd = a => { if (a.length < 2) return 0; const m = mean(a); return Math.sqrt(a.reduce((s, x) => s + (x - m) ** 2, 0) / (a.length - 1)); };
+  const method = () => document.querySelector('input[name="na-m"]:checked').value;
+
+  function process(){
+    const m = method();
+    const known = TRUE.filter((v, i) => !hidden.has(i));
+    let fv = null;
+    if (m === "mean") fv = mean(known);
+    if (m === "median") fv = median(known);
+    if (m === "zero") fv = 0;
+    const out = []; let last = null;
+    TRUE.forEach((v, i) => {
+      if (!hidden.has(i)) { out.push({ i, v, fill:false }); last = v; return; }
+      if (m === "drop") return;
+      if (m === "ffill") { if (last !== null) out.push({ i, v:last, fill:true }); return; }
+      out.push({ i, v:fv, fill:true });
+    });
+    return out;
+  }
+
+  function render(){
+    const res = process();
+    const byIdx = {}; res.forEach(r => byIdx[r.i] = r);
+    $("na-grid").innerHTML = TRUE.map((v, i) => {
+      if (!hidden.has(i)) return `<button class="na-cell" data-i="${i}"><small>${i+1}번</small>${v.toFixed(1)}</button>`;
+      const r = byIdx[i];
+      const f = r ? `→ ${r.v.toFixed(2)}` : "→ 삭제";
+      return `<button class="na-cell miss" data-i="${i}"><small>${i+1}번</small>NaN<span class="fillv">${f}</span></button>`;
+    }).join("");
+
+    const vals = res.map(r => r.v);
+    const tm = mean(TRUE), ts = sd(TRUE);
+    $("na-tmean").textContent = tm.toFixed(2);
+    $("na-tsd").textContent = ts.toFixed(2);
+    $("na-n").textContent = vals.length;
+    let em = null;
+    if (vals.length) {
+      em = mean(vals);
+      $("na-mean").textContent = em.toFixed(2);
+      $("na-err").textContent = (em - tm >= 0 ? "+" : "") + (em - tm).toFixed(2);
+      $("na-sd").textContent = sd(vals).toFixed(2);
+    } else {
+      ["na-mean","na-err","na-sd"].forEach(k => $(k).textContent = "—");
+    }
+
+    // 점 그래프 (0~10시간)
+    const X = h => 40 + h * 58;
+    let s = `<line x1="40" y1="128" x2="620" y2="128" stroke="#8595a6"/>`;
+    for (let h = 0; h <= 10; h++) s += `<line x1="${X(h)}" y1="124" x2="${X(h)}" y2="132" stroke="#8595a6"/><text x="${X(h)}" y="146" font-size="11" text-anchor="middle" fill="#4b5a6b">${h}</text>`;
+    s += `<text x="4" y="42" font-size="11" fill="#4b5a6b">실제</text><text x="4" y="92" font-size="11" fill="#4b5a6b">분석</text>`;
+    const stack = {};
+    TRUE.forEach((v, i) => {
+      const k = "t" + v; stack[k] = (stack[k] || 0) + 1;
+      const y = 44 - (stack[k] - 1) * 11;
+      s += `<circle cx="${X(v)}" cy="${y}" r="5" fill="${hidden.has(i) ? "#fdeeee" : "#fff"}" stroke="${hidden.has(i) ? "#dc2626" : "#8595a6"}" stroke-width="1.5"/>`;
+    });
+    res.forEach(r => {
+      const k = "a" + r.v.toFixed(3); stack[k] = (stack[k] || 0) + 1;
+      const y = 96 - (stack[k] - 1) * 11;
+      s += `<circle cx="${X(r.v)}" cy="${y}" r="5" fill="${r.fill ? "#f59e0b" : "#2563eb"}" opacity=".9"/>`;
+    });
+    s += `<line x1="${X(tm)}" y1="10" x2="${X(tm)}" y2="124" stroke="#8595a6" stroke-dasharray="4 3"/><text x="${X(tm)+4}" y="16" font-size="10.5" fill="#4b5a6b">실제 평균</text>`;
+    if (em !== null) s += `<line x1="${X(em)}" y1="60" x2="${X(em)}" y2="124" stroke="#2563eb" stroke-width="2"/><text x="${X(em)+4}" y="66" font-size="10.5" fill="#2563eb">추정 평균</text>`;
+    $("na-plot").innerHTML = s;
+
+    // 해설
+    const m = method(), v = $("na-verdict");
+    let msg = "";
+    if (hidden.size === 0) msg = "아직 결측이 없습니다. 칸을 클릭하거나 위의 버튼으로 결측을 만들어 보세요.";
+    else if (!vals.length) msg = "모든 값이 지워져 분석할 수 있는 값이 없습니다.";
+    else {
+      const M = {
+        drop: `행 삭제: 값 ${vals.length}개만으로 계산합니다. 평균은 남은 값의 평균이고, 데이터 수가 ${hidden.size}개 줄었습니다.`,
+        mean: `평균 대체: 추정 평균은 행 삭제와 똑같습니다. 하지만 채운 값(주황)이 모두 한가운데에 몰려 표준편차가 실제보다 작아지기 쉽습니다.`,
+        median: `중앙값 대체: 극단값의 영향을 덜 받는 값으로 채웁니다. 평균 대체처럼 채운 값이 한곳에 몰려 흩어짐이 줄어듭니다.`,
+        zero: `0으로 채우기: 0시간 잔 학생은 없습니다! 모르는 값을 거짓 값 0으로 바꾸어 평균이 크게 낮아지고 표준편차는 부풀려집니다.`,
+        ffill: `앞 값으로 채우기: 바로 앞 학생의 값을 복사합니다. 학생 번호 순서에는 의미가 없어서 근거가 약한 방법입니다(시간 순서 데이터에 적합). 첫 칸이 비면 채울 앞 값이 없어 빠집니다.`
+      };
+      msg = M[m];
+      if (scenario === "bias") msg += " ⚠ 지금은 잠이 적은 학생만 응답하지 않은 상황입니다. 남은 값이 모두 큰 쪽이라 어떤 대체 방법도 실제 평균을 되살리지 못합니다.";
+    }
+    v.textContent = msg;
+  }
+
+  $("na-grid").addEventListener("click", e => {
+    const b = e.target.closest(".na-cell"); if (!b) return;
+    const i = +b.dataset.i;
+    if (hidden.has(i)) hidden.delete(i); else hidden.add(i);
+    scenario = ""; render();
+  });
+  $("na-methods").addEventListener("change", render);
+  $("na-rand").addEventListener("click", () => {
+    hidden = new Set();
+    while (hidden.size < 3) hidden.add(Math.floor(Math.random() * N));
+    scenario = ""; render();
+  });
+  $("na-bias").addEventListener("click", () => {
+    const order = TRUE.map((v, i) => [v, i]).sort((a, b) => a[0] - b[0]);
+    hidden = new Set(order.slice(0, 3).map(p => p[1]));
+    scenario = "bias"; render();
+  });
+  $("na-reset").addEventListener("click", () => { hidden = new Set(); scenario = ""; render(); });
+  render();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"5명의 수면 시간이 4, 6, ?, 8, 7(시간)이다. 빈칸을 평균 대체하면 들어갈 값은?",
+    choices:["5.00","6.00","6.25","6.50","7.00"], answer:2,
+    explain:"결측을 뺀 4개 값의 평균 = (4+6+8+7) ÷ 4 = 25 ÷ 4 = 6.25시간입니다. 중앙값 대체라면 4, 6, 7, 8의 중앙값 (6+7) ÷ 2 = 6.5가 들어갑니다." },
+  { type:"ox", q:"결측치를 평균으로 대체하면 평균은 그대로이지만, 표준편차는 실제보다 작아지기 쉽다.",
+    answer:true, explain:"채운 값이 모두 평균과 같아 평균에서의 거리가 0인 값만 늘어나므로 흩어짐이 작게 계산됩니다. 그래서 대체 후에는 데이터가 실제보다 고르게 보일 수 있습니다." },
+  { type:"mc", q:"30행 데이터에서 결측 칸 5개가 서로 다른 5개 행에 흩어져 있다. dropna()로 결측이 있는 행을 삭제하면 남는 데이터는 원래의 몇 %인가?",
+    choices:["약 2.8%","약 16.7%","약 83.3%","약 97.2%","100%"], answer:2,
+    explain:"5개 행이 삭제되어 25행이 남으므로 25 ÷ 30 ≈ 83.3%입니다. 결측 칸은 적어도 흩어져 있으면 잃는 행이 많아집니다." },
+  { type:"mc", q:"다음 중 결측치를 0으로 채우는 것이 가장 적절한 경우는?",
+    choices:["스마트워치를 차지 않은 날의 걸음 수","응답하지 않은 몸무게 문항","센서가 꺼진 시간의 교실 온도",
+             "‘이번 달 지각 횟수’ 칸이 비어 있는데, 출결 기록상 그 학생은 지각이 없다고 확인된 경우","키를 적지 않은 학생의 키"], answer:3,
+    explain:"0으로 채워도 되는 것은 값이 실제로 0임을 다른 근거로 확인한 경우뿐입니다. 나머지는 값을 ‘모르는’ 경우라 0을 넣으면 거짓 값이 됩니다." },
+  { type:"short", q:"‘월 소득’ 설문에서 소득이 높은 사람일수록 응답하지 않는 경향이 있다. 결측 행을 삭제하고 평균 소득을 구하면 어떤 문제가 생길지 쓰고, 이 결과를 보고할 때 어떻게 해야 하는지 쓰세요.",
+    model:"응답한 사람은 상대적으로 소득이 낮은 쪽에 몰려 있으므로 평균 소득이 실제보다 낮게 추정된다(편향). 평균·중앙값으로 채워도 남은 값이 이미 치우쳐 있어 편향이 사라지지 않는다. 보고할 때는 결측 비율과 처리 방법을 밝히고, 고소득층 무응답 때문에 결과가 과소 추정되었을 가능성을 한계로 적어야 한다." },
+]);
+</script>
+</body>
+</html>

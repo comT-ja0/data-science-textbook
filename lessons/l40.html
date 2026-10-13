@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>목적에 맞는 분석 방법 선택 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 분석 방법 결정 트리 */
+.dt-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:8px; margin-bottom:14px; }
+.dt-card { border:1.5px solid var(--line); border-radius:10px; padding:8px 11px; font-size:.84rem; background:#fff; cursor:pointer; text-align:left; color:var(--ink); font-weight:600; line-height:1.45; }
+.dt-card:hover { border-color:var(--accent); filter:none; }
+.dt-card.on { border-color:var(--accent); background:var(--accent-soft); }
+.dt-card.ok::after { content:" ✔"; color:var(--ok); font-weight:800; }
+.dt-q { background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:12px 16px; }
+.dt-q .qq { font-weight:800; margin-bottom:8px; }
+.dt-q .opts { display:flex; flex-wrap:wrap; gap:8px; }
+.dt-path { font-size:.8rem; color:var(--ink-soft); margin:8px 0; }
+.dt-path span { display:inline-block; background:#fff; border:1px solid var(--line); border-radius:7px; padding:1px 8px; margin:2px 4px 2px 0; }
+.dt-res { margin-top:10px; padding:10px 14px; border-radius:10px; font-size:.9rem; }
+.dt-res.good { background:#eafaf0; border:1.5px solid #ace8c4; color:#0f5f30; }
+.dt-res.bad { background:#fdeeee; border:1.5px solid #f3b9b9; color:#8f1d1d; }
+.dt-map { display:grid; grid-template-columns:repeat(6,1fr); gap:6px; margin-top:14px; font-size:.74rem; text-align:center; }
+.dt-map div { border:1.5px solid var(--line); border-radius:8px; padding:5px 3px; background:#fff; color:var(--ink-faint); font-weight:700; }
+.dt-map div.hit { border-color:var(--accent); background:var(--accent); color:#fff; }
+.dt-map .q1 { grid-column:1 / span 6; } .dt-map .q2 { grid-column:1 / span 3; } .dt-map .q3 { grid-column:4 / span 3; }
+.dt-map .q4 { grid-column:1 / span 2; } .dt-map .lf-cls { grid-column:3 / span 1; }
+@media (max-width:600px){ .dt-map { font-size:.66rem; } }
+</style>
+</head>
+<body data-unit="3" data-lesson="L40">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>목적에 맞는 분석 방법 선택</h1>
+  <span class="std-badge">성취기준 12데과03-06</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>문제의 목표와 데이터의 형태에 따라 회귀·분류·군집·연관 분석 중 알맞은 방법을 고를 수 있다.</li>
+      <li>같은 데이터에 여러 분석 방법을 적용하고, 예측 성능과 해석 가능성을 비교하여 평가할 수 있다.</li>
+      <li>평가 지표만으로 방법을 고를 때의 한계(외삽 등)를 설명할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과03-06] 다양한 분석 방법을 비교하고 평가하여 분석 목적에 가장 적합한 분석 방법을 적용한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span class="on">문제 정의</span><span>수집</span><span>전처리</span><span>탐색</span><span class="on">모델링</span><span class="on">평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  목수의 공구함에는 망치, 톱, 드라이버, 줄자가 있습니다. “가장 좋은 공구는 무엇인가요?”라는 질문에는 답할 수 없습니다.
+  못을 박을 때는 망치, 나무를 자를 때는 톱이 가장 좋은 공구이니까요. Ⅲ영역에서 여러분은 회귀, 군집, 연관, 분류라는 공구를 모았습니다.
+  오늘은 <b>문제를 보고 알맞은 공구를 꺼내는 법</b>, 그리고 같은 일을 하는 공구가 여러 개일 때 <b>목적에 따라 고르는 법</b>을 배웁니다.
+</div>
+
+<h2><span class="sec-no">1</span>문제 유형이 방법을 정한다 <i class="pub">씨마스</i></h2>
+
+<p>분석 방법을 고를 때 가장 먼저 던질 질문은 두 가지입니다. <b>① 맞히고 싶은 정답(목표값)이 데이터에 있는가?</b> <b>② 그 정답은 수치인가, 범주인가?</b></p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:110px">방법</th><th>정답(레이블)</th><th>하는 일</th><th>예시 질문</th><th style="width:150px">주요 평가</th></tr></thead>
+  <tbody>
+    <tr><td><b>회귀</b></td><td>있음 · 수치</td><td>얼마나 될지 예측·설명</td><td>기온이 1℃ 오르면 대여량은 얼마나 늘까?</td><td>MAE, RMSE, R²</td></tr>
+    <tr><td><b>분류</b></td><td>있음 · 범주</td><td>어느 쪽에 속할지 예측</td><td>이 메일은 스팸일까?</td><td>정확도, 정밀도, 재현율, F1</td></tr>
+    <tr><td><b>군집</b></td><td>없음</td><td>비슷한 것끼리 묶기</td><td>우리 고객은 어떤 무리로 나뉠까?</td><td>SSE, 실루엣 + 해석</td></tr>
+    <tr><td><b>연관</b></td><td>없음</td><td>함께 일어나는 항목 찾기</td><td>무엇과 무엇이 함께 팔릴까?</td><td>지지도, 신뢰도, 향상도</td></tr>
+  </tbody>
+</table></div>
+
+<div class="box box-warn">
+  <span class="box-label">같은 데이터, 다른 질문</span>
+  데이터가 같아도 질문이 바뀌면 방법이 바뀝니다. 매점 거래 데이터로 “함께 팔리는 상품”을 찾으면 연관 분석,
+  “내일 컵라면이 몇 개 팔릴까”를 예측하면 회귀, “구매 패턴이 비슷한 손님 무리”를 찾으면 군집입니다. 방법은 <b>데이터가 아니라 질문</b>이 정합니다.
+</div>
+
+<h2><span class="sec-no">2</span>분석 방법 결정 트리 <i class="pub">천재</i></h2>
+
+<p>아래 상황 카드를 하나 고르고 질문에 차례로 답해 보세요. 도착한 방법이 알맞은지 바로 확인할 수 있습니다.</p>
+
+<div class="sim">
+  <div class="sim-head">분석 방법 결정 트리 — 상황 카드를 골라 질문에 답하세요</div>
+  <div class="sim-body">
+    <div class="dt-cards" id="dt-cards"></div>
+    <div class="dt-q" id="dt-q"></div>
+    <div class="dt-path" id="dt-path"></div>
+    <div id="dt-res"></div>
+    <div class="dt-map" id="dt-map">
+      <div class="q1" data-n="q1">정답(목표값)이 있나?</div>
+      <div class="q2" data-n="q2">있음 → 정답이 수치? 범주?</div>
+      <div class="q3" data-n="q3">없음 → 묶기? 함께 일어남?</div>
+      <div class="q4" data-n="q4">수치 → 설명? 예측?</div>
+      <div class="lf-cls" data-n="cls">분류</div>
+      <div data-n="clu">군집</div>
+      <div data-n="asc">연관</div>
+      <div data-n="reg-s">통계적 회귀<br>(설명)</div>
+      <div data-n="reg-m">기계학습 회귀<br>(예측)</div>
+    </div>
+    <div class="sim-stats"><div class="stat-chip">맞힌 카드 <b id="dt-score">0</b> / <span id="dt-total">0</span></div></div>
+  </div>
+</div>
+
+<h2><span class="sec-no">3</span>같은 문제, 두 가지 방법: 설명할까 맞힐까 <i class="pub">삼양</i></h2>
+
+<p>공공자전거 운영팀이 두 가지를 알고 싶어 합니다. (가) “기온·비·휴일이 대여량에 <b>각각 얼마나</b> 영향을 주는지 시의회에 설명하고 싶다.”
+(나) “내일 대여량을 <b>최대한 정확히</b> 예측해 자전거를 재배치하고 싶다.” 같은 <code>bike.csv</code>로 선형 회귀와 의사결정트리를 비교해 봅시다.</p>
+
+<div class="pycell" data-title="선형 회귀: 계수로 설명하기"><textarea>
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.tree import DecisionTreeRegressor, export_text
+from sklearn.metrics import mean_absolute_error, r2_score
+
+df = load_csv("bike.csv")
+feat = ["기온", "강수량", "휴일"]
+X_tr, X_te, y_tr, y_te = train_test_split(df[feat], df["대여량"], test_size=0.3, random_state=0)
+
+lr = LinearRegression().fit(X_tr, y_tr)
+for f, c in zip(feat, lr.coef_):
+    print(f"{f}: {c:+.1f}")          # 다른 조건이 같을 때 1만큼 늘면 대여량 변화
+print("절편", round(lr.intercept_, 1))
+p = lr.predict(X_te)
+print("선형 회귀  테스트 R²", round(r2_score(y_te, p), 3), " MAE", round(mean_absolute_error(y_te, p), 1))
+
+# ✏️ feat에 "습도"를 추가하면 계수와 R²는 어떻게 달라지나요?
+</textarea></div>
+
+<p>선형 회귀는 “다른 조건이 같다면 기온 1℃마다 약 <b>63대</b> 증가, 강수량 1mm마다 약 <b>60대</b> 감소, 휴일에는 약 <b>127대</b> 감소”처럼
+한 문장으로 설명할 수 있습니다. 하지만 테스트 R²는 <b>0.351</b>, 평균 절대 오차(MAE)는 약 <b>657대</b>로 예측력은 아쉽습니다.</p>
+
+<div class="pycell" data-title="의사결정트리: 더 잘 맞히기"><textarea>
+tree = DecisionTreeRegressor(max_depth=4, random_state=0).fit(X_tr, y_tr)
+p2 = tree.predict(X_te)
+print("트리(깊이 4)  테스트 R²", round(r2_score(y_te, p2), 3), " MAE", round(mean_absolute_error(y_te, p2), 1))
+print(pd.Series(tree.feature_importances_, index=feat).round(3))
+
+# 깊이 2짜리 트리로 규칙을 읽어 보기
+print(export_text(DecisionTreeRegressor(max_depth=2, random_state=0).fit(X_tr, y_tr), feature_names=feat))
+
+# ✏️ max_depth를 8로 바꾸면 테스트 R²는 좋아지나요? (L39의 과대적합을 떠올려 보세요)
+</textarea></div>
+
+<p>같은 데이터에서 트리는 테스트 R² <b>0.687</b>, MAE 약 <b>476대</b>로 훨씬 잘 맞힙니다. 대여량은 기온이 오를수록 늘다가 너무 더우면 다시 줄어드는
+<b>곡선 관계</b>인데, 직선은 이를 표현하지 못하고 트리는 구간을 나눠 따라가기 때문입니다.
+대신 트리는 “기온 1℃당 몇 대”처럼 간단한 설명을 주지 못합니다. 그래서 (가)에는 선형 회귀(통계적 회귀), (나)에는 트리 같은 기계학습 회귀가 더 알맞습니다.</p>
+
+<h2><span class="sec-no">4</span>점수만 보고 고르면 안 되는 이유: 외삽 <i class="pub">삼양</i></h2>
+
+<p>모델은 학습한 데이터의 범위 안에서만 믿을 수 있습니다. 데이터 범위 <b>밖</b>을 예측하는 것을 <span class="keyterm">외삽</span>이라고 합니다.
+이 데이터에서 가장 더운 날은 34.2℃였습니다. 기록적인 폭염(38℃)이 온다면 두 모델은 어떻게 예측할까요?</p>
+
+<div class="pycell" data-title="데이터 범위 밖을 예측하면?"><textarea>
+import matplotlib.pyplot as plt
+
+new = pd.DataFrame({"기온": [-5, 10, 22, 30, 38], "강수량": 0, "휴일": 0})
+out = new.copy()
+out["선형"] = lr.predict(new).round()
+out["트리"] = tree.predict(new).round()
+print(out.to_string(index=False))
+
+hot = df[df["기온"] >= 30]
+print("실제로 30℃ 이상이었던 날:", len(hot), "일, 평균 대여량", round(hot["대여량"].mean()))
+
+grid = pd.DataFrame({"기온": range(-10, 41), "강수량": 0, "휴일": 0})
+plt.scatter(df["기온"], df["대여량"], s=8, alpha=.4, label="실제 데이터")
+plt.plot(grid["기온"], lr.predict(grid), label="선형 회귀")
+plt.plot(grid["기온"], tree.predict(grid), label="트리")
+plt.axvline(df["기온"].max(), ls="--", c="gray"); plt.xlabel("기온(℃)"); plt.ylabel("대여량"); plt.legend()
+plt.title("회색 점선 오른쪽은 데이터가 없는 구간"); plt.show()
+
+# ✏️ 기온 -15℃(데이터 최저 -8.4℃보다 추운 날)도 넣어 두 모델의 예측을 비교해 보세요.
+</textarea></div>
+
+<p>실제로 30℃ 이상이었던 5일의 평균 대여량은 <b>2602대</b>로, 더울수록 오히려 줄었습니다. 그런데 선형 회귀는 38℃에서 <b>5319대</b>로 계속 늘어난다고 예측하고,
+트리는 30℃와 38℃ 모두 <b>3742대</b>로 똑같이 예측합니다. 트리는 학습한 구간의 평균값만 내놓기 때문에 범위 밖에서는 변화를 예측하지 못합니다.
+<b>두 모델 모두 데이터 범위 밖에서는 믿을 수 없습니다.</b> 점수(R²)가 높은 모델도 외삽에서는 실패할 수 있으므로,
+예측하려는 상황이 학습 데이터 범위 안인지 반드시 확인하고, 범위 밖이라면 새 데이터를 모으는 것이 먼저입니다.</p>
+
+<div class="box box-tip">
+  <span class="box-label">방법을 고르는 체크리스트</span>
+  ① 질문의 유형(정답 유무, 수치/범주) ② 목적(설명인가 예측인가, 무엇을 틀리면 더 위험한가)
+  ③ 데이터의 양과 형태(곡선 관계? 단위가 다른 속성?) ④ 결과를 받을 사람(규칙으로 설명해야 하나?)
+  ⑤ 예측할 상황이 학습 데이터 범위 안인가 — 이 다섯 가지를 함께 따져 방법을 고릅니다.
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">모둠 활동</span>우리 학교 문제, 어떤 방법으로 풀까? <i class="pub">천재</i> <i class="pub">씨마스</i></div>
+  <div class="act-body">
+    <ol>
+      <li>각 문제에 알맞은 분석 방법과 그 이유, 중요하게 볼 평가 지표를 쓰세요.
+        <div class="table-wrap"><table>
+          <thead><tr><th>문제</th><th>분석 방법</th><th>이유</th><th>평가 지표</th></tr></thead>
+          <tbody>
+            <tr><td>급식 메뉴와 날씨로 잔반량(kg) 예측하기</td><td></td><td></td><td></td></tr>
+            <tr><td>방과후 수업 신청 기록에서 함께 신청하는 강좌 찾기</td><td></td><td></td><td></td></tr>
+            <tr><td>독서 기록이 비슷한 학생끼리 독서 모임 만들기</td><td></td><td></td><td></td></tr>
+            <tr><td>출결·과제 제출 기록으로 학업 지원이 필요한 학생(예/아니오) 조기 발견</td><td></td><td></td><td></td></tr>
+          </tbody>
+        </table></div></li>
+      <li>4번 문제를 분류로 푼다면 정밀도와 재현율 중 무엇을 더 중요하게 보아야 할까요? 이런 데이터를 다룰 때 지켜야 할 윤리적 주의점도 함께 쓰세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+      <li>자전거 운영팀에게 보낼 한 문단의 제안서를 쓰세요. (가)·(나) 목적별로 어떤 모델을 추천하는지, 폭염 예보가 있는 날에는 예측을 어떻게 다뤄야 하는지 포함하세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div><div class="line"></div></div></li>
+    </ol>
+  </div>
+</div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  결정 트리 위젯을 먼저 개별로 5분간 풀게 한 뒤, 틀린 카드를 모둠에서 토론하게 하면 ‘정답 유무’와 ‘수치/범주’ 구분이 확실해집니다.
+  외삽 예제는 학생들이 가장 인상 깊어하는 부분이므로 그래프를 크게 띄워 “회색 점선 오른쪽을 믿을 수 있나?”를 질문하세요.
+  Orange 학급은 <b>Linear Regression · Tree</b>를 <b>Test and Score</b>에 함께 연결해 비교하고, <b>Predictions</b> 위젯에 38℃ 데이터를 넣어 확인할 수 있습니다.
+  흔한 오개념: “R²가 가장 높은 모델이 항상 정답”, “분석 방법은 데이터 종류로 정해진다”(질문이 정한다).
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>정답이 있고 수치면 회귀, 범주면 분류, 정답이 없고 묶으려면 군집, 함께 일어남을 찾으려면 연관 분석을 쓴다.</li>
+    <li>분석 방법은 데이터가 아니라 질문과 목적이 정한다.</li>
+    <li>설명이 중요하면 계수를 해석할 수 있는 선형(통계적) 회귀, 예측 정확도가 중요하면 트리 등 기계학습 모델이 알맞을 수 있다.</li>
+    <li>평가 점수만으로 고르지 말고, 예측할 상황이 학습 데이터 범위 안인지(외삽) 확인한다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 분석 방법 결정 트리 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const CARDS = [
+    { t: "🍱 기온·요일·메뉴로 내일 급식 잔반량(kg) 맞히기", a: "reg-m", why: "정답(잔반량)이 수치이고, 정확한 예측이 목적이므로 기계학습 회귀입니다." },
+    { t: "📧 메일 내용으로 스팸인지 아닌지 판별하기", a: "cls", why: "정답이 ‘스팸/정상’이라는 범주이므로 분류입니다(정밀도 중시)." },
+    { t: "📚 도서관 대출 기록에서 함께 빌리는 책 찾기", a: "asc", why: "정답 없이 ‘함께 일어나는 항목’을 찾으므로 연관 분석입니다." },
+    { t: "🎯 설문 응답이 비슷한 학생끼리 진로 모임 만들기", a: "clu", why: "정해진 정답 없이 비슷한 학생끼리 묶으므로 군집 분석입니다." },
+    { t: "📢 광고비가 매출을 얼마나 늘리는지 회의에서 설명하기", a: "reg-s", why: "정답(매출)이 수치이고, 영향의 크기를 설명하는 것이 목적이므로 계수를 해석할 수 있는 통계적 회귀입니다." },
+    { t: "🩸 혈액 검사 수치로 당뇨 위험군(예/아니오) 선별하기", a: "cls", why: "정답이 ‘위험군/아님’ 범주이므로 분류입니다(놓치면 위험하니 재현율 중시)." },
+    { t: "🌫️ 대기 오염 물질 배출 패턴이 비슷한 지역 묶기", a: "clu", why: "정답 없이 배출 패턴이 비슷한 지역끼리 묶으므로 군집 분석입니다." },
+    { t: "🧾 편의점 영수증으로 묶음 할인 상품 정하기", a: "asc", why: "함께 팔리는 상품 조합을 찾으므로 연관 분석입니다." },
+    { t: "🏃 체력 측정 기록이 달리기 기록에 주는 영향을 보고서로 설명하기", a: "reg-s", why: "정답(기록)이 수치이고 영향을 설명하는 것이 목적이므로 통계적 회귀입니다." },
+  ];
+  const NODES = {
+    q1: { q: "맞히고 싶은 정답(목표값)이 데이터에 있나요?", o: [["있다 (지도 학습)", "q2"], ["없다 (비지도 학습)", "q3"]] },
+    q2: { q: "그 정답은 수치(얼마나?)인가요, 범주(어느 쪽?)인가요?", o: [["수치 (예: kg, 대수, 점수)", "q4"], ["범주 (예: 예/아니오, 종류)", "cls"]] },
+    q3: { q: "무엇을 찾고 싶나요?", o: [["비슷한 대상끼리 묶기", "clu"], ["함께 일어나는 항목 찾기", "asc"]] },
+    q4: { q: "영향을 설명하는 것과 정확히 예측하는 것 중 무엇이 더 중요한가요?", o: [["원인별 영향을 설명하기", "reg-s"], ["최대한 정확히 예측하기", "reg-m"]] },
+  };
+  const LEAF = { "cls": "분류", "clu": "군집 분석", "asc": "연관 분석", "reg-s": "통계적 회귀 (선형 회귀, 계수 해석)", "reg-m": "기계학습 회귀 (트리·k-NN 등, 교차 검증으로 평가)" };
+  let cur = -1, node = "q1", path = [], solved = new Set();
+
+  function renderCards(){
+    $("dt-cards").innerHTML = CARDS.map((c, i) => `<button class="dt-card${i === cur ? " on" : ""}${solved.has(i) ? " ok" : ""}" data-i="${i}">${c.t}</button>`).join("");
+    $("dt-score").textContent = solved.size; $("dt-total").textContent = CARDS.length;
+  }
+  function renderMap(){
+    document.querySelectorAll("#dt-map > div").forEach(d => d.classList.toggle("hit", path.includes(d.dataset.n) || d.dataset.n === node));
+  }
+  function renderQ(){
+    renderMap();
+    $("dt-path").innerHTML = path.length ? "지나온 길: " + path.map(p => `<span>${NODES[p] ? NODES[p].pick || "" : ""}</span>`).join("") : "";
+    if (cur < 0){ $("dt-q").innerHTML = "<div class='qq'>위에서 상황 카드를 하나 고르세요.</div>"; $("dt-res").innerHTML = ""; return; }
+    if (NODES[node]){
+      const n = NODES[node];
+      $("dt-q").innerHTML = `<div class="qq">Q. ${n.q}</div><div class="opts">${n.o.map(([lab, to], k) => `<button class="ghost" data-to="${to}" data-lab="${lab}">${lab}</button>`).join("")}</div>`;
+      $("dt-res").innerHTML = "";
+    } else {
+      const c = CARDS[cur], ok = node === c.a;
+      if (ok) solved.add(cur);
+      $("dt-q").innerHTML = `<div class="qq">도착: ${LEAF[node]}</div><div class="opts"><button class="gray" id="dt-retry">↺ 이 카드 다시 풀기</button></div>`;
+      $("dt-res").innerHTML = `<div class="dt-res ${ok ? "good" : "bad"}">${ok ? "✔ 알맞은 선택입니다. " + c.why : "✘ 다시 생각해 보세요. 힌트: 이 상황에서 ‘맞히고 싶은 것’이 무엇인지, 그것이 숫자인지 범주인지부터 따져 보세요."}</div>`;
+      renderCards();
+      $("dt-retry").addEventListener("click", () => { node = "q1"; path = []; renderQ(); });
+    }
+  }
+  $("dt-cards").addEventListener("click", e => {
+    const b = e.target.closest(".dt-card"); if (!b) return;
+    cur = +b.dataset.i; node = "q1"; path = []; renderCards(); renderQ();
+  });
+  $("dt-q").addEventListener("click", e => {
+    const b = e.target.closest("button[data-to]"); if (!b) return;
+    NODES[node].pick = b.dataset.lab;
+    path.push(node); node = b.dataset.to; renderQ();
+  });
+  renderCards(); renderQ();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"온라인 서점이 ‘회원의 구매 기록을 바탕으로 취향이 비슷한 회원끼리 묶어 맞춤 소식지를 보내려고’ 한다. 가장 알맞은 분석 방법은?",
+    choices:["단순 선형 회귀","분류","군집 분석","연관 분석","외삽"], answer:2,
+    explain:"미리 정해진 정답 없이 비슷한 회원끼리 묶는 것이 목적이므로 군집 분석입니다. ‘함께 팔리는 책’을 찾는다면 연관 분석이 됩니다." },
+  { type:"mc", q:"다음 중 정답(목표값)이 범주여서 분류 모델이 알맞은 문제는?",
+    choices:["내년 신입생 수 예측","중고차 가격 예측","학생이 방과후 수업을 중도 포기할지(예/아니오) 예측","하루 급식 잔반량 예측","월별 전력 사용량 예측"], answer:2,
+    explain:"중도 포기 여부는 ‘예/아니오’ 범주이므로 분류입니다. 나머지는 모두 연속적인 수치를 예측하는 회귀 문제입니다." },
+  { type:"ox", q:"테스트 R²가 가장 높은 모델은 학습 데이터 범위 밖의 상황에서도 가장 정확하게 예측한다.",
+    answer:false, explain:"R²는 테스트 데이터(학습 범위 안)에서의 성능입니다. 실습에서도 R²가 더 높은 트리는 38℃에서 30℃와 같은 값만 내놓았고, 선형 회귀는 대여량이 계속 는다고 잘못 예측했습니다. 범위 밖(외삽)에서는 두 모델 모두 믿기 어렵습니다." },
+  { type:"mc", q:"선형 회귀 결과 ‘기온 계수 +63.1, 강수량 계수 −59.9’를 얻었다. 다른 조건이 같을 때 강수량이 10mm 늘면 예측 대여량은?",
+    choices:["약 60대 감소","약 599대 감소","약 631대 증가","약 32대 증가","변화 없음"], answer:1,
+    explain:"강수량 계수 −59.9는 1mm당 약 59.9대 감소를 뜻하므로 10mm면 약 599대 감소입니다. 이렇게 계수로 영향을 설명할 수 있는 것이 선형 회귀의 장점입니다." },
+  { type:"short", q:"시의회에 ‘비가 오면 자전거 이용이 얼마나 줄어드는지’ 보고하려는 경우와, 매일 아침 자전거 재배치를 위해 ‘오늘 대여량’을 예측하려는 경우에 각각 어떤 모델을 추천하겠습니까? 이유와 함께 쓰세요.",
+    model:"보고용에는 선형 회귀(통계적 회귀)를 추천한다. ‘강수량 1mm당 약 60대 감소’처럼 계수로 영향의 크기를 설명할 수 있어 듣는 사람이 이해하기 쉽다. 재배치용 예측에는 테스트 R²와 MAE가 더 좋은 의사결정트리 같은 기계학습 회귀를 추천한다. 대여량과 기온의 곡선 관계를 더 잘 따라가 예측 오차가 작기 때문이다. 단, 두 경우 모두 학습 데이터 범위를 벗어난 날씨(폭염 등)에서는 예측을 믿기 어렵다는 점을 함께 알린다." },
+]);
+</script>
+</body>
+</html>

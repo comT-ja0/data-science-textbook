@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>데이터 기반 의사 결정 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 아이스크림 생산량 시뮬레이터 */
+.ic-grid { display:grid; grid-template-columns:1.1fr 1fr; gap:16px; align-items:start; }
+@media (max-width:760px){ .ic-grid { grid-template-columns:1fr; } }
+#ic-chart { width:100%; height:auto; background:#fff; border:1px solid var(--line); border-radius:10px; display:block; }
+.ic-today { background:var(--accent-soft); border-radius:10px; padding:10px 12px; margin-bottom:10px; font-size:.9rem; }
+.ic-today .big { font-size:1.35rem; font-weight:800; color:var(--accent); }
+.ic-slider { display:flex; align-items:center; gap:10px; margin:8px 0; }
+.ic-slider input { flex:1; }
+.ic-slider output { font-weight:800; min-width:64px; text-align:right; }
+.ic-log { max-height:220px; overflow-y:auto; margin-top:10px; }
+.ic-log table { margin:0; font-size:.78rem; }
+.ic-log td, .ic-log th { padding:4px 6px; text-align:right; }
+.ic-log td.minus { color:var(--no); font-weight:700; }
+.ic-log td.plus { color:var(--ok); font-weight:700; }
+.ic-result { margin-top:10px; padding:10px 12px; border-radius:10px; font-size:.88rem; background:var(--paper); border:1px solid var(--line); line-height:1.55; }
+/* 4목적 카드 */
+.purpose { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; margin:14px 0; }
+.purpose div { border-radius:12px; padding:11px 13px; border:1px solid var(--line); background:#fff; font-size:.86rem; }
+.purpose div b { display:block; font-size:.98rem; color:var(--accent); }
+.purpose div em { font-style:normal; font-weight:700; color:var(--ink-soft); }
+</style>
+</head>
+<body data-unit="1" data-lesson="L03">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>데이터 기반 의사 결정</h1>
+  <span class="std-badge">성취기준 12데과01-01</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>직관에 의한 의사 결정과 데이터 기반 의사 결정의 차이를 설명할 수 있다.</li>
+      <li>데이터 분석의 네 가지 목적(설명·진단·예측·처방)을 사례에 적용할 수 있다.</li>
+      <li>주어진 데이터를 근거로 의사 결정을 내리고 그 결과를 평가할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과01-01] 데이터 과학의 개념을 이해하고, 문제 해결 사례를 데이터 기반 의사 결정 상황에 적용한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span class="on">문제 정의</span><span class="on">수집</span><span>전처리</span><span class="on">탐색</span><span class="on">모델링</span><span class="on">평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  축제 날 우리 반이 교문 앞에서 아이스크림을 팔기로 했습니다. 반장은 “작년에 엄청 잘 팔렸대. 500개 준비하자!”라고 하고,
+  총무는 “남으면 다 녹아서 버려야 해. 200개면 충분해.”라고 합니다. 둘 다 그럴듯하지만 근거는 ‘느낌’입니다.
+  만약 작년 축제 날의 판매 기록과 기온, 올해 축제 날의 일기 예보가 있다면 어떨까요? 오늘은 <b>감</b>이 아니라 <b>데이터</b>로 결정하는 방법을 연습합니다.
+</div>
+
+<h2><span class="sec-no">1</span>직관과 데이터, 무엇으로 결정할까 <i class="pub">천재</i></h2>
+
+<p>우리는 매일 수많은 결정을 내립니다. 대부분은 경험에서 나온 <span class="keyterm">직관</span>으로 빠르게 결정하지요. 직관은 빠르고 편리하지만 약점이 있습니다.</p>
+<ul>
+  <li><b>기억의 착각</b> — 최근에 겪었거나 인상 깊었던 일을 실제보다 더 자주 일어난다고 느낍니다(작년 축제 ‘대박’ 기억).</li>
+  <li><b>보고 싶은 것만 보기</b> — 자기 생각과 맞는 사례만 떠올리고 반대 사례는 잊습니다.</li>
+  <li><b>설명하기 어려움</b> — “그냥 그럴 것 같아서”로는 다른 사람을 설득하기 어렵습니다.</li>
+</ul>
+<p><span class="keyterm">데이터 기반 의사 결정(data-driven decision making)</span>은 관련 데이터를 수집·분석한 결과를 <b>근거</b>로 결정을 내리는 것입니다.
+근거가 분명하므로 다른 사람에게 설명할 수 있고, 결과가 나빴을 때 <b>무엇이 틀렸는지 되짚어 고칠 수</b> 있습니다.
+그렇다고 직관이 쓸모없는 것은 아닙니다. 어떤 데이터를 모을지, 분석 결과가 현실에 맞는지 판단할 때는 경험에서 나온 직관(도메인 지식)이 큰 역할을 합니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:110px">구분</th><th>직관에 의한 결정</th><th>데이터 기반 결정</th></tr></thead>
+  <tbody>
+    <tr><td><b>근거</b></td><td>개인의 경험·느낌</td><td>수집·분석한 데이터</td></tr>
+    <tr><td><b>장점</b></td><td>빠르다, 데이터가 없어도 가능하다</td><td>객관적이다, 설명·검증·개선이 가능하다</td></tr>
+    <tr><td><b>약점</b></td><td>편향되기 쉽다, 설득이 어렵다</td><td>데이터 수집에 시간·비용이 든다, 데이터가 잘못되면 결론도 틀린다</td></tr>
+  </tbody>
+</table></div>
+
+<h2><span class="sec-no">2</span>데이터로 결정하는 과정: 아이스크림 가게의 회의 <i class="pub">삼양</i></h2>
+
+<p>학교 앞 작은 아이스크림 가게 ‘눈송이’는 여름마다 고민입니다. 많이 만들면 남아서 버리고, 적게 만들면 손님을 놓칩니다.
+사장님과 아르바이트생 두 명이 회의를 열었습니다. 대화를 따라가며 단계를 확인해 보세요.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:120px">단계</th><th>회의 내용</th></tr></thead>
+  <tbody>
+    <tr><td><b>① 문제 정의</b></td><td>사장: “하루에 몇 개를 만들어야 <b>버리는 양은 줄이고 이익은 늘릴</b> 수 있을까?”</td></tr>
+    <tr><td><b>② 데이터 수집</b></td><td>민지: “작년 여름 판매 장부랑 그날그날 최고 기온을 기상청 자료에서 찾아 모아 볼게요.”</td></tr>
+    <tr><td><b>③ 전처리·탐색</b></td><td>도현: “임시 휴업한 날은 판매량 0이라 빼야 해요. 그래프로 그려 보니 <b>더운 날일수록 많이 팔렸어요.</b>”</td></tr>
+    <tr><td><b>④ 모델링</b></td><td>민지: “기온이 1℃ 오를 때마다 평균 몇 개씩 더 팔리는지 직선으로 나타내면, 기온 예보로 판매량을 예측할 수 있겠어요.”</td></tr>
+    <tr><td><b>⑤ 평가</b></td><td>도현: “지난주 실제 판매량과 예측을 비교해 보니 대체로 맞는데, 비 온 날은 많이 빗나갔어요. 강수 여부도 넣어야겠어요.”</td></tr>
+    <tr><td><b>⑥ 활용·공유</b></td><td>사장: “좋아, 매일 아침 예보를 보고 생산량을 정하자. 한 달 뒤에 버린 양이 줄었는지 다시 확인하고.”</td></tr>
+  </tbody>
+</table></div>
+
+<p>⑤에서 예측이 빗나간 이유를 찾아 ②·④로 되돌아가는 것에 주목하세요. 데이터 기반 의사 결정은 <b>결정 → 결과 확인 → 개선</b>을 반복하는 과정입니다.</p>
+
+<h2><span class="sec-no">3</span>내가 사장이라면? 생산량 결정 시뮬레이터 <i class="pub">삼양</i></h2>
+
+<p>이번에는 여러분이 ‘눈송이’의 사장입니다. 아이스크림 1개의 <b>원가는 600원, 판매가는 1,500원</b>입니다.
+팔리지 않은 아이스크림은 그날 버립니다. 10일 동안 매일 내일의 기온 예보를 보고 생산량을 정해 보세요.
+옆에서는 작년 데이터로 만든 추세선대로만 생산하는 <b>‘데이터 코치’</b>가 같은 날씨·같은 손님을 상대로 함께 장사합니다.</p>
+
+<div class="sim">
+  <div class="sim-head">아이스크림 생산량 결정 시뮬레이터 — 나 vs 데이터 코치</div>
+  <div class="sim-body">
+    <div class="sim-controls">
+      <label><input type="checkbox" id="ic-show" checked> 작년 데이터 그래프 보기</label>
+      <label><input type="checkbox" id="ic-line"> 추세선 보기</label>
+      <button id="ic-restart" class="gray">↺ 새 게임</button>
+    </div>
+    <div class="ic-grid">
+      <div>
+        <svg id="ic-chart" viewBox="0 0 440 290" aria-label="작년 기온과 판매량 산점도"></svg>
+        <p class="widget-hint" id="ic-eq"></p>
+      </div>
+      <div>
+        <div class="ic-today" id="ic-today"></div>
+        <div class="ic-slider">
+          <label for="ic-prod" style="font-weight:700;font-size:.86rem">생산량</label>
+          <input type="range" id="ic-prod" min="0" max="400" step="5" value="150">
+          <output id="ic-prod-out">150개</output>
+        </div>
+        <button id="ic-go">🍦 하루 영업하기</button>
+        <div class="sim-stats">
+          <span class="stat-chip">나의 누적 이익 <b id="ic-me">0원</b></span>
+          <span class="stat-chip">코치 누적 이익 <b id="ic-coach">0원</b></span>
+          <span class="stat-chip">나의 폐기량 <b id="ic-waste">0개</b></span>
+        </div>
+        <div class="ic-result" id="ic-result">생산량을 정하고 [하루 영업하기]를 누르세요.</div>
+        <div class="ic-log"><table>
+          <thead><tr><th>일</th><th>예보</th><th>실제 수요</th><th>나의 생산</th><th>나의 이익</th><th>코치 생산</th><th>코치 이익</th></tr></thead>
+          <tbody id="ic-log"></tbody>
+        </table></div>
+      </div>
+    </div>
+    <p class="widget-hint">생각해 보기: 1개가 남아 버리면 600원 손해, 1개가 모자라 못 팔면 900원(1,500−600)의 이익을 놓칩니다. 그렇다면 예측값보다 조금 더 만드는 것과 조금 덜 만드는 것 중 어느 쪽이 유리할까요?</p>
+  </div>
+</div>
+
+<p>몇 번 해 보면 알 수 있듯이, 데이터를 보고 결정해도 매일 딱 맞힐 수는 없습니다. 손님 수에는 기온만으로 설명되지 않는 <b>우연한 변동</b>이 있기 때문입니다.
+그러나 여러 날을 합치면 데이터에 근거한 결정이 <b>평균적으로</b> 더 나은 결과를 냅니다. 또 그래프를 숨기고 감으로만 해 보면 차이가 더 크게 벌어지는 경우가 많습니다.</p>
+
+<h2><span class="sec-no">4</span>분석의 네 가지 목적: 설명·진단·예측·처방 <i class="pub">씨마스</i></h2>
+
+<p>데이터 분석은 무엇을 알고 싶은지에 따라 네 가지로 나눌 수 있습니다. 뒤로 갈수록 어렵지만 의사 결정에 더 직접적인 도움을 줍니다.</p>
+
+<div class="purpose">
+  <div><b>설명 분석</b><em>무슨 일이 있었나?</em><br>지난달 하루 평균 판매량은 142개였다.</div>
+  <div><b>진단 분석</b><em>왜 그런 일이 일어났나?</em><br>7월 셋째 주 판매가 줄어든 것은 장마로 기온이 낮았기 때문이다.</div>
+  <div><b>예측 분석</b><em>앞으로 무슨 일이 일어날까?</em><br>내일 최고 기온이 32℃이면 약 220개가 팔릴 것이다.</div>
+  <div><b>처방 분석</b><em>무엇을 해야 할까?</em><br>이익을 가장 크게 하려면 내일은 230개를 만들어야 한다.</div>
+</div>
+
+<p>이 네 단계는 역사 속 나이팅게일의 활동에서도 찾을 수 있습니다. 그녀는 병사들의 사망 원인을 달마다 기록·요약했고(설명),
+사망자 대부분이 전투 부상이 아니라 비위생적인 환경에서 생긴 감염병 때문임을 밝혀냈으며(진단),
+위생을 개선하지 않으면 희생이 계속될 것이라고 경고하고(예측), 병원 환기·청결 같은 구체적인 개선책을 요구했습니다(처방).</p>
+
+<h3>파이썬으로 설명·진단 분석 해 보기</h3>
+<p>공공자전거 대여 데이터(<code>bike.csv</code>, 1년 365일, 수업용 가상 데이터)로 “기온이 높으면 자전거를 더 많이 빌릴까?”라는 질문에 답해 봅시다.</p>
+
+<div class="pycell" data-title="기온 구간별 평균 대여량"><textarea>
+import pandas as pd
+
+bike = load_csv("bike.csv")
+print(bike.head(3))
+print("하루 평균 대여량:", round(bike["대여량"].mean()), "대")      # 설명 분석
+
+# 기온을 구간으로 나누어 구간별 평균 대여량 비교
+bins = [-15, 0, 10, 20, 25, 30, 40]
+bike["기온구간"] = pd.cut(bike["기온"], bins=bins)
+summary = bike.groupby("기온구간", observed=True)["대여량"].agg(["count", "mean"]).round(0)
+summary.columns = ["날수", "평균 대여량"]
+print(summary)
+
+# ✏️ bins를 5℃ 간격으로 더 잘게 나누어 보세요. 대여량이 가장 많은 기온은 몇 도쯤인가요?
+</textarea></div>
+
+<div class="pycell" data-title="비와 휴일은 어떤 영향을 줄까?"><textarea>
+# 진단 분석: 대여량을 바꾸는 다른 요인 찾기
+bike["비"] = bike["강수량"] > 0
+print(bike.groupby("비")["대여량"].mean().round(0))
+print(bike.groupby("휴일")["대여량"].mean().round(0))
+
+import matplotlib.pyplot as plt
+colors = bike["비"].map({True: "#2563eb", False: "#f59e0b"})
+plt.scatter(bike["기온"], bike["대여량"], c=colors, s=12)
+plt.xlabel("기온(℃)"); plt.ylabel("대여량(대)")
+plt.title("기온과 대여량 (파랑: 비 온 날, 주황: 비 안 온 날)")
+plt.show()
+
+# ✏️ "휴일"을 기준으로 색을 나누어 그려 보세요.
+</textarea></div>
+
+<p id="bike-note">결과를 보면 대여량은 기온이 오를수록 늘어나지만 <b>계속 늘지는 않습니다</b>. 10~20℃ 구간에서 하루 평균 약 4,355대로 가장 많고, 30℃가 넘는 무더운 날(5일)에는 약 2,602대로 오히려 크게 줄어듭니다.
+또 비 온 날의 평균(약 2,897대)은 비가 안 온 날(약 3,709대)보다 800대 이상 적습니다. 흥미롭게도 이 데이터에서는 휴일(약 3,256대)이 평일(약 3,608대)보다 조금 적은데, 출퇴근·등하교에 자전거를 많이 쓰기 때문일 수 있습니다(진단).
+이런 결과가 쌓이면 “내일 기온 18℃, 비 없음 → 대여소에 자전거를 넉넉히 배치하자”(예측·처방)로 나아갈 수 있습니다.</p>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  시뮬레이터는 두 번 하게 하세요. 1회차는 ‘작년 데이터 그래프 보기’를 끄고 감으로, 2회차는 그래프와 추세선을 보며 합니다. 두 회차의 누적 이익과 폐기량을 비교해 발표하게 하면 데이터 기반 결정의 효과를 체감합니다.
+  그래도 코치보다 이익이 큰 학생이 나오는데, 이는 ‘운’(우연 변동) 때문일 수 있음을 짚고 “한 번의 결과가 아니라 여러 번의 평균으로 판단해야 한다”는 점으로 연결합니다.
+  파이썬 셀 대신 스프레드시트의 피벗 테이블(기온 구간별 평균)로도 같은 분석을 할 수 있습니다.
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">조사 활동</span>검색량 데이터로 판매 전략 세우기 <i class="pub">YBM</i></div>
+  <div class="act-body">
+    <p style="margin-top:0">포털 사이트가 제공하는 검색어 트렌드 서비스(예: 네이버 데이터랩)에서는 특정 단어가 언제, 어떤 연령·성별에서 많이 검색되었는지 볼 수 있습니다.</p>
+    <ol>
+      <li>우리 가게에서 팔 상품 하나를 정하고(예: 휴대용 선풍기, 핫팩, 우산), 상품 이름으로 최근 1~2년의 검색량 추이를 조회하세요.
+        <div class="table-wrap"><table>
+          <thead><tr><th>상품</th><th>검색량이 가장 많은 시기</th><th>많이 검색한 연령·성별</th><th>함께 떠오르는 요인(날씨·행사 등)</th></tr></thead>
+          <tbody><tr><td>&nbsp;</td><td></td><td></td><td></td></tr></tbody>
+        </table></div></li>
+      <li>조회 결과를 설명·진단·예측·처방의 네 문장으로 정리하세요.
+        <div class="table-wrap"><table>
+          <tbody><tr><td style="width:90px"><b>설명</b></td><td>&nbsp;</td></tr><tr><td><b>진단</b></td><td>&nbsp;</td></tr><tr><td><b>예측</b></td><td>&nbsp;</td></tr><tr><td><b>처방</b></td><td>&nbsp;</td></tr></tbody>
+        </table></div></li>
+      <li>검색량이 많다는 것이 곧 ‘많이 팔린다’는 뜻일까요? 검색량 데이터만으로 결정할 때의 한계를 써 보세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+    </ol>
+  </div>
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>직관에 의한 결정은 빠르지만 편향되기 쉽고, 데이터 기반 결정은 근거가 분명해 설명·검증·개선이 가능하다.</li>
+    <li>데이터 기반 의사 결정은 문제 정의 → 수집 → 전처리·탐색 → 모델링 → 평가 → 활용의 과정을 반복한다.</li>
+    <li>분석의 목적: 설명(무슨 일?) · 진단(왜?) · 예측(앞으로?) · 처방(무엇을 할까?).</li>
+    <li>데이터로 결정해도 매번 맞히지는 못한다. 여러 번의 결과를 평균적으로 비교해 평가한다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 아이스크림 생산량 결정 시뮬레이터 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const svg = $("ic-chart"), NS = "http://www.w3.org/2000/svg";
+  const COST = 600, PRICE = 1500, DAYS = 10;
+  const demandMean = t => Math.max(0, 14 * t - 230);   // 기온 t℃일 때 평균 수요(교육용 설정)
+
+  // 작년 데이터(시드 고정): 여름 40일
+  let s = 7331;
+  const srnd = () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+  const sg = () => Math.sqrt(-2 * Math.log(srnd() + 1e-9)) * Math.cos(2 * Math.PI * srnd());
+  const PAST = [];
+  for (let i = 0; i < 40; i++) {
+    const t = 21 + srnd() * 14;
+    PAST.push({ t, q: Math.max(0, Math.round(demandMean(t) + sg() * 22)) });
+  }
+  // 최소제곱 추세선
+  const mt = PAST.reduce((a, p) => a + p.t, 0) / PAST.length, mq = PAST.reduce((a, p) => a + p.q, 0) / PAST.length;
+  const b = PAST.reduce((a, p) => a + (p.t - mt) * (p.q - mq), 0) / PAST.reduce((a, p) => a + (p.t - mt) ** 2, 0);
+  const a0 = mq - b * mt;
+  const coachPlan = t => Math.max(0, Math.round((a0 + b * t) / 5) * 5);
+
+  const rg = () => Math.sqrt(-2 * Math.log(Math.random() + 1e-9)) * Math.cos(2 * Math.PI * Math.random());
+  let day, forecasts, log, me, coach, waste;
+
+  function newGame(){
+    day = 0; log = []; me = 0; coach = 0; waste = 0;
+    forecasts = Array.from({ length: DAYS }, () => Math.round(22 + Math.random() * 13));
+    $("ic-go").disabled = false;
+    $("ic-result").textContent = "생산량을 정하고 [하루 영업하기]를 누르세요.";
+    renderLog(); stats(); today(); chart();
+  }
+
+  const X = t => 50 + (t - 20) / 16 * 370, Y = q => 250 - q / 300 * 225;
+  function chart(){
+    svg.innerHTML = "";
+    const el = (tag, at) => { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); svg.appendChild(e); return e; };
+    const txt = (x, y, str, at = {}) => { const e = el("text", Object.assign({ x, y, "font-size":11, fill:"#4b5a6b" }, at)); e.textContent = str; };
+    el("line", { x1:50, y1:250, x2:425, y2:250, stroke:"#8595a6" });
+    el("line", { x1:50, y1:20, x2:50, y2:250, stroke:"#8595a6" });
+    for (let t = 20; t <= 36; t += 4) { el("line", { x1:X(t), y1:250, x2:X(t), y2:255, stroke:"#8595a6" }); txt(X(t), 268, t + "℃", { "text-anchor":"middle" }); }
+    for (let q = 0; q <= 300; q += 100) { el("line", { x1:45, y1:Y(q), x2:425, y2:Y(q), stroke:"#eef1f5" }); txt(42, Y(q) + 4, q, { "text-anchor":"end" }); }
+    txt(236, 285, "최고 기온", { "text-anchor":"middle", "font-weight":700 });
+    txt(8, 14, "판매량(개)", { "font-weight":700 });
+    if (!$("ic-show").checked) {
+      txt(237, 140, "그래프 숨김 — 감으로 결정해 보세요", { "text-anchor":"middle", "font-size":13, "font-weight":700 });
+      $("ic-eq").textContent = "";
+      return;
+    }
+    PAST.forEach(p => el("circle", { cx:X(p.t).toFixed(1), cy:Y(p.q).toFixed(1), r:4, fill:"#0e7490", "fill-opacity":.55 }));
+    if (day < DAYS) {   // 내일 예보 위치 표시
+      const ft = forecasts[day];
+      el("line", { x1:X(ft), y1:20, x2:X(ft), y2:250, stroke:"#d97706", "stroke-dasharray":"4 3", "stroke-width":1.5 });
+      txt(X(ft) + 4, 32, "내일 예보 " + ft + "℃", { fill:"#b4700a", "font-weight":700 });
+    }
+    if ($("ic-line").checked) {
+      el("line", { x1:X(20), y1:Y(a0 + b * 20), x2:X(36), y2:Y(a0 + b * 36), stroke:"#dc2626", "stroke-width":2 });
+      $("ic-eq").textContent = `추세선: 판매량 ≈ ${b.toFixed(1)} × 기온 ${a0 < 0 ? "−" : "+"} ${Math.abs(a0).toFixed(0)}  (기온이 1℃ 오르면 약 ${b.toFixed(1)}개 더 팔림)`;
+    } else $("ic-eq").textContent = "점 하나 = 작년 여름 하루의 (최고 기온, 판매량)";
+  }
+
+  function today(){
+    if (day >= DAYS) {
+      $("ic-today").innerHTML = `<b>10일 영업 끝!</b> [새 게임]으로 다시 도전할 수 있습니다.`;
+      return;
+    }
+    $("ic-today").innerHTML = `<div>${day + 1}일째 · 내일 최고 기온 예보</div><div class="big">${forecasts[day]}℃</div>`;
+  }
+
+  const won = v => (v < 0 ? "−" : "") + Math.abs(Math.round(v)).toLocaleString() + "원";
+  function stats(){
+    $("ic-me").textContent = won(me); $("ic-coach").textContent = won(coach); $("ic-waste").textContent = waste + "개";
+  }
+  function renderLog(){
+    $("ic-log").innerHTML = log.map(r => `<tr><td>${r.d}</td><td>${r.f}℃</td><td>${r.dem}</td><td>${r.p}</td>` +
+      `<td class="${r.pm >= 0 ? "plus" : "minus"}">${won(r.pm)}</td><td>${r.c}</td><td class="${r.pc >= 0 ? "plus" : "minus"}">${won(r.pc)}</td></tr>`).join("");
+  }
+
+  $("ic-prod").addEventListener("input", () => { $("ic-prod-out").textContent = $("ic-prod").value + "개"; });
+  $("ic-go").addEventListener("click", () => {
+    if (day >= DAYS) return;
+    const f = forecasts[day];
+    const actualT = f + rg() * 1.2;                                         // 예보는 조금 빗나갈 수 있다
+    const dem = Math.max(0, Math.round(demandMean(actualT) + rg() * 22));  // 우연한 변동
+    const p = +$("ic-prod").value, c = coachPlan(f);
+    const profit = q => Math.min(q, dem) * PRICE - q * COST;
+    const pm = profit(p), pc = profit(c);
+    me += pm; coach += pc; waste += Math.max(0, p - dem);
+    log.push({ d: day + 1, f, dem, p, pm, c, pc });
+    const msg = p > dem ? `${p - dem}개가 남아 버렸습니다(손실 ${won((p - dem) * COST)}).`
+              : p < dem ? `${dem - p}명의 손님이 빈손으로 돌아갔습니다(놓친 이익 ${won((dem - p) * (PRICE - COST))}).`
+              : "수요를 정확히 맞혔습니다! 🎯";
+    $("ic-result").innerHTML = `${day + 1}일째 실제 손님은 <b>${dem}명</b>이었습니다. ${msg} 코치는 ${c}개를 만들었습니다.`;
+    day++;
+    if (day >= DAYS) {
+      $("ic-go").disabled = true;
+      const diff = me - coach;
+      $("ic-result").innerHTML += `<br><b>최종 결과</b>: 나 ${won(me)} vs 코치 ${won(coach)} — ` +
+        (diff >= 0 ? `코치보다 ${won(diff)} 더 벌었습니다. 실력일까요, 운일까요? 한 번 더 해 보세요.` : `코치보다 ${won(-diff)} 적습니다. 그래프와 추세선을 켜고 다시 도전해 보세요.`);
+    }
+    renderLog(); stats(); today(); chart();
+  });
+  $("ic-show").addEventListener("change", chart);
+  $("ic-line").addEventListener("change", chart);
+  $("ic-restart").addEventListener("click", newGame);
+  newGame();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"다음 중 ‘데이터 기반 의사 결정’의 예로 가장 알맞은 것은?",
+    choices:["작년에 잘 팔렸던 기억만으로 올해 주문량을 정했다","친구가 추천해서 그 동아리에 들어갔다","지난 3년의 월별 방문자 수와 행사 일정을 분석해 도서관 운영 시간을 조정했다","가장 목소리가 큰 사람의 의견을 따랐다","동전을 던져 결정했다"], answer:2,
+    explain:"③은 수집한 데이터(방문자 수, 행사 일정)를 분석한 결과를 근거로 결정했습니다. ①은 기억(직관)에만 의존한 결정입니다." },
+  { type:"mc", q:"“지난달 우리 반 지각생이 늘어난 것은 버스 노선이 바뀌어 배차 간격이 길어졌기 때문이다.”는 어떤 분석에 해당하는가?",
+    choices:["설명 분석","진단 분석","예측 분석","처방 분석","연관 분석"], answer:1,
+    explain:"이미 일어난 일의 ‘원인(왜?)’을 밝히는 것이므로 진단 분석입니다. “지각생이 늘었다”까지만 말하면 설명 분석입니다." },
+  { type:"mc", q:"시뮬레이터에서 원가 600원, 판매가 1,500원이다. 180개를 만들었는데 손님이 150명이었다면 그날의 이익은?",
+    choices:["117,000원","135,000원","162,000원","225,000원","270,000원"], answer:0,
+    explain:"판매 수입 = 150 × 1,500 = 225,000원, 생산 비용 = 180 × 600 = 108,000원이므로 이익 = 225,000 − 108,000 = 117,000원입니다. 남은 30개는 버려 18,000원이 손해가 되었습니다." },
+  { type:"ox", q:"데이터를 근거로 결정하면 항상 매번 최선의 결과를 얻는다.",
+    answer:false, explain:"데이터로 설명되지 않는 우연한 변동이 있기 때문에 하루하루의 결과는 빗나갈 수 있습니다. 데이터 기반 결정은 여러 번에 걸쳐 평균적으로 더 나은 결과를 내고, 결과를 되짚어 개선할 수 있다는 점이 강점입니다." },
+  { type:"short", q:"자전거 대여 데이터에서 ‘비 온 날은 대여량이 크게 줄어든다’는 결과를 얻었습니다. 이를 바탕으로 자전거 운영 기관이 할 수 있는 처방(행동)을 하나 제안하고, 그 제안의 효과를 어떻게 확인할지 쓰세요.",
+    model:"처방: 비 예보가 있는 날에는 정비·재배치 작업을 몰아서 하고, 맑은 날로 예보된 전날 밤에는 대여가 많은 대여소에 자전거를 미리 채워 둔다. 확인 방법: 이 방식을 한두 달 적용한 뒤, 적용 전후의 ‘자전거가 없어 대여하지 못한 횟수(빈 대여소 발생 횟수)’와 정비 처리 대수를 비교해 효과가 있었는지 평가한다." },
+]);
+</script>
+</body>
+</html>

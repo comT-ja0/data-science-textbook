@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>총정리와 성찰 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 개념 연결 카드 */
+.mt-grid { display:grid; grid-template-columns:minmax(150px,.8fr) 1.6fr; gap:10px 16px; }
+@media (max-width:640px){ .mt-grid { grid-template-columns:1fr 1.4fr; gap:8px; } }
+.mt-col { display:grid; gap:7px; align-content:start; }
+.mt-card { text-align:left; background:#fff; color:var(--ink); border:1.5px solid var(--line); border-radius:10px; padding:8px 11px; font-weight:600; font-size:.86rem; line-height:1.45; }
+.mt-card:hover { filter:none; border-color:var(--accent); }
+.mt-card small { display:block; font-size:.68rem; color:var(--ink-faint); font-weight:700; }
+.mt-card.def { font-weight:500; font-size:.82rem; }
+.mt-card.pick { border-color:var(--accent); background:var(--accent-soft); box-shadow:0 0 0 2px var(--accent-soft); }
+.mt-card.done { border-color:#86d7a5; background:#eafaf0; color:#127a3c; cursor:default; }
+.mt-card.done:disabled { opacity:1; }
+.mt-card.bad { animation:mtshake .35s; border-color:var(--no); background:#fdeeee; }
+@keyframes mtshake { 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+.mt-msg { margin-top:12px; font-weight:700; font-size:.9rem; min-height:1.4em; }
+/* 성찰 일지 */
+.journal label { display:block; font-weight:700; font-size:.9rem; margin:12px 0 4px; }
+.journal textarea { width:100%; min-height:72px; resize:vertical; }
+.journal .j-status { font-size:.8rem; color:var(--ink-faint); margin-left:8px; }
+@media print {
+  body.journal-print main > *:not(#journal-act) { display:none !important; }
+  body.journal-print #journal-act .no-print-j { display:none !important; }
+  body.journal-print #journal-act textarea { border:none; min-height:0; height:auto; font-size:11pt; }
+}
+.review-tbl td:nth-child(1) { font-weight:800; white-space:nowrap; }
+</style>
+</head>
+<body data-unit="5" data-lesson="L56">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>총정리와 성찰</h1>
+  <span class="std-badge">성취기준 전 성취기준</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>데이터 과학 문제 해결 과정의 각 단계와 단원별 핵심 개념을 연결하여 설명할 수 있다.</li>
+      <li>하나의 데이터로 문제 해결 전 과정을 다시 수행하며 배운 내용을 종합할 수 있다.</li>
+      <li>한 학기 동안의 배움을 성찰하고, 데이터로 해결하고 싶은 다음 문제를 제안할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과01-01]~[12데과04-05] 19개 성취기준 전체를 종합합니다. 특히 [12데과04-05] 분석을 위한 목적부터 데이터 수집 및 분석에 이르는 전 과정을 성찰하고, 사회적 영향을 고려하여 분석 결과의 활용 방안을 탐색한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span class="on">문제 정의</span><span class="on">수집</span><span class="on">전처리</span><span class="on">탐색</span><span class="on">모델링</span><span class="on">평가·해석</span><span class="on">공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  첫 시간에 우리는 나이팅게일의 그림과 존 스노의 지도를 보며 “데이터로 세상을 읽는다”는 말을 처음 들었습니다.
+  그 뒤로 표를 합치고, 결측치를 채우고, 직선을 긋고, 비슷한 것끼리 묶고, 함께 팔리는 상품을 찾고, 우리 학교의 전기 사용량까지 분석했습니다.
+  이제 스스로에게 물어볼 시간입니다. <b>“나는 이제 데이터로 어떤 질문에 답할 수 있게 되었나?”</b>
+  오늘은 한 학기의 배움을 하나의 지도로 엮고, 종합 퀴즈로 점검하고, 성찰 일지를 씁니다.
+</div>
+
+<h2><span class="sec-no">1</span>문제 해결 과정으로 다시 보기 <i class="pub-c">공통</i></h2>
+
+<p>이 과목에서 배운 모든 개념은 <b>데이터 과학 문제 해결 과정</b>의 어느 한 단계에서 쓰이는 도구였습니다. 단계별로 정리해 봅시다.</p>
+
+<div class="table-wrap"><table class="review-tbl">
+  <thead><tr><th>단계</th><th>핵심 질문</th><th>배운 개념과 도구</th><th style="width:90px">단원</th></tr></thead>
+  <tbody>
+    <tr><td>문제 정의</td><td>데이터로 답할 수 있는 질문인가?</td><td>데이터 기반 의사 결정, DIKW, 데이터로 해결 가능한 주제 판단, SDGs</td><td>Ⅰ, Ⅳ</td></tr>
+    <tr><td>수집</td><td>어떤 데이터를 편향 없이 모을까?</td><td>정형·반정형·비정형, 속성과 척도, 공공 데이터·API·크롤링, 표본 편향</td><td>Ⅰ, Ⅱ</td></tr>
+    <tr><td>전처리</td><td>분석할 수 있는 모양인가?</td><td>데이터 통합(조인·키), 결측치·이상치(IQR), 정규화·표준화, 파생 속성</td><td>Ⅰ, Ⅱ</td></tr>
+    <tr><td>탐색</td><td>데이터에 어떤 패턴이 있나?</td><td>기술 통계, 목적에 맞는 시각화, 상관 분석, 같은 데이터 다른 분석</td><td>Ⅱ, Ⅳ</td></tr>
+    <tr><td>모델링</td><td>패턴을 어떤 모델로 표현할까?</td><td>통계적 회귀(최소제곱)·기계학습 회귀(경사 하강), 군집(k-평균), 연관 분석, 분류(k-NN·트리)</td><td>Ⅲ</td></tr>
+    <tr><td>평가·해석</td><td>얼마나 믿을 수 있고 무슨 뜻인가?</td><td>R²·RMSE, 혼동 행렬·정밀도·재현율, 과대적합·교차 검증, 상관 ≠ 인과, 일반화 범위</td><td>Ⅲ, Ⅳ</td></tr>
+    <tr><td>공유</td><td>누구에게 어떻게 전달하고 무엇을 조심할까?</td><td>데이터 스토리텔링, 보고서·포스터, 개인정보·가명정보, 편향·윤리, 오픈 데이터</td><td>Ⅳ</td></tr>
+  </tbody>
+</table></div>
+
+<h2><span class="sec-no">2</span>단원별 핵심 개념 지도 <i class="pub-c">공통</i></h2>
+
+<figure>
+<svg viewBox="0 0 760 440" role="img" aria-label="데이터 과학 핵심 개념 지도" style="font-family:inherit">
+  <defs><style>
+    .cm-l { stroke:#cbd5e1; stroke-width:2; }
+    .cm-t { font-size:12.5px; fill:#334155; }
+    .cm-h { font-size:15px; font-weight:800; fill:#fff; }
+  </style></defs>
+  <!-- 연결선 -->
+  <line class="cm-l" x1="380" y1="220" x2="190" y2="95"/><line class="cm-l" x1="380" y1="220" x2="570" y2="95"/>
+  <line class="cm-l" x1="380" y1="220" x2="190" y2="345"/><line class="cm-l" x1="380" y1="220" x2="570" y2="345"/>
+  <!-- 중심 -->
+  <rect x="285" y="192" width="190" height="56" rx="28" fill="#1e2733"/>
+  <text x="380" y="216" text-anchor="middle" class="cm-h">데이터 과학</text>
+  <text x="380" y="236" text-anchor="middle" font-size="11.5" fill="#cbd5e1">문제 정의 → … → 공유</text>
+  <!-- Ⅰ -->
+  <rect x="95" y="70" width="190" height="46" rx="12" fill="#0e7490"/><text x="190" y="99" text-anchor="middle" class="cm-h">Ⅰ 데이터 과학의 이해</text>
+  <text x="20" y="30" class="cm-t">DIKW · 데이터 기반 의사 결정</text>
+  <text x="20" y="50" class="cm-t">정형·반정형·비정형 · 속성과 척도</text>
+  <text x="20" y="140" class="cm-t">데이터베이스 · 기본키·외래키 · 조인</text>
+  <text x="20" y="160" class="cm-t">사회 변화 · 진로</text>
+  <!-- Ⅱ -->
+  <rect x="475" y="70" width="190" height="46" rx="12" fill="#2563eb"/><text x="570" y="99" text-anchor="middle" class="cm-h">Ⅱ 데이터 준비와 분석</text>
+  <text x="740" y="30" text-anchor="end" class="cm-t">편향 없는 수집 · 기술 통계</text>
+  <text x="740" y="50" text-anchor="end" class="cm-t">결측치 · 이상치(IQR) · 정규화·표준화</text>
+  <text x="740" y="140" text-anchor="end" class="cm-t">시각화 · 상관계수 r</text>
+  <text x="740" y="160" text-anchor="end" class="cm-t">같은 데이터, 다른 분석</text>
+  <!-- Ⅲ -->
+  <rect x="95" y="322" width="190" height="46" rx="12" fill="#d97706"/><text x="190" y="351" text-anchor="middle" class="cm-h">Ⅲ 데이터 모델링과 평가</text>
+  <text x="20" y="290" class="cm-t">회귀: 최소제곱 · 경사 하강 · R²</text>
+  <text x="20" y="310" class="cm-t">군집: 거리 · k-평균 · 실루엣</text>
+  <text x="20" y="395" class="cm-t">연관: 지지도·신뢰도·향상도</text>
+  <text x="20" y="415" class="cm-t">분류: k-NN·트리 · 혼동 행렬 · 교차 검증</text>
+  <!-- Ⅳ -->
+  <rect x="475" y="322" width="190" height="46" rx="12" fill="#7c3aed"/><text x="570" y="351" text-anchor="middle" class="cm-h">Ⅳ 데이터 과학 프로젝트</text>
+  <text x="740" y="290" text-anchor="end" class="cm-t">주제 선정 · 계획 · EDA</text>
+  <text x="740" y="310" text-anchor="end" class="cm-t">2가지 이상 방법 비교 · 모델 개선</text>
+  <text x="740" y="395" text-anchor="end" class="cm-t">해석(허위 상관·일반화) · 스토리텔링</text>
+  <text x="740" y="415" text-anchor="end" class="cm-t">윤리·사회적 영향 · 공유·평가</text>
+  <!-- 단원 간 흐름 -->
+  <path d="M285 93 H475" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5 4" fill="none"/>
+  <path d="M570 116 V322" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5 4" fill="none" transform="translate(40 0)"/>
+  <path d="M475 345 H285" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5 4" fill="none"/>
+  <text x="380" y="86" text-anchor="middle" font-size="11" fill="#64748b">데이터를 준비하고</text>
+  <text x="626" y="224" font-size="11" fill="#64748b">모델로 설명·예측하고</text>
+  <text x="380" y="338" text-anchor="middle" font-size="11" fill="#64748b">실제 문제에 적용</text>
+</svg>
+<figcaption>그림 1. 네 단원의 핵심 개념 지도 — 점선은 배움의 흐름, 모든 단원은 가운데 ‘문제 해결 과정’으로 연결됩니다.</figcaption>
+</figure>
+
+<div class="sim">
+  <div class="sim-head">개념 연결 카드 — 용어와 뜻 짝 맞추기</div>
+  <div class="sim-body">
+    <p style="margin-top:0;font-size:.92rem">왼쪽에서 용어를, 오른쪽에서 알맞은 뜻을 차례로 누르세요. 한 라운드에 8쌍이 전체 단원에서 무작위로 나옵니다.</p>
+    <div class="mt-grid">
+      <div class="mt-col" id="mt-terms"></div>
+      <div class="mt-col" id="mt-defs"></div>
+    </div>
+    <div class="mt-msg" id="mt-msg"></div>
+    <div class="sim-controls" style="margin-top:8px">
+      <button id="mt-new">🔄 새 라운드</button>
+      <span class="stat-chip">맞힌 짝 <b id="mt-ok">0</b> / 8</span>
+      <span class="stat-chip">시도 <b id="mt-try">0</b></span>
+      <span class="stat-chip">누적 라운드 <b id="mt-round">1</b></span>
+    </div>
+  </div>
+</div>
+
+<h2><span class="sec-no">3</span>한 번에 되짚는 문제 해결 전 과정 <i class="pub-c">공통</i></h2>
+
+<p>공공자전거 대여 자료(<code>bike.csv</code>)로 문제 해결 과정을 처음부터 끝까지 빠르게 되짚어 봅시다.
+<b>문제</b>: “날씨와 휴일 정보로 하루 자전거 대여량을 예측해, 자전거 재배치 계획에 활용할 수 있을까?”</p>
+
+<div class="pycell" data-title="수집 확인 → 전처리 → 탐색"><textarea>
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+bike = load_csv("bike.csv")                       # 수집: 교재 제공 자료(가상)
+print(bike.shape, "/ 결측 칸 수:", bike.isna().sum().sum())
+print(bike.describe().round(1).loc[["mean", "min", "max"], ["기온", "강수량", "대여량"]])
+
+# 전처리: 파생 속성 만들기
+bike["비"] = (bike["강수량"] > 0).astype(int)
+bike["기온제곱"] = bike["기온"] ** 2               # 곡선 관계를 잡기 위한 파생 속성
+
+# 탐색: 상관과 그룹 비교
+print("\n대여량과의 상관계수:\n", bike[["기온", "습도", "풍속", "강수량"]].corrwith(bike["대여량"]).round(2).to_string())
+print("\n비 온 날 / 안 온 날 평균 대여량:\n", bike.groupby("비")["대여량"].mean().round(0).to_string())
+
+plt.scatter(bike["기온"], bike["대여량"], s=8, alpha=0.6)
+plt.xlabel("기온(℃)"); plt.ylabel("대여량"); plt.title("기온과 대여량: 직선일까 곡선일까?")
+plt.show()
+
+# ✏️ 휴일 여부(휴일)로 묶어 평균 대여량을 비교하는 코드를 한 줄 추가해 보세요.
+</textarea></div>
+
+<div class="pycell" data-title="모델링 → 평가 → 해석"><textarea>
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.metrics import mean_squared_error, r2_score
+
+X = bike[["기온", "기온제곱", "습도", "풍속", "비", "휴일"]]
+y = bike["대여량"]
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.25, random_state=42)   # 같은 테스트셋으로 공정 비교
+
+models = {"선형 회귀(기온² 포함)": LinearRegression(),
+          "트리 회귀(깊이 4)": DecisionTreeRegressor(max_depth=4, random_state=42)}
+for name, m in models.items():
+    m.fit(X_tr, y_tr)
+    pred = m.predict(X_te)
+    rmse = mean_squared_error(y_te, pred) ** 0.5
+    print(f"{name:14s}  테스트 RMSE {rmse:7.1f}   R² {r2_score(y_te, pred):.3f}")
+
+lin = models["선형 회귀(기온² 포함)"]
+print("\n선형 회귀 계수:", dict(zip(X.columns, lin.coef_.round(1))))
+
+# ✏️ X에서 "기온제곱"을 빼고 다시 실행해 보세요. 선형 회귀의 R²는 어떻게 달라지나요? 왜 그럴까요?
+</textarea></div>
+
+<p id="bike-interp">실행 결과를 과정별로 읽어 봅시다. <b>탐색</b>: 비 온 날의 평균 대여량(<b>2,897</b>)은 비가 오지 않은 날(<b>3,709</b>)보다 적고, 기온과의 상관계수는 0.52이지만 산점도는 곡선 모양입니다.
+<b>모델링·평가</b>: 같은 테스트 데이터에서 기온² 속성을 넣은 선형 회귀가 RMSE <b>428.8</b>, R² <b>0.851</b>로 깊이 4의 트리 회귀(RMSE 602.6, R² 0.706)보다 좋았습니다.
+<b>해석</b>: 비 계수 −621.6은 “다른 조건이 같다면 비 오는 날 대여량이 약 620대 적다”는 뜻이고, 기온(+260.8)과 기온²(−7.7)의 조합은 약 17℃ 부근에서 대여량이 가장 많은 산 모양 관계를 나타냅니다.
+<b>공유</b>: “한 도시 1년 치 가상 자료”라는 일반화 범위와 “재배치 계획에는 예측 오차(약 ±430대)만큼 여유를 둔다”는 활용 방안까지 적으면 문제 해결 과정이 완성됩니다.</p>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  총정리 차시는 <b>개념 연결 카드(10분) → 종합 퀴즈(15분) → 전 과정 복습 셀(10분) → 성찰 일지(15분)</b>로 운영하면 50분에 맞습니다.
+  퀴즈에서 많이 틀린 문항의 해당 차시를 사이드바에서 바로 열어 복습하게 하세요. 파이썬 복습 셀이 부담스러운 반은 Orange의
+  File → Feature Constructor → Test and Score(Linear Regression, Tree) 흐름으로 같은 과정을 보여 줄 수 있습니다.
+  성찰 일지는 인쇄해 제출받거나 포트폴리오(L55)에 넣도록 안내합니다.
+</div>
+
+<h2><span class="sec-no">4</span>한 학기 성찰 <i class="pub-c">공통</i></h2>
+
+<p>데이터 과학은 도구를 다루는 기술이면서 동시에 <b>태도</b>입니다. 질문을 정확히 세우는 태도, 데이터의 한계를 인정하는 태도,
+예상과 다른 결과 앞에서 끝까지 원인을 찾는 태도, 그리고 분석이 사람들에게 미칠 영향을 먼저 생각하는 태도. 한 학기를 돌아보며 성찰 일지를 써 봅시다.</p>
+
+<div class="activity" id="journal-act">
+  <div class="act-head"><span class="act-kind">개별 활동</span>나의 데이터 과학 성찰 일지</div>
+  <div class="act-body journal">
+    <label for="j1">1. 이 과목에서 가장 기억에 남는 개념이나 차시는? 그 이유는?</label>
+    <textarea class="plain" id="j1" data-j></textarea>
+    <label for="j2">2. 어렵거나 예상과 달랐지만 끝까지 해결해 낸 경험은? 어떻게 해결했나요?</label>
+    <textarea class="plain" id="j2" data-j></textarea>
+    <label for="j3">3. 데이터를 다룰 때 앞으로 꼭 지키고 싶은 원칙(윤리·정직함) 한 가지는?</label>
+    <textarea class="plain" id="j3" data-j></textarea>
+    <label for="j4">4. 데이터로 해결해 보고 싶은 다음 문제는? (진로·관심 분야와 연결해 보세요)</label>
+    <textarea class="plain" id="j4" data-j></textarea>
+    <label for="j5">5. 한 학기 전의 나와 비교해, 데이터를 보는 눈이 어떻게 달라졌나요?</label>
+    <textarea class="plain" id="j5" data-j></textarea>
+    <div class="sim-controls no-print-j" style="margin-top:12px">
+      <button id="j-print">🖨️ 일지 인쇄</button>
+      <button id="j-clear" class="gray">지우기</button>
+      <span class="j-status" id="j-status"></span>
+    </div>
+  </div>
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>데이터 과학은 ‘문제 정의 → 수집 → 전처리 → 탐색 → 모델링 → 평가·해석 → 공유’의 문제 해결 과정이다.</li>
+    <li>Ⅰ단원은 데이터의 이해, Ⅱ단원은 데이터 준비와 탐색, Ⅲ단원은 모델링과 평가, Ⅳ단원은 이를 실제 문제에 적용하는 프로젝트였다.</li>
+    <li>좋은 분석은 두 가지 이상 방법을 공정하게 비교하고, 상관과 인과를 구분하며, 일반화 범위와 사회적 영향을 밝힌다.</li>
+    <li>데이터 과학의 도구는 바뀌어도, 좋은 질문·정직한 해석·윤리적 태도는 변하지 않는다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 개념 연결 카드 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const PAIRS = [
+    ["DIKW", "Ⅰ", "데이터 → 정보 → 지식 → 지혜로 가치가 높아지는 단계"],
+    ["반정형 데이터", "Ⅰ", "JSON·XML처럼 태그나 키로 구조를 표시하지만 표 형태는 아닌 데이터"],
+    ["기본키", "Ⅰ", "테이블에서 각 행을 하나로 구별해 주는 속성(예: 학번)"],
+    ["외래키", "Ⅰ", "다른 테이블의 기본키를 참조해 두 테이블을 연결하는 속성"],
+    ["결측치", "Ⅱ", "값이 비어 있는 칸. 삭제하거나 평균·중앙값 등으로 대체한다"],
+    ["IQR 이상치 기준", "Ⅱ", "Q1 − 1.5×IQR보다 작거나 Q3 + 1.5×IQR보다 큰 값"],
+    ["정규화", "Ⅱ", "(x − 최솟값) ÷ (최댓값 − 최솟값)으로 값을 0~1 범위로 바꾸는 것"],
+    ["표준화", "Ⅱ", "(x − 평균) ÷ 표준편차로 평균 0, 표준편차 1인 Z-점수로 바꾸는 것"],
+    ["상관계수 r", "Ⅱ", "두 속성이 직선 관계로 함께 변하는 방향과 강도(−1~1)"],
+    ["최소제곱법", "Ⅲ", "오차 제곱의 합이 가장 작아지는 회귀 직선을 찾는 방법"],
+    ["경사 하강법", "Ⅲ", "오차가 줄어드는 방향으로 계수를 조금씩 반복해서 고쳐 가는 학습 방법"],
+    ["결정계수 R²", "Ⅲ", "모델이 목표값의 변동을 얼마나 설명하는지 나타내는 지표"],
+    ["k-평균", "Ⅲ", "중심점 배정과 중심 갱신을 반복해 가까운 데이터끼리 k개로 묶는 방법"],
+    ["향상도", "Ⅲ", "A가 있을 때 B가 나타날 가능성이 평소의 몇 배인지 나타내는 지표"],
+    ["재현율", "Ⅲ", "실제 양성 중에서 모델이 양성으로 찾아낸 비율"],
+    ["과대적합", "Ⅲ", "훈련 데이터에는 잘 맞지만 새 데이터에서는 성능이 떨어지는 현상"],
+    ["허위 상관", "Ⅳ", "인과 관계 없이 공통 추세나 제3의 변수 때문에 나타나는 상관"],
+    ["가명정보", "Ⅳ", "추가 정보(대응표) 없이는 특정 개인을 알아볼 수 없게 처리한 정보"],
+    ["루브릭", "Ⅳ", "평가 영역과 영역별 수준을 미리 정해 둔 평가 기준표"],
+    ["메타데이터", "Ⅳ", "데이터의 출처·기간·열의 뜻·단위 등 데이터를 설명하는 데이터"],
+  ];
+  let round = 1, set = [], defs = [], pickT = null, pickD = null, ok = 0, tries = 0;
+  const shuffle = a => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+
+  function start(){
+    set = shuffle(PAIRS.map((_, i) => i)).slice(0, 8);
+    defs = shuffle(set);
+    pickT = pickD = null; ok = 0; tries = 0;
+    $("mt-terms").innerHTML = set.map(i => `<button class="mt-card" data-t="${i}"><small>${PAIRS[i][1]}단원</small>${PAIRS[i][0]}</button>`).join("");
+    $("mt-defs").innerHTML = defs.map(i => `<button class="mt-card def" data-d="${i}">${PAIRS[i][2]}</button>`).join("");
+    $("mt-msg").textContent = "용어 하나를 먼저 골라 보세요.";
+    stats();
+  }
+  function stats(){ $("mt-ok").textContent = ok; $("mt-try").textContent = tries; $("mt-round").textContent = round; }
+  function mark(){
+    document.querySelectorAll("#mt-terms .mt-card").forEach(b => b.classList.toggle("pick", +b.dataset.t === pickT));
+    document.querySelectorAll("#mt-defs .mt-card").forEach(b => b.classList.toggle("pick", +b.dataset.d === pickD));
+  }
+  function tryMatch(){
+    if (pickT === null || pickD === null) return;
+    tries++;
+    const bt = document.querySelector(`#mt-terms [data-t="${pickT}"]`), bd = document.querySelector(`#mt-defs [data-d="${pickD}"]`);
+    if (pickT === pickD){
+      ok++;
+      [bt, bd].forEach(b => { b.classList.remove("pick", "bad"); b.classList.add("done"); b.disabled = true; });
+      $("mt-msg").textContent = ok === 8 ? `🎉 라운드 완료! 시도 ${tries}번 만에 8쌍을 모두 맞혔어요. (정확도 ${Math.round(8 / tries * 100)}%)` : `✔ 정답! ‘${PAIRS[pickT][0]}’`;
+    } else {
+      [bt, bd].forEach(b => { b.classList.remove("bad"); void b.offsetWidth; b.classList.add("bad"); setTimeout(() => b.classList.remove("bad"), 700); });
+      $("mt-msg").textContent = `✘ ‘${PAIRS[pickT][0]}’의 뜻이 아니에요. 다시 골라 보세요.`;
+    }
+    pickT = pickD = null; mark(); stats();
+  }
+  $("mt-terms").addEventListener("click", e => { const b = e.target.closest("button[data-t]"); if (!b || b.disabled) return; pickT = +b.dataset.t; mark(); tryMatch(); });
+  $("mt-defs").addEventListener("click", e => { const b = e.target.closest("button[data-d]"); if (!b || b.disabled) return; pickD = +b.dataset.d; mark(); tryMatch(); });
+  $("mt-new").addEventListener("click", () => { round++; start(); });
+  start();
+})();
+
+/* ---------- 성찰 일지 (localStorage는 선택) ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const KEY = "dsc-l56-journal";
+  const boxes = [...document.querySelectorAll("#journal-act textarea[data-j]")];
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { saved = null; }
+  if (saved) boxes.forEach(b => b.value = saved[b.id] || "");
+  let timer = null;
+  function save(){
+    const d = {}; boxes.forEach(b => d[b.id] = b.value);
+    let ok = true;
+    try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) { ok = false; }
+    const n = boxes.filter(b => b.value.trim()).length;
+    $("j-status").textContent = `${n}/5 문항 작성 · ` + (ok ? "이 브라우저에 자동 저장됨" : "저장할 수 없는 환경이에요. 인쇄하거나 따로 복사해 두세요.");
+  }
+  boxes.forEach(b => b.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(save, 400); }));
+  $("j-print").addEventListener("click", () => {
+    boxes.forEach(b => { b.style.height = "auto"; b.style.height = b.scrollHeight + "px"; });
+    document.body.classList.add("journal-print"); window.print();
+  });
+  window.addEventListener("afterprint", () => document.body.classList.remove("journal-print"));
+  $("j-clear").addEventListener("click", () => { if (confirm("성찰 일지를 모두 지울까요?")){ boxes.forEach(b => b.value = ""); save(); } });
+  save();
+})();
+
+/* ---------- 종합 퀴즈 (10문항) ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"[Ⅰ] 다음 중 <b>반정형 데이터</b>에 해당하는 것은?",
+    choices:["엑셀의 성적 표","키-값 쌍으로 된 날씨 API 응답(JSON)","급식 사진","수업 녹음 파일","손으로 쓴 일기"], answer:1,
+    explain:"JSON·XML은 키나 태그로 구조를 나타내지만 행·열 표는 아닌 반정형 데이터입니다. 표는 정형, 사진·음성·손글씨는 비정형입니다." },
+  { type:"mc", q:"[Ⅰ] 학생 명단(30행)을 기준으로 동아리 표를 동아리코드로 <b>왼쪽 조인(left join)</b>했다. 학생 2명은 동아리코드가 비어 있고, 1명은 동아리 표에 없는 코드를 가지고 있다. 결과는 몇 행이고, 동아리명이 비어 있는 행은 몇 개인가? (한 학생은 동아리 하나에만 속함)",
+    choices:["27행, 0개","30행, 2개","30행, 3개","33행, 3개","27행, 3개"], answer:2,
+    explain:"왼쪽 조인은 왼쪽 표(학생 30명)의 모든 행을 유지합니다. 짝을 찾지 못한 3명(코드 없음 2 + 없는 코드 1)은 동아리명이 결측으로 남습니다. 내부 조인이었다면 27행이 됩니다." },
+  { type:"mc", q:"[Ⅱ] 다섯 학생의 하루 독서 시간(분)이 10, 20, 20, 30, 170이다. 평균과 중앙값, 그리고 대푯값으로 더 알맞은 것은?",
+    choices:["평균 50, 중앙값 20 → 중앙값","평균 50, 중앙값 20 → 평균","평균 20, 중앙값 50 → 중앙값","평균 30, 중앙값 20 → 평균","평균 50, 중앙값 30 → 중앙값"], answer:0,
+    explain:"평균 = 250 ÷ 5 = 50, 중앙값 = 20입니다. 170이라는 극단값이 평균을 크게 끌어올렸으므로 중앙값이 대표성이 더 좋습니다." },
+  { type:"mc", q:"[Ⅱ] 최솟값 40, 최댓값 90인 속성에서 값 65를 <b>최소-최대 정규화</b>하면?",
+    choices:["0.25","0.5","0.65","0.72","1.3"], answer:1,
+    explain:"(65 − 40) ÷ (90 − 40) = 25 ÷ 50 = 0.5입니다. 정규화는 값을 0~1 범위로 바꿉니다." },
+  { type:"ox", q:"[Ⅱ·Ⅳ] 1980~2020년 두 나라의 서로 무관한 지표가 모두 해마다 증가해 상관계수가 0.9였다. 연도 추세를 제거한 뒤에도 상관이 높게 남아야 두 지표 사이의 연결 고리를 의심해 볼 수 있다.",
+    answer:true, explain:"공통 추세만으로도 상관계수는 크게 나옵니다(허위 상관). 추세를 뺀 잔차끼리 상관이 남는지 확인하는 것이 첫 점검입니다. 그래도 인과를 증명하려면 추가 근거가 필요합니다." },
+  { type:"mc", q:"[Ⅲ] 회귀 모델의 결정계수 R² = 0.81의 뜻으로 가장 알맞은 것은?",
+    choices:["예측의 81%가 정확히 맞는다","목표값 변동의 약 81%를 모델이 설명한다","상관계수가 0.81이다","오차가 0.81이다","데이터의 81%로 학습했다"], answer:1,
+    explain:"R²는 정확도가 아니라 결정계수로, 평균만으로 예측할 때에 비해 모델이 목표값의 변동을 얼마나 설명하는지를 나타냅니다." },
+  { type:"mc", q:"[Ⅲ] 의사결정트리의 깊이를 늘렸더니 훈련 정확도 0.99, 테스트 정확도 0.62가 되었다. 알맞은 진단과 조치는?",
+    choices:["과소적합 — 깊이를 더 늘린다","과대적합 — 깊이를 줄이거나 교차 검증으로 적절한 깊이를 고른다","데이터 누수 없음 — 그대로 사용한다","정상 — 테스트 정확도는 원래 낮다","과대적합 — 테스트 데이터로 다시 학습한다"], answer:1,
+    explain:"훈련 성능만 높고 테스트 성능이 크게 낮으면 과대적합입니다. 모델을 단순하게 하고 교차 검증으로 고릅니다. 테스트 데이터로 학습하는 것은 데이터 누수입니다." },
+  { type:"mc", q:"[Ⅲ] 거래 100건 중 A 포함 40건, B 포함 50건, A와 B 함께 30건이다. 규칙 {A}→{B}의 향상도는?",
+    choices:["0.6","0.75","1.2","1.5","2.0"], answer:3,
+    explain:"신뢰도 = 30 ÷ 40 = 0.75, B의 지지도 = 50 ÷ 100 = 0.5, 향상도 = 0.75 ÷ 0.5 = 1.5입니다. A를 사면 B를 살 가능성이 평소의 1.5배입니다." },
+  { type:"mc", q:"[Ⅲ] 감염병 진단 모델의 결과: 실제 환자 50명 중 40명을 양성으로 판정, 실제 비환자 150명 중 30명을 양성으로 판정했다. 재현율과 정밀도는?",
+    choices:["재현율 0.8, 정밀도 0.57","재현율 0.57, 정밀도 0.8","재현율 0.8, 정밀도 0.8","재현율 0.2, 정밀도 0.43","재현율 0.85, 정밀도 0.57"], answer:0,
+    explain:"재현율 = 40 ÷ 50 = 0.8(실제 환자 중 찾아낸 비율), 정밀도 = 40 ÷ (40 + 30) ≈ 0.57(양성 판정 중 실제 환자 비율)입니다. 감염병 진단에서는 환자를 놓치지 않는 재현율이 특히 중요합니다." },
+  { type:"short", q:"[Ⅳ] 관심 있는 사회 문제 하나를 골라, 데이터 과학 문제 해결 과정(문제 정의 → 수집 → 전처리 → 탐색 → 모델링 → 평가·해석 → 공유)에 따라 간단한 프로젝트 계획을 세우고, 윤리적으로 주의할 점을 한 가지 쓰세요.",
+    model:"예: 문제 정의 — 우리 지역 공공자전거 대여소 중 자전거가 부족한 곳을 미리 알 수 있을까? 수집 — 공공 데이터 포털의 대여소별 시간대 대여·반납 기록, 날씨 자료. 전처리 — 결측·이상치 처리, 날짜에서 요일·시간대 파생, 날씨 자료와 날짜 기준 통합. 탐색 — 시간대·요일별 대여량 그래프, 기온·강수와의 관계. 모델링 — 선형 회귀와 트리 회귀로 대여소별 수요 예측, 같은 테스트셋으로 비교. 평가·해석 — RMSE·R² 비교, 부족 예상 대여소와 시간대 해석, 일반화 범위 명시. 공유 — 재배치 계획 제안서와 대시보드. 윤리 — 이용자 개인 이동 기록은 개인정보이므로 대여소별 집계 자료만 사용한다." },
+], { title: "종합 퀴즈 — 한 학기 점검 (10문항)" });
+</script>
+</body>
+</html>

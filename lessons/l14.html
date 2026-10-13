@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>파이썬·pandas 첫걸음 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* DataFrame 조작 미리보기 */
+.df-ctrl { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px; margin-bottom:12px; }
+.df-box { border:1px solid var(--line); border-radius:10px; padding:8px 10px; background:var(--paper); font-size:.84rem; }
+.df-box .t { font-weight:800; color:var(--accent); font-size:.8rem; margin-bottom:5px; }
+.df-box select, .df-box input[type="number"] { font-size:.82rem; padding:4px 6px; }
+.df-box input[type="number"] { width:70px; }
+.df-cols { display:flex; flex-wrap:wrap; gap:4px 10px; }
+.df-cols label { font-size:.8rem; white-space:nowrap; }
+.df-code { margin:8px 0; font-size:.84rem !important; white-space:pre-wrap; word-break:break-all; }
+.df-code .k { color:#7dd3fc; } .df-code .s { color:#fcd34d; } .df-code .c { color:#8595a6; }
+.df-shape { font-size:.84rem; font-weight:700; color:var(--ink-soft); margin:4px 0; }
+table.data td.idx, table.data th.idx { color:var(--ink-faint); background:#f6f8fa; }
+.df-steps { font-size:.8rem; color:var(--ink-soft); margin:4px 0 0; padding-left:18px; }
+</style>
+</head>
+<body data-unit="2" data-lesson="L14">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>파이썬·pandas 첫걸음</h1>
+  <span class="std-badge">성취기준 12데과02-01</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>파이썬 셀을 실행하고 변수·리스트로 간단한 계산을 할 수 있다.</li>
+      <li>pandas로 CSV 데이터를 불러와 규모·자료형·요약 통계를 확인할 수 있다.</li>
+      <li>열 선택·조건 필터·정렬로 수집된 데이터에서 원하는 부분을 찾을 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과02-01] 데이터를 편향되지 않도록 수집하고, 수집된 데이터의 특성을 분석한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span class="on">수집</span><span>전처리</span><span class="on">탐색</span><span>모델링</span><span>평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  120명의 공부 시간·수면 시간·성적이 담긴 표가 있습니다. “하루 4시간 이상 공부하는 학생은 몇 명이고, 그 학생들의 평균 성적은 몇 점일까?”
+  종이 표라면 한 줄씩 손가락으로 짚어 가며 세어야 합니다. 스프레드시트라면 필터 버튼을 몇 번 눌러야 하죠.
+  파이썬에서는 <b>한 줄</b>이면 됩니다. 오늘은 코딩이 처음인 사람도 따라 할 수 있도록 한 걸음씩 데이터 분석 도구를 익혀 봅시다.
+</div>
+
+<h2><span class="sec-no">1</span>파이썬 셀 사용법과 변수 <i class="pub-c">공통</i></h2>
+
+<p>이 교재의 회색 코드 상자가 <b>파이썬 셀</b>입니다. <b>▶ 실행</b> 버튼을 누르면 코드가 위에서 아래로 한 줄씩 실행되고 결과가 아래에 나타납니다.
+처음 실행할 때는 파이썬 환경을 내려받느라 10~20초 걸리니 기다려 주세요. 코드를 마음대로 고쳐 다시 실행해도 괜찮습니다. 망가뜨려도 새로 고침하면 원래대로 돌아옵니다.</p>
+
+<ul>
+  <li><code>print(...)</code>: 괄호 안의 내용을 화면에 보여 줍니다.</li>
+  <li><code>#</code> 뒤의 글은 <b>주석</b>입니다. 사람을 위한 메모라서 실행되지 않습니다.</li>
+  <li><code>이름 = 값</code>: 값에 이름표를 붙여 저장합니다. 이 이름을 <span class="keyterm">변수</span>라고 합니다. <code>=</code>는 ‘같다’가 아니라 ‘저장하라’는 뜻입니다.</li>
+</ul>
+
+<div class="pycell" data-title="① 첫 번째 코드: 출력과 변수"><textarea>
+print("안녕하세요, 데이터 과학!")     # 글자는 따옴표로 감싼다
+
+study_per_day = 2.5                  # 하루 공부 시간(시간)
+days = 7
+week_total = study_per_day * days    # 곱하기는 *
+print("일주일 공부 시간:", week_total, "시간")
+
+minutes = week_total * 60
+print("분으로 바꾸면:", minutes, "분")
+
+# ✏️ study_per_day를 여러분의 실제 하루 공부 시간으로 바꾸고 다시 실행해 보세요.
+</textarea></div>
+
+<div class="box box-tip">
+  <span class="box-label">계산 기호</span>
+  더하기 <code>+</code>, 빼기 <code>-</code>, 곱하기 <code>*</code>, 나누기 <code>/</code>, 거듭제곱 <code>**</code>, 반올림 <code>round(값, 자릿수)</code>
+</div>
+
+<h2><span class="sec-no">2</span>리스트: 여러 값을 한 번에 <i class="pub-c">공통</i></h2>
+
+<p>값이 여러 개일 때는 대괄호 <code>[ ]</code> 안에 쉼표로 나열한 <span class="keyterm">리스트</span>에 담습니다.
+리스트의 자리 번호(<b>인덱스</b>)는 1이 아니라 <b>0부터</b> 시작한다는 점을 꼭 기억하세요.</p>
+
+<div class="pycell" data-title="② 리스트로 모둠 점수 다루기"><textarea>
+scores = [72, 85, 64, 90, 78]     # 모둠원 5명의 점수
+
+print("첫 번째 점수:", scores[0])   # 0번이 첫 번째!
+print("마지막 점수:", scores[-1])   # -1은 맨 끝
+print("몇 명?", len(scores))
+print("합계:", sum(scores), "/ 최고:", max(scores), "/ 최저:", min(scores))
+print("평균:", sum(scores) / len(scores))
+print("작은 순 정렬:", sorted(scores))
+
+# ✏️ scores에 새 모둠원의 점수 100을 넣어 [72, 85, 64, 90, 78, 100]으로 만들면 평균은 얼마가 될까요? 먼저 예상하고 실행해 보세요.
+</textarea></div>
+
+<p>평균은 (72 + 85 + 64 + 90 + 78) ÷ 5 = 389 ÷ 5 = <b>77.8</b>점입니다. 손 계산과 파이썬의 결과가 같은지 확인해 보세요.</p>
+
+<h2><span class="sec-no">3</span>pandas와 DataFrame: 표 데이터 다루기 <i class="pub-c">공통</i></h2>
+
+<p>데이터 분석에서는 행과 열로 된 표를 다룹니다. 파이썬에서 표를 다루는 대표 도구가 <span class="keyterm">pandas</span>이고, pandas의 표를 <span class="keyterm">DataFrame(데이터프레임)</span>이라고 부릅니다.
+각 열은 하나의 속성, 각 행은 하나의 레코드(학생 한 명)입니다. 맨 왼쪽의 0, 1, 2… 는 행 번호표인 <b>인덱스</b>입니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:230px">코드</th><th>하는 일</th></tr></thead>
+  <tbody>
+    <tr><td><code>import pandas as pd</code></td><td>pandas를 불러와 <code>pd</code>라는 짧은 이름으로 쓴다. (맨 처음 한 번)</td></tr>
+    <tr><td><code>df = load_csv("study.csv")</code></td><td>교재 데이터 파일을 읽어 DataFrame으로 만든다. (보통은 <code>pd.read_csv("파일 경로")</code>)</td></tr>
+    <tr><td><code>df.head()</code></td><td>맨 앞 5행을 보여 준다. <code>df.head(10)</code>은 10행.</td></tr>
+    <tr><td><code>df.shape</code></td><td>(행 수, 열 수)를 알려 준다. 괄호 없이 쓴다.</td></tr>
+    <tr><td><code>df.info()</code></td><td>열 이름, 결측이 아닌 값의 수, 자료형을 한 번에 보여 준다.</td></tr>
+    <tr><td><code>df.describe()</code></td><td>숫자 열마다 개수·평균·표준편차·최솟값·사분위수·최댓값을 요약한다.</td></tr>
+  </tbody>
+</table></div>
+
+<div class="pycell" data-title="③ 표 만들기와 CSV 파일 불러오기"><textarea>
+import pandas as pd
+
+# (1) 직접 작은 표 만들기: {열 이름: [값들]}
+mini = pd.DataFrame({
+    "이름": ["가은", "나래", "다온"],
+    "공부시간": [2.0, 3.5, 1.0],
+    "성적": [70, 85, 60],
+})
+print(mini)
+print()
+
+# (2) 교재 데이터 불러오기
+df = load_csv("study.csv")
+print(df.head())
+print("크기(행, 열):", df.shape)
+print()
+df.info()
+print()
+print(df.describe().round(1))
+
+# ✏️ df.head()를 df.tail()로 바꿔 보세요. 무엇이 나오나요?
+</textarea></div>
+
+<p>결과를 보면 study.csv는 <b>120행 × 6열</b>이고 결측이 없습니다. ‘학생’ 열은 글자(object), ‘결석일수’와 ‘성적’은 정수(int64), 나머지는 소수(float64)입니다.
+describe()에서 성적의 평균은 약 64.7점, 가장 낮은 점수는 40점, 가장 높은 점수는 99점임을 알 수 있습니다.</p>
+
+<h2><span class="sec-no">4</span>열 선택·조건 필터·정렬 <i class="pub-c">공통</i></h2>
+
+<p>이제 표에서 원하는 부분만 골라 봅시다. 세 가지 기본 동작만 알면 대부분의 질문에 답할 수 있습니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:130px">동작</th><th style="width:330px">코드 예</th><th>뜻</th></tr></thead>
+  <tbody>
+    <tr><td><b>열 선택</b></td><td><code>df["성적"]</code><br><code>df[["학생", "성적"]]</code></td><td>한 열은 대괄호 한 겹, 여러 열은 <b>대괄호 두 겹</b>(열 이름 리스트)</td></tr>
+    <tr><td><b>조건 필터</b></td><td><code>df[df["공부시간"] &gt;= 4]</code></td><td>조건이 참인 행만 남긴다. 같다는 <code>==</code>(등호 두 개)</td></tr>
+    <tr><td><b>정렬</b></td><td><code>df.sort_values("성적", ascending=False)</code></td><td>성적 순으로 줄 세우기. <code>ascending=False</code>는 큰 값부터(내림차순)</td></tr>
+  </tbody>
+</table></div>
+
+<div class="sim">
+  <div class="sim-head">DataFrame 조작 미리보기 — 버튼으로 고르면 코드와 결과가 바로 보여요</div>
+  <div class="sim-body">
+    <p style="margin-top:0;font-size:.92rem">study.csv의 앞 12행을 <code>mini = df.head(12)</code>로 가져온 작은 표입니다. 조건·정렬·열·행 수를 바꾸면 그에 맞는 pandas 코드가 만들어지고 결과 표가 바뀝니다.
+    코드는 <b>필터 → 정렬 → 열 선택 → 앞에서 n행</b> 순서로 이어 붙습니다.</p>
+    <div class="df-ctrl">
+      <div class="df-box"><div class="t">① 조건 필터</div>
+        <select id="df-fcol"></select> <select id="df-fop"><option>&gt;=</option><option>&lt;=</option><option>&gt;</option><option>&lt;</option><option>==</option></select>
+        <input type="number" id="df-fval" value="3" step="0.5"></div>
+      <div class="df-box"><div class="t">② 정렬</div>
+        <select id="df-scol"></select> <select id="df-sdir"><option value="F">큰 값부터</option><option value="T">작은 값부터</option></select></div>
+      <div class="df-box"><div class="t">③ 열 선택</div><div class="df-cols" id="df-cols"></div></div>
+      <div class="df-box"><div class="t">④ 앞에서 몇 행? <b id="df-n-v">12</b></div><input type="range" id="df-n" min="1" max="12" value="12" style="width:100%"></div>
+    </div>
+    <pre class="codeblock df-code" id="df-code"></pre>
+    <div class="df-shape" id="df-shape"></div>
+    <div class="table-wrap"><table class="data" id="df-table"></table></div>
+    <ol class="df-steps" id="df-steps"></ol>
+    <p class="widget-hint">관찰 포인트: 조건 필터를 한 뒤 맨 왼쪽 인덱스 번호를 보세요. 0, 1, 2… 로 다시 매겨지나요, 원래 번호가 유지되나요?</p>
+  </div>
+</div>
+
+<div class="pycell" data-title="④ 질문에 답하는 코드 쓰기"><textarea>
+# 질문 1. 성적 열의 평균은?
+print("성적 평균:", round(df["성적"].mean(), 1))
+
+# 질문 2. 학생과 성적 열만 보기
+print(df[["학생", "성적"]].head(3))
+
+# 질문 3. 하루 4시간 이상 공부하는 학생은 몇 명이고, 평균 성적은?
+hard = df[df["공부시간"] >= 4]
+print("4시간 이상:", len(hard), "명 / 평균 성적:", round(hard["성적"].mean(), 1))
+
+# 질문 4. 성적 상위 3명은?
+print(df.sort_values("성적", ascending=False).head(3))
+
+# 질문 5. 두 조건을 동시에: 공부 3시간 이상 '그리고' 수면 7시간 이상 → & 사용, 조건마다 괄호
+both = df[(df["공부시간"] >= 3) & (df["수면시간"] >= 7)]
+print("공부 3시간 이상 & 수면 7시간 이상:", len(both), "명")
+
+# ✏️ 결석일수가 0일인 학생은 몇 명일까요? df[df["결석일수"] == 0]을 이용해 직접 세어 보세요.
+</textarea></div>
+
+<p>하루 4시간 이상 공부하는 학생은 120명 중 <b>7명</b>이고 이들의 평균 성적은 <b>86.1점</b>으로, 전체 평균(64.7점)보다 20점 넘게 높습니다.
+생각 열기의 질문에 코드 몇 줄로 답한 셈입니다. 다만 7명은 적은 수이므로 ‘공부를 4시간 넘게 하면 반드시 86점’처럼 일반화해서는 안 됩니다.</p>
+
+<div class="box box-warn">
+  <span class="box-label">자주 만나는 오류와 해결법</span>
+  <ul style="margin:4px 0 0;padding-left:18px">
+    <li><code>NameError: name 'df' is not defined</code> — 위쪽 셀(③)을 먼저 실행하지 않았습니다. 셀은 위에서부터 차례로 실행하세요.</li>
+    <li><code>KeyError: '성적 '</code> — 열 이름 오타(띄어쓰기 포함). <code>df.columns</code>로 정확한 이름을 확인하세요.</li>
+    <li><code>SyntaxError</code> — 따옴표·괄호 짝이 맞지 않거나, 같다를 <code>=</code> 하나로 썼습니다. 비교는 <code>==</code>입니다.</li>
+    <li>두 조건을 <code>and</code>로 이으면 오류가 납니다. pandas에서는 <code>&amp;</code>(그리고), <code>|</code>(또는)를 쓰고 각 조건을 괄호로 감쌉니다.</li>
+  </ul>
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">개별 활동</span>코드로 데이터에 질문하기 <i class="pub-c">공통</i></div>
+  <div class="act-body">
+    <p style="margin-top:0">셀 ④의 코드를 고쳐 가며 다음 질문에 답하고, 사용한 코드도 함께 적으세요.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>질문</th><th style="width:280px">사용한 코드</th><th style="width:110px">답</th></tr></thead>
+      <tbody>
+        <tr><td>① 결석일수가 0일인 학생은 몇 명인가?</td><td></td><td></td></tr>
+        <tr><td>② 스마트폰시간이 6시간 이상인 학생의 평균 성적은?</td><td></td><td></td></tr>
+        <tr><td>③ 수면시간이 가장 짧은 학생 3명은 누구인가?</td><td></td><td></td></tr>
+        <tr><td>④ 내가 궁금한 질문: </td><td></td><td></td></tr>
+      </tbody>
+    </table></div>
+    <details class="reveal"><summary>①② 정답 확인</summary>
+      <div class="reveal-body">① <code>len(df[df["결석일수"] == 0])</code> → <b>27명</b><br>
+      ② <code>df[df["스마트폰시간"] &gt;= 6]["성적"].mean()</code> → 12명의 평균 <b>56.75점</b>. 전체 평균(64.7점)보다 낮습니다. 하지만 이것만으로 ‘스마트폰 때문에’ 성적이 낮다고 단정할 수는 없습니다.</div>
+    </details>
+  </div>
+</div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  첫 pandas 수업이므로 속도보다 ‘실행 → 결과 읽기 → 한 군데 고쳐 다시 실행’의 리듬을 익히는 데 집중하세요(셀 ①② 10분, ③ 12분, 위젯 8분, ④·활동 15분).
+  위젯은 코드를 직접 치기 전 ‘코드와 결과의 대응’을 눈으로 익히는 용도입니다. 위젯에서 만든 코드를 셀 ④에 옮겨 적고 <code>mini</code>를 <code>df</code>로 바꾸어 실행하게 하면 자연스럽게 넘어갑니다.
+  흔한 오개념: 인덱스가 1부터 시작한다, <code>=</code>와 <code>==</code>를 같은 것으로 생각한다. 스프레드시트의 ‘필터’·‘정렬’ 메뉴와 나란히 비교해 보여 주면 이해가 빠릅니다.
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>변수는 값에 붙인 이름표이고, 리스트는 여러 값을 담으며 인덱스는 0부터 시작한다.</li>
+    <li>pandas의 DataFrame은 행(레코드)과 열(속성)로 된 표이다. <code>head()</code>, <code>shape</code>, <code>info()</code>, <code>describe()</code>로 데이터의 특성을 먼저 파악한다.</li>
+    <li>열 선택 <code>df[["열1","열2"]]</code>, 조건 필터 <code>df[df["열"] &gt;= 값]</code>, 정렬 <code>df.sort_values("열")</code>로 원하는 부분을 찾는다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- DataFrame 조작 미리보기 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const COLS = ["학생","공부시간","수면시간","스마트폰시간","결석일수","성적"];
+  const NUM = COLS.slice(1);
+  const FLOAT = { "공부시간":true, "수면시간":true, "스마트폰시간":true };
+  // study.csv 앞 12행
+  const ROWS = [
+    ["S001",1.2,8.0,4.0,1,63],["S002",2.9,6.8,1.1,1,80],["S003",3.9,6.9,7.6,2,72],["S004",2.7,8.0,6.2,0,62],
+    ["S005",3.7,5.8,0.7,5,84],["S006",1.6,5.6,1.4,3,64],["S007",4.8,6.0,2.2,0,93],["S008",2.8,6.4,2.8,2,67],
+    ["S009",1.3,8.3,2.2,1,68],["S010",3.4,6.2,1.5,1,87],["S011",1.8,7.7,5.1,1,62],["S012",2.5,6.1,5.1,1,65],
+  ].map((r, i) => ({ idx: i, v: r }));
+
+  $("df-fcol").innerHTML = `<option value="">(필터 없음)</option>` + NUM.map(c => `<option${c === "공부시간" ? " selected" : ""}>${c}</option>`).join("");
+  $("df-scol").innerHTML = `<option value="">(정렬 없음)</option>` + NUM.map(c => `<option>${c}</option>`).join("");
+  $("df-cols").innerHTML = COLS.map(c => `<label><input type="checkbox" value="${c}" checked> ${c}</label>`).join("");
+
+  const OPS = { ">=":(a,b)=>a>=b, "<=":(a,b)=>a<=b, ">":(a,b)=>a>b, "<":(a,b)=>a<b, "==":(a,b)=>a===b };
+  const fmt = (c, x) => FLOAT[c] ? x.toFixed(1) : String(x);
+  const q = s => `<span class="s">"${s}"</span>`;
+
+  function render(){
+    const fcol = $("df-fcol").value, fop = $("df-fop").value;
+    let fval = parseFloat($("df-fval").value);
+    const scol = $("df-scol").value, asc = $("df-sdir").value === "T";
+    let cols = [...document.querySelectorAll("#df-cols input:checked")].map(x => x.value);
+    const n = +$("df-n").value;
+    $("df-n-v").textContent = n;
+    $("df-fop").disabled = !fcol; $("df-fval").disabled = !fcol; $("df-sdir").disabled = !scol;
+
+    let rows = ROWS.slice();
+    let code = "mini";
+    const steps = [];
+    if (fcol && !isNaN(fval)){
+      const ci = COLS.indexOf(fcol);
+      rows = rows.filter(r => OPS[fop](r.v[ci], fval));
+      code = `mini[mini[${q(fcol)}] ${fop.replace("<", "&lt;").replace(">", "&gt;")} ${fval}]`;
+      steps.push(`필터: ${fcol}이(가) ${fval} ${ {">=":"이상", "<=":"이하", ">":"초과", "<":"미만", "==":"과 같은"}[fop] }인 행만 남김 → ${rows.length}행`);
+    }
+    if (scol){
+      const ci = COLS.indexOf(scol);
+      rows.sort((a, b) => asc ? a.v[ci] - b.v[ci] : b.v[ci] - a.v[ci]);
+      code += `.sort_values(${q(scol)}, <span class="k">ascending</span>=${asc ? "True" : "False"})`;
+      steps.push(`정렬: ${scol} ${asc ? "작은" : "큰"} 값부터 줄 세움`);
+    }
+    if (!cols.length) cols = ["학생"];
+    if (cols.length < COLS.length){
+      code += `[[${cols.map(q).join(", ")}]]`;
+      steps.push(`열 선택: ${cols.join(", ")}만 남김`);
+    }
+    const shown = rows.slice(0, n);
+    code += `.head(${n})`;
+    steps.push(`앞에서 ${n}행까지 보기 → 실제로 보이는 행 ${shown.length}개`);
+
+    $("df-code").innerHTML = `<span class="c"># mini = df.head(12)  (study.csv 앞 12행)</span>\n` + code;
+    $("df-shape").textContent = `결과 크기: (${shown.length}, ${cols.length}) — ${shown.length}행 × ${cols.length}열`;
+    const ci = cols.map(c => COLS.indexOf(c));
+    $("df-table").innerHTML = `<thead><tr><th class="idx"></th>${cols.map(c => `<th>${c}</th>`).join("")}</tr></thead><tbody>` +
+      (shown.length ? shown.map(r => `<tr><td class="idx">${r.idx}</td>${ci.map((k, j) => `<td${cols[j] === fcol || cols[j] === scol ? ' class="hl"' : ""}>${k === 0 ? r.v[k] : fmt(COLS[k], r.v[k])}</td>`).join("")}</tr>`).join("")
+        : `<tr><td colspan="${cols.length + 1}" style="text-align:center;color:var(--ink-faint)">조건에 맞는 행이 없습니다 (빈 DataFrame)</td></tr>`) + `</tbody>`;
+    $("df-steps").innerHTML = steps.map(s => `<li>${s}</li>`).join("");
+  }
+  ["df-fcol","df-fop","df-scol","df-sdir"].forEach(id => $(id).addEventListener("change", render));
+  $("df-fval").addEventListener("input", render);
+  $("df-n").addEventListener("input", render);
+  $("df-cols").addEventListener("change", render);
+  render();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"scores = [72, 85, 64, 90, 78] 일 때 print(scores[1])의 결과는?",
+    choices:["72","85","64","90","78"], answer:1,
+    explain:"리스트의 인덱스는 0부터 시작하므로 scores[0]은 72, scores[1]은 두 번째 값인 85입니다." },
+  { type:"mc", q:"DataFrame df의 행 수와 열 수를 확인하는 코드로 알맞은 것은?",
+    choices:["df.head()","df.shape","df.describe()","df.sort_values()","df[\"shape\"]"], answer:1,
+    explain:"df.shape는 (행 수, 열 수)를 알려 줍니다. 괄호 없이 씁니다. head()는 앞 5행, describe()는 요약 통계를 보여 줍니다." },
+  { type:"mc", q:"study.csv에서 ‘성적이 80점 이상인 학생’만 남기는 코드는?",
+    choices:["df[\"성적\"] >= 80","df[df[\"성적\"] >= 80]","df.sort_values(\"성적\") >= 80","df[[\"성적\", 80]]","df[df[\"성적\"] = 80]"], answer:1,
+    explain:"조건식 df[\"성적\"] >= 80은 행마다 참/거짓을 만들고, 이것을 다시 df[ ] 안에 넣어야 참인 행만 남습니다. ①은 참/거짓 목록만 나옵니다." },
+  { type:"ox", q:"df.sort_values(\"성적\", ascending=False)는 성적이 높은 학생부터 순서대로 정렬한다.",
+    answer:true, explain:"ascending=False는 내림차순(큰 값부터)입니다. 생략하거나 True로 쓰면 작은 값부터 정렬합니다." },
+  { type:"short", q:"study.csv에서 ‘수면시간이 7시간 이상이면서 성적이 70점 이상인 학생 수’를 구하는 코드를 쓰세요.",
+    model:"len(df[(df[\"수면시간\"] >= 7) & (df[\"성적\"] >= 70)])  — 두 조건을 각각 괄호로 감싸고 &(그리고)로 연결한 뒤, len()으로 행 수를 셉니다." },
+]);
+</script>
+</body>
+</html>

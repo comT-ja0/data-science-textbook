@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>분류 모델: k-NN과 의사결정트리 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* k-NN 놀이터 */
+.knn-grid { display:grid; grid-template-columns:1.5fr 1fr; gap:16px; }
+@media (max-width:760px){ .knn-grid { grid-template-columns:1fr; } }
+#knn-canvas { width:100%; height:auto; border:1px solid var(--line); background:#fbfcfd; cursor:crosshair; }
+.knn-mode { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 10px; font-size:.84rem; }
+.knn-mode label { border:1.5px solid var(--line); border-radius:999px; padding:3px 11px; cursor:pointer; font-weight:600; background:#fff; }
+.knn-mode input { margin-right:4px; }
+.vote { display:flex; flex-direction:column; gap:6px; margin:8px 0; }
+.vote .row { display:flex; align-items:center; gap:8px; font-size:.86rem; font-weight:700; }
+.vote .row .bar { flex:1; height:14px; background:var(--paper); border:1px solid var(--line); border-radius:999px; overflow:hidden; }
+.vote .row .bar i { display:block; height:100%; transition:width .25s; }
+.pred { padding:10px 14px; border-radius:10px; font-weight:800; font-size:1rem; background:var(--accent-soft); border:1.5px solid var(--accent); }
+.nb-list { font-size:.78rem; color:var(--ink-soft); margin-top:8px; }
+.nb-list table { font-size:.78rem; }
+.nb-list td, .nb-list th { padding:2px 7px; }
+.tree-svg text { font-family:var(--font-sans); }
+</style>
+</head>
+<body data-unit="3" data-lesson="L37">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>분류 모델: k-NN과 의사결정트리</h1>
+  <span class="std-badge">성취기준 12데과03-05</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>분류와 회귀의 차이를 설명하고, 문제에 따라 분류 모델이 필요한 경우를 구분할 수 있다.</li>
+      <li>k-최근접 이웃과 의사결정트리가 새 데이터를 분류하는 원리를 설명할 수 있다.</li>
+      <li>같은 데이터에 두 분류 모델을 적용하고 테스트 데이터로 결과를 비교할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과03-05] 데이터 분석 방법에 따른 데이터 모델의 분석 결과를 비교하고 평가한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span>수집</span><span class="on">전처리</span><span>탐색</span><span class="on">모델링</span><span class="on">평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  과수원 선별장에 사과·배·귤이 뒤섞여 컨베이어 벨트 위로 지나갑니다. 카메라와 저울이 과일마다 무게, 당도, 지름, 붉은 정도를 잽니다.
+  기계는 이 네 숫자만 보고 과일을 올바른 상자에 넣어야 합니다. 여러분이라면 어떤 규칙을 기계에게 가르치겠습니까?
+  “비슷한 과일끼리는 같은 종류겠지”라고 생각할 수도 있고, “무게가 150g보다 가벼우면 귤”처럼 질문을 던질 수도 있습니다.
+  이 두 가지 생각이 오늘 배울 두 분류 모델입니다.
+</div>
+
+<h2><span class="sec-no">1</span>분류: 정답이 범주인 예측 <i class="pub-c">공통</i></h2>
+
+<p><span class="keyterm">분류(classification)</span>는 정답(레이블)이 붙은 데이터로 학습한 뒤, 새 데이터가 <b>어느 범주에 속하는지</b> 예측하는 지도 학습입니다.
+회귀와 분류는 모두 지도 학습이지만, 예측하는 값의 형태가 다릅니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:90px">구분</th><th>예측하는 값</th><th>예</th></tr></thead>
+  <tbody>
+    <tr><td><b>회귀</b></td><td>연속적인 수치</td><td>기온으로 자전거 대여량 예측, 공부 시간으로 점수 예측</td></tr>
+    <tr><td><b>분류</b></td><td>정해진 범주(클래스)</td><td>과일 종류(사과/배/귤), 스팸 메일 여부(예/아니오), 합격/불합격</td></tr>
+  </tbody>
+</table></div>
+
+<p>정답이 둘 중 하나이면 <b>이진 분류</b>, 셋 이상이면 <b>다중 분류</b>라고 합니다. 오늘은 대표적인 분류 모델 두 가지를 배웁니다.</p>
+
+<h2><span class="sec-no">2</span>k-최근접 이웃(k-NN): 가까운 친구에게 묻기 <i class="pub-c">공통</i></h2>
+
+<p><span class="keyterm">k-최근접 이웃(k-Nearest Neighbors, k-NN)</span>은 새 데이터와 <b>가장 가까운 훈련 데이터 k개</b>를 찾아,
+그중 가장 많은 범주로 분류합니다(다수결 투표). 따로 규칙을 만들지 않고 훈련 데이터를 기억해 두었다가 비교하는 단순한 방법입니다.</p>
+
+<h3>손으로 계산해 보기</h3>
+<p>당도(brix)와 지름(cm)을 아는 과일 5개가 있습니다. 새 과일 ★(당도 12, 지름 10)은 무엇일까요?</p>
+<div class="table-wrap"><table class="data" style="max-width:560px">
+  <thead><tr><th>과일</th><th>당도</th><th>지름</th><th>종류</th><th>★까지 거리</th></tr></thead>
+  <tbody>
+    <tr><td>A</td><td>13</td><td>8</td><td>사과</td><td>√(1² + 2²) = √5 ≈ 2.24</td></tr>
+    <tr><td>B</td><td>12</td><td>9</td><td>사과</td><td>√(0² + 1²) = <b>1.00</b></td></tr>
+    <tr><td>C</td><td>11</td><td>11</td><td>배</td><td>√(1² + 1²) = √2 ≈ <b>1.41</b></td></tr>
+    <tr><td>D</td><td>11</td><td>6</td><td>귤</td><td>√(1² + 4²) = √17 ≈ 4.12</td></tr>
+    <tr><td>E</td><td>10</td><td>10</td><td>배</td><td>√(2² + 0²) = <b>2.00</b></td></tr>
+  </tbody>
+</table></div>
+<ul>
+  <li><b>k = 1</b>: 가장 가까운 B(사과) → <b>사과</b></li>
+  <li><b>k = 3</b>: B(사과), C(배), E(배) → 배 2표, 사과 1표 → <b>배</b></li>
+  <li><b>k = 5</b>: 사과 2표(A, B), 배 2표(C, E), 귤 1표 → <b>동점!</b> 가까운 쪽을 우선하는 등 규칙이 따로 필요합니다.</li>
+</ul>
+<p>k에 따라 답이 바뀝니다. k가 너무 작으면 우연히 가까이 있는 점 하나(잡음)에 휘둘리고, 너무 크면 멀리 있는 점까지 투표해 경계가 뭉개집니다.
+적당한 k는 테스트 데이터나 교차 검증(L39)으로 찾습니다.</p>
+
+<div class="sim">
+  <div class="sim-head">k-NN 놀이터 — 새 과일을 놓고 이웃에게 물어보기</div>
+  <div class="sim-body">
+    <div class="sim-controls">
+      <label for="knn-k">k</label><input type="range" id="knn-k" min="1" max="15" value="3"><b id="knn-k-v">3</b>
+      <label><input type="checkbox" id="knn-scale" checked> 표준화 후 거리 계산</label>
+      <label><input type="checkbox" id="knn-region"> 결정 영역 색칠</label>
+      <button id="knn-reset" class="gray">↺ 처음 데이터</button>
+    </div>
+    <div class="knn-mode" id="knn-mode">
+      <span style="font-weight:700;color:var(--ink-soft)">클릭하면:</span>
+      <label><input type="radio" name="knn-m" value="q" checked>★ 새 과일 놓기</label>
+      <label><input type="radio" name="knn-m" value="0">🍎 사과 추가</label>
+      <label><input type="radio" name="knn-m" value="1">🍐 배 추가</label>
+      <label><input type="radio" name="knn-m" value="2">🍊 귤 추가</label>
+    </div>
+    <div class="knn-grid">
+      <canvas id="knn-canvas" width="560" height="400"></canvas>
+      <div>
+        <div class="pred" id="knn-pred">—</div>
+        <div class="vote" id="knn-vote"></div>
+        <div class="nb-list" id="knn-nb"></div>
+      </div>
+    </div>
+    <p class="widget-hint">관찰 포인트: ‘표준화 후 거리 계산’을 끄면 가로축(당도, 8~16)의 차이가 세로축(붉은정도, 0~1)보다 훨씬 크게 계산되어,
+    눈으로 보기에 가까운 점이 아니라 <b>좌우로 가까운 점</b>만 이웃으로 뽑힙니다. k = 1일 때 결정 영역이 얼마나 울퉁불퉁한지도 확인해 보세요.</p>
+  </div>
+</div>
+
+<h2><span class="sec-no">3</span>의사결정트리: 스무고개로 분류하기 <i class="pub">삼양</i> <i class="pub">YBM</i></h2>
+
+<p><span class="keyterm">의사결정트리(decision tree)</span>는 “무게 ≤ 151.5g인가?”처럼 <b>예/아니오 질문을 차례로 던져</b> 데이터를 나누는 모델입니다.
+맨 위의 질문을 <b>뿌리 노드</b>, 마지막에 범주가 정해지는 곳을 <b>잎 노드</b>라고 합니다.
+트리는 훈련 데이터를 가장 깔끔하게(한 범주만 남도록) 나누는 질문을 스스로 골라 가며 자랍니다.</p>
+
+<figure>
+<svg class="tree-svg" viewBox="0 0 520 230" width="100%" style="max-width:560px" role="img" aria-label="과일 분류 의사결정트리">
+  <g stroke="#8595a6" stroke-width="1.6" fill="none">
+    <line x1="260" y1="52" x2="120" y2="110"/><line x1="260" y1="52" x2="370" y2="110"/>
+    <line x1="370" y1="150" x2="290" y2="185"/><line x1="370" y1="150" x2="450" y2="185"/>
+  </g>
+  <rect x="175" y="14" width="170" height="38" rx="9" fill="#fdf1de" stroke="#d97706" stroke-width="1.6"/>
+  <text x="260" y="38" text-anchor="middle" font-size="14" font-weight="700" fill="#1e2733">무게 ≤ 151.5g ?</text>
+  <text x="170" y="80" font-size="12" fill="#127a3c" font-weight="700">예</text><text x="325" y="80" font-size="12" fill="#b32424" font-weight="700">아니오</text>
+  <rect x="70" y="110" width="100" height="36" rx="18" fill="#fff3e0" stroke="#e0a100" stroke-width="1.6"/>
+  <text x="120" y="133" text-anchor="middle" font-size="14" font-weight="800" fill="#1e2733">🍊 귤</text>
+  <rect x="280" y="112" width="180" height="38" rx="9" fill="#fdf1de" stroke="#d97706" stroke-width="1.6"/>
+  <text x="370" y="136" text-anchor="middle" font-size="14" font-weight="700" fill="#1e2733">붉은정도 ≤ 0.65 ?</text>
+  <text x="300" y="172" font-size="12" fill="#127a3c" font-weight="700">예</text><text x="420" y="172" font-size="12" fill="#b32424" font-weight="700">아니오</text>
+  <rect x="240" y="185" width="100" height="36" rx="18" fill="#eef9e8" stroke="#17a55a" stroke-width="1.6"/>
+  <text x="290" y="208" text-anchor="middle" font-size="14" font-weight="800" fill="#1e2733">🍐 배</text>
+  <rect x="400" y="185" width="100" height="36" rx="18" fill="#fdeeee" stroke="#e4572e" stroke-width="1.6"/>
+  <text x="450" y="208" text-anchor="middle" font-size="14" font-weight="800" fill="#1e2733">🍎 사과</text>
+</svg>
+<figcaption>그림 1. 아래 파이썬 실습에서 훈련 데이터로 학습한 깊이 2의 의사결정트리</figcaption>
+</figure>
+
+<p>트리의 가장 큰 장점은 <b>사람이 읽을 수 있다</b>는 것입니다. 선별장 직원도 그림만 보고 기계가 왜 그렇게 분류했는지 이해할 수 있습니다.
+질문을 몇 단계까지 던질지를 <span class="keyterm">최대 깊이(max_depth)</span>로 정하는데, 깊이가 너무 깊으면 훈련 데이터의 사소한 차이까지 외워 새 데이터에서 틀리기 쉽습니다(과대적합, L39).</p>
+
+<div class="box box-tip">
+  <span class="box-label">더 알아보기: 로지스틱 회귀</span>
+  이름에 ‘회귀’가 들어 있지만 분류에 쓰는 모델도 있습니다. <span class="keyterm">로지스틱 회귀</span>는 입력값으로 점수를 계산한 뒤
+  S자 모양의 시그모이드 함수로 0~1 사이의 <b>확률</b>로 바꿉니다. 예를 들어 “이 메일이 스팸일 확률 0.83”을 계산하고, 확률이 기준(보통 0.5)보다 크면 스팸으로 분류합니다.
+  이 기준을 바꾸면 결과가 어떻게 달라지는지는 다음 차시(L38)에서 다룹니다.
+</div>
+
+<h2><span class="sec-no">4</span>파이썬으로 과일 분류하기 <i class="pub-c">공통</i></h2>
+
+<p><code>fruit.csv</code>에는 사과·배·귤 각 60개의 무게(g), 당도(brix), 지름(cm), 붉은정도(0~1)가 있습니다.
+훈련 데이터 70%로 학습하고, 모델이 한 번도 보지 못한 테스트 데이터 30%로 평가합니다.
+<code>stratify</code>는 두 데이터에 과일 종류 비율을 똑같이 맞추는 옵션입니다.</p>
+
+<div class="pycell" data-title="데이터 나누고 k-NN: 표준화의 효과"><textarea>
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
+
+df = load_csv("fruit.csv")
+print(df.groupby("과일").mean().round(2))
+
+feat = ["무게", "당도", "지름", "붉은정도"]
+X_tr, X_te, y_tr, y_te = train_test_split(
+    df[feat], df["과일"], test_size=0.3, random_state=42, stratify=df["과일"])
+print("훈련", len(X_tr), "/ 테스트", len(X_te))
+
+two = ["당도", "붉은정도"]          # 두 속성만으로 먼저 비교
+raw = KNeighborsClassifier(n_neighbors=5).fit(X_tr[two], y_tr)
+sc  = make_pipeline(StandardScaler(), KNeighborsClassifier(n_neighbors=5)).fit(X_tr[two], y_tr)
+print("표준화 없이 테스트 정확도:", round(raw.score(X_te[two], y_te), 3))
+print("표준화 후   테스트 정확도:", round(sc.score(X_te[two], y_te), 3))
+
+# ✏️ two를 ["무게", "지름"]으로 바꾸면 표준화의 효과가 어떻게 달라지나요?
+</textarea></div>
+
+<p>당도는 7.5~15.5, 붉은정도는 0.11~1.00 범위라서 표준화하지 않으면 거리가 거의 당도로만 결정됩니다.
+표준화 후 테스트 정확도가 <b>0.759 → 0.852</b>로 올랐습니다(테스트 과일 54개 중 41개 → 46개 정답).
+<code>make_pipeline</code>으로 표준화와 모델을 묶으면, 표준화 기준(평균·표준편차)을 <b>훈련 데이터로만</b> 계산하므로 테스트 데이터의 정보가 학습에 새어 들어가지 않습니다.</p>
+
+<div class="pycell" data-title="k 바꿔 보기와 네 속성 k-NN"><textarea>
+for k in [1, 3, 5, 9, 15, 45]:
+    m = make_pipeline(StandardScaler(), KNeighborsClassifier(n_neighbors=k)).fit(X_tr[two], y_tr)
+    print(f"k={k:2d}  훈련 {m.score(X_tr[two], y_tr):.3f}  테스트 {m.score(X_te[two], y_te):.3f}")
+
+knn = make_pipeline(StandardScaler(), KNeighborsClassifier(n_neighbors=5)).fit(X_tr, y_tr)
+print("네 속성 k-NN 테스트 정확도:", round(knn.score(X_te, y_te), 3))
+
+new = pd.DataFrame([[250, 12.8, 8.2, 0.70], [120, 11.9, 6.5, 0.55]], columns=feat)
+print("새 과일 예측:", knn.predict(new))
+
+# ✏️ 새 과일의 무게를 400으로 바꾸면 예측이 어떻게 달라지나요?
+</textarea></div>
+
+<p>k = 1일 때는 훈련 정확도가 1.000(자기 자신이 가장 가까운 이웃이니까요!)인데 테스트 정확도는 0.778로 가장 낮습니다.
+k = 3에서 테스트 정확도 0.870으로 가장 좋았습니다. 네 속성을 모두 쓰면 테스트 54개를 모두 맞혔습니다(1.000). 이 데이터는 무게와 지름만으로도 과일이 잘 구별되기 때문입니다.</p>
+
+<div class="pycell" data-title="의사결정트리와 규칙 읽기"><textarea>
+from sklearn.tree import DecisionTreeClassifier, export_text
+
+for d in [1, 2, 3]:
+    t = DecisionTreeClassifier(max_depth=d, random_state=0).fit(X_tr, y_tr)
+    print(f"깊이 {d}: 훈련 {t.score(X_tr, y_tr):.3f}  테스트 {t.score(X_te, y_te):.3f}")
+
+tree = DecisionTreeClassifier(max_depth=2, random_state=0).fit(X_tr, y_tr)
+print(export_text(tree, feature_names=feat))              # 사람이 읽는 규칙
+print(pd.Series(tree.feature_importances_, index=feat).round(3))   # 속성 중요도
+print("새 과일 예측:", tree.predict(new))
+
+# ✏️ max_depth=1인 트리의 규칙을 출력해 보세요. 왜 정확도가 0.667에 그칠까요?
+</textarea></div>
+
+<p>깊이 1 트리는 질문이 하나뿐이라 세 과일 중 둘만 구별할 수 있어 정확도가 0.667에 그칩니다. 깊이 2에서는 훈련 0.992, 테스트 1.000입니다.
+출력된 규칙이 그림 1의 트리입니다. 속성 중요도를 보면 트리는 <b>무게(0.512)와 붉은정도(0.488)</b>만 사용했고, 당도와 지름은 쓰지 않았습니다.
+트리는 표준화가 필요 없다는 점도 기억해 두세요. 한 속성씩 기준값과 비교할 뿐, 속성끼리 거리를 재지 않기 때문입니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:120px">비교</th><th>k-NN</th><th>의사결정트리</th></tr></thead>
+  <tbody>
+    <tr><td>분류 방식</td><td>가까운 이웃 k개의 다수결</td><td>질문(규칙)을 따라 내려가기</td></tr>
+    <tr><td>표준화</td><td><b>필요</b> (거리 계산)</td><td>필요 없음</td></tr>
+    <tr><td>설명하기</td><td>“이웃이 이랬다” 정도만 가능</td><td>규칙을 그대로 보여 줄 수 있음</td></tr>
+    <tr><td>조절할 값</td><td>이웃 수 k</td><td>최대 깊이 max_depth</td></tr>
+  </tbody>
+</table></div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">모둠 활동</span>우리 반 ‘분류 트리’ 만들기 <i class="pub-c">공통</i></div>
+  <div class="act-body">
+    <ol>
+      <li>아래 동물 6마리를 예/아니오 질문 2개 이하로 ‘포유류/조류/어류’로 분류하는 트리를 그려 보세요. (고래, 펭귄, 박쥐, 참새, 상어, 강아지)
+        <div class="write-lines"><div class="line"></div><div class="line"></div><div class="line"></div></div></li>
+      <li>다른 모둠의 트리와 비교해 첫 질문이 다른지 확인하세요. 모두 맞게 분류한다면 어떤 트리가 새 동물(예: 타조, 돌고래)도 잘 분류할 것 같은지 이유와 함께 쓰세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+      <li>k-NN 놀이터에서 k = 1과 k = 9일 때 결정 영역을 캡처(또는 스케치)하고, 어느 쪽이 새 과일을 더 안정적으로 분류할지 설명하세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+    </ol>
+  </div>
+</div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  k-NN은 교실에서 학생들을 ‘훈련 데이터’로 세우고 새로 들어온 학생 주변 k명에게 손을 들게 하는 몸 활동으로 도입하면 좋습니다(5분).
+  Orange 학급은 <b>File → Data Sampler → kNN / Tree → Test and Score</b>로 같은 비교를 하고, <b>Tree Viewer</b>로 규칙을 확인합니다.
+  흔한 오개념: ① “k-NN도 학습 단계에서 규칙을 만든다”(훈련 데이터를 저장해 두었다가 예측할 때 거리를 계산), ② “훈련 정확도가 높으면 좋은 모델이다”(k = 1의 훈련 정확도 1.000을 보여 줄 것),
+  ③ 군집(비지도)과 분류(지도)의 혼동 — L33의 k-평균과 k-NN은 이름만 비슷한 전혀 다른 방법임을 강조합니다.
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>분류는 정답이 범주인 지도 학습이며, 회귀는 연속적인 수치를 예측한다.</li>
+    <li>k-NN은 가장 가까운 훈련 데이터 k개의 다수결로 분류하며, 거리를 쓰므로 표준화가 필요하고 k에 따라 결과가 달라진다.</li>
+    <li>의사결정트리는 예/아니오 질문을 이어 가며 분류하고, 규칙을 사람이 읽을 수 있으며 최대 깊이로 복잡도를 조절한다.</li>
+    <li>모델은 훈련에 쓰지 않은 테스트 데이터로 평가해야 하며, 표준화 기준도 훈련 데이터로만 정한다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- k-NN 놀이터 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const cv = $("knn-canvas"), ctx = cv.getContext("2d");
+  const W = cv.width, H = cv.height, PL = 44, PR = 12, PT = 12, PB = 36;
+  const XMIN = 8, XMAX = 16, YMIN = 0, YMAX = 1;           // 당도, 붉은정도
+  const NAMES = ["사과", "배", "귤"], EMO = ["🍎", "🍐", "🍊"], COL = ["#e4572e", "#17a55a", "#e0a100"];
+
+  // 재현 가능한 난수(시드 고정)
+  function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function makeBase(){
+    const r = rng(7), g = () => { let u = 0, v = 0; while (!u) u = r(); v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+    const spec = [[13.1, 1.0, 0.84, 0.09], [10.9, 1.1, 0.37, 0.10], [11.6, 0.9, 0.60, 0.09]];
+    const out = [];
+    spec.forEach(([mx, sx, my, sy], c) => { for (let i = 0; i < 16; i++) out.push({ x: Math.min(15.8, Math.max(8.2, mx + g() * sx)), y: Math.min(0.99, Math.max(0.02, my + g() * sy)), c }); });
+    return out;
+  }
+  let pts = makeBase(), q = { x: 12.0, y: 0.62 };
+
+  const px = x => PL + (x - XMIN) / (XMAX - XMIN) * (W - PL - PR);
+  const py = y => H - PB - (y - YMIN) / (YMAX - YMIN) * (H - PT - PB);
+  const ix = X => XMIN + (X - PL) / (W - PL - PR) * (XMAX - XMIN);
+  const iy = Y => YMIN + (H - PB - Y) / (H - PT - PB) * (YMAX - YMIN);
+
+  function scaler(){
+    if (!$("knn-scale").checked) return { mx: 0, sx: 1, my: 0, sy: 1 };
+    const n = pts.length, mx = pts.reduce((s, p) => s + p.x, 0) / n, my = pts.reduce((s, p) => s + p.y, 0) / n;
+    const sx = Math.sqrt(pts.reduce((s, p) => s + (p.x - mx) ** 2, 0) / n) || 1, sy = Math.sqrt(pts.reduce((s, p) => s + (p.y - my) ** 2, 0) / n) || 1;
+    return { mx, sx, my, sy };
+  }
+  function neighbors(a, k, S){
+    return pts.map((p, i) => ({ i, d: Math.hypot((p.x - a.x) / S.sx, (p.y - a.y) / S.sy) })).sort((u, v) => u.d - v.d).slice(0, Math.min(k, pts.length));
+  }
+  function vote(nb){
+    const cnt = [0, 0, 0], dsum = [0, 0, 0];
+    nb.forEach(o => { cnt[pts[o.i].c]++; dsum[pts[o.i].c] += o.d; });
+    const top = Math.max(...cnt);
+    const tied = [0, 1, 2].filter(c => cnt[c] === top);
+    // 동점이면 이웃까지 거리 합이 작은 쪽
+    const win = tied.sort((a, b) => dsum[a] - dsum[b])[0];
+    return { cnt, win, tie: tied.length > 1 };
+  }
+
+  function draw(){
+    const k = +$("knn-k").value, S = scaler();
+    ctx.clearRect(0, 0, W, H);
+    if ($("knn-region").checked && pts.length){
+      const step = 8;
+      for (let X = PL; X < W - PR; X += step) for (let Y = PT; Y < H - PB; Y += step){
+        const v = vote(neighbors({ x: ix(X + step / 2), y: iy(Y + step / 2) }, k, S));
+        ctx.fillStyle = COL[v.win] + "2e"; ctx.fillRect(X, Y, step, step);
+      }
+    }
+    // 축
+    ctx.strokeStyle = "#c9d2dc"; ctx.lineWidth = 1; ctx.fillStyle = "#4b5a6b"; ctx.font = "12px sans-serif";
+    ctx.beginPath(); ctx.moveTo(PL, PT); ctx.lineTo(PL, H - PB); ctx.lineTo(W - PR, H - PB); ctx.stroke();
+    ctx.textAlign = "center";
+    for (let x = 8; x <= 16; x += 2) ctx.fillText(x, px(x), H - PB + 15);
+    ctx.fillText("당도 (brix)", (PL + W - PR) / 2, H - 4);
+    ctx.textAlign = "right";
+    for (let y = 0; y <= 1.001; y += 0.25) ctx.fillText(y.toFixed(2), PL - 5, py(y) + 4);
+    ctx.save(); ctx.translate(12, (PT + H - PB) / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = "center"; ctx.fillText("붉은정도", 0, 0); ctx.restore();
+
+    const nb = neighbors(q, k, S);
+    const far = nb.length ? nb[nb.length - 1].d : 0;
+    ctx.setLineDash([3, 3]); ctx.strokeStyle = "#1e2733";
+    nb.forEach(o => { const p = pts[o.i]; ctx.beginPath(); ctx.moveTo(px(q.x), py(q.y)); ctx.lineTo(px(p.x), py(p.y)); ctx.stroke(); });
+    ctx.setLineDash([]);
+    pts.forEach((p, i) => {
+      ctx.beginPath(); ctx.arc(px(p.x), py(p.y), 6, 0, Math.PI * 2);
+      ctx.fillStyle = COL[p.c]; ctx.fill();
+      const isNb = nb.some(o => o.i === i);
+      ctx.lineWidth = isNb ? 3 : 1.2; ctx.strokeStyle = isNb ? "#1e2733" : "#fff"; ctx.stroke();
+    });
+    // 새 과일 ★
+    const v = vote(nb);
+    ctx.font = "26px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillStyle = COL[v.win]; ctx.strokeStyle = "#1e2733"; ctx.lineWidth = 1.5;
+    ctx.strokeText("★", px(q.x), py(q.y)); ctx.fillText("★", px(q.x), py(q.y));
+    ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+
+    $("knn-pred").innerHTML = `★ (당도 ${q.x.toFixed(1)}, 붉은정도 ${q.y.toFixed(2)}) → ${EMO[v.win]} <span style="color:${COL[v.win]}">${NAMES[v.win]}</span>` +
+      (v.tie ? ` <small style="font-weight:600">(동점 → 더 가까운 쪽)</small>` : "");
+    $("knn-vote").innerHTML = [0, 1, 2].map(c => `<div class="row"><span style="width:62px">${EMO[c]} ${NAMES[c]}</span><div class="bar"><i style="width:${nb.length ? v.cnt[c] / nb.length * 100 : 0}%;background:${COL[c]}"></i></div><span>${v.cnt[c]}표</span></div>`).join("");
+    const unit = $("knn-scale").checked ? "표준화 거리" : "원래 단위 거리";
+    $("knn-nb").innerHTML = `<b>가까운 이웃 (최대 5개 표시, ${unit})</b><table><tr><th>순위</th><th>종류</th><th>당도</th><th>붉은정도</th><th>거리</th></tr>` +
+      nb.slice(0, 5).map((o, r) => { const p = pts[o.i]; return `<tr><td>${r + 1}</td><td>${EMO[p.c]}</td><td>${p.x.toFixed(1)}</td><td>${p.y.toFixed(2)}</td><td>${o.d.toFixed(2)}</td></tr>`; }).join("") + "</table>";
+  }
+
+  cv.addEventListener("click", e => {
+    const r = cv.getBoundingClientRect();
+    const X = (e.clientX - r.left) * W / r.width, Y = (e.clientY - r.top) * H / r.height;
+    const x = ix(X), y = iy(Y);
+    if (x < XMIN || x > XMAX || y < YMIN || y > YMAX) return;
+    const mode = document.querySelector('input[name="knn-m"]:checked').value;
+    if (mode === "q") q = { x, y }; else pts.push({ x, y, c: +mode });
+    draw();
+  });
+  $("knn-k").addEventListener("input", () => { $("knn-k-v").textContent = $("knn-k").value; draw(); });
+  $("knn-scale").addEventListener("change", draw);
+  $("knn-region").addEventListener("change", draw);
+  $("knn-reset").addEventListener("click", () => { pts = makeBase(); q = { x: 12.0, y: 0.62 }; draw(); });
+  draw();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"다음 중 분류 모델이 필요한 문제는?",
+    choices:["내일 최고 기온 예측하기","아파트 가격 예측하기","고객이 다음 달에 서비스를 해지할지(예/아니오) 예측하기","하루 전력 사용량 예측하기","자전거 대여 대수 예측하기"], answer:2,
+    explain:"해지 여부처럼 정답이 정해진 범주(예/아니오)이면 분류, 기온·가격·사용량·대여 대수처럼 연속적인 수치이면 회귀입니다." },
+  { type:"mc", q:"새 데이터에서 가장 가까운 이웃 5개가 순서대로 A, B, A, C, B 범주이다. k = 3일 때 k-NN의 예측은?",
+    choices:["A","B","C","A와 B 동점","알 수 없다"], answer:0,
+    explain:"k = 3이면 가장 가까운 3개(A, B, A)만 투표합니다. A 2표, B 1표로 A입니다. k = 5라면 A 2표, B 2표, C 1표로 동점이 됩니다." },
+  { type:"ox", q:"k-NN에서 k = 1로 하면 훈련 데이터 정확도는 보통 1.0이 되므로 가장 좋은 k이다.",
+    answer:false, explain:"k = 1이면 훈련 데이터의 가장 가까운 이웃은 자기 자신이라 훈련 정확도가 1.0이 됩니다. 하지만 잡음에 민감해 테스트 정확도는 오히려 낮을 수 있습니다(실습에서 0.778로 가장 낮았습니다). 모델은 테스트 데이터로 평가해야 합니다." },
+  { type:"mc", q:"k-NN과 의사결정트리를 비교한 설명으로 옳은 것은?",
+    choices:["두 모델 모두 표준화를 하지 않으면 결과가 크게 달라진다","의사결정트리는 분류 규칙을 사람이 읽을 수 있는 형태로 보여 줄 수 있다","k-NN은 학습할 때 예/아니오 질문을 만든다","의사결정트리는 비지도 학습이다","max_depth를 키울수록 테스트 정확도는 반드시 높아진다"], answer:1,
+    explain:"트리는 ‘무게 ≤ 151.5g이면 귤’ 같은 규칙으로 설명할 수 있습니다. 트리는 한 속성씩 기준과 비교하므로 표준화의 영향을 거의 받지 않고, 깊이를 너무 키우면 과대적합으로 테스트 정확도가 떨어질 수 있습니다." },
+  { type:"short", q:"당도(7.5~15.5)와 붉은정도(0~1)로 k-NN 분류를 할 때 표준화를 하지 않으면 어떤 문제가 생기는지 설명하세요.",
+    model:"거리를 계산할 때 숫자 범위가 큰 당도의 차이가 거리 대부분을 차지해서, 붉은정도는 거의 반영되지 않는다. 그 결과 당도만 비슷하면 붉은정도가 크게 달라도 가까운 이웃으로 뽑혀 분류가 틀리기 쉽다(실습에서 테스트 정확도 0.759 → 표준화 후 0.852). 따라서 속성들을 표준화해 같은 비중으로 거리에 반영해야 한다." },
+]);
+</script>
+</body>
+</html>

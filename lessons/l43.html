@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>프로젝트 주제 선정과 적합성 판단 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 주제 적합성 판정기 */
+.fit-top { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px; }
+.fit-top select { max-width:100%; }
+.fit-topic { font-weight:800; font-size:1rem; margin:4px 0 10px; }
+.fit-q { display:grid; grid-template-columns:1fr auto; gap:6px 12px; align-items:center; padding:9px 0; border-top:1px dashed var(--line); }
+.fit-q .qt { font-size:.9rem; }
+.fit-q .qt b { color:var(--accent); margin-right:4px; }
+.fit-q .qt small { display:block; color:var(--ink-faint); font-size:.78rem; }
+.seg { display:inline-flex; border:1.5px solid var(--line); border-radius:999px; overflow:hidden; }
+.seg button { border-radius:0; background:#fff; color:var(--ink-soft); padding:5px 11px; font-size:.8rem; font-weight:700; }
+.seg button.on.y { background:#16a34a; color:#fff; }
+.seg button.on.p { background:#f59e0b; color:#fff; }
+.seg button.on.n { background:#dc2626; color:#fff; }
+@media (max-width:560px){ .fit-q { grid-template-columns:1fr; } }
+.fit-verdict { margin-top:14px; border-radius:12px; padding:12px 16px; font-size:.92rem; }
+.fit-verdict h4 { margin:0 0 6px; font-size:1.02rem; }
+.fit-verdict.ok { background:#eafaf0; border:1.5px solid #ace8c4; }
+.fit-verdict.fix { background:#fff7e6; border:1.5px solid #f3ddb0; }
+.fit-verdict.no { background:#fdeeee; border:1.5px solid #f3b9b9; }
+.fit-verdict ul { margin:6px 0 0; padding-left:20px; }
+.fit-note { font-size:.84rem; color:var(--ink-soft); background:var(--paper); border-radius:8px; padding:8px 12px; margin-bottom:6px; }
+</style>
+</head>
+<body data-unit="4" data-lesson="L43">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>프로젝트 주제 선정과 적합성 판단</h1>
+  <span class="std-badge">성취기준 12데과04-01</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>막연한 관심사를 데이터로 답할 수 있는 구체적인 질문으로 바꿀 수 있다.</li>
+      <li>데이터 충분성·목적 적합성·법적·윤리적 타당성·실행 가능성을 기준으로 주제의 적합성을 판단할 수 있다.</li>
+      <li>여러 주제 후보를 기준표로 비교하여 모둠 프로젝트 주제를 선정할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과04-01] 분야별 데이터 과학의 적용 사례를 조사하여 분석하고, 데이터로 해결 가능한 주제를 찾아 적합성을 판단한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span class="on">문제 정의</span><span>수집</span><span>전처리</span><span>탐색</span><span>모델링</span><span>평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  모둠 회의 시간, 아이디어가 쏟아집니다. “기후 위기를 해결하자!”, “우리 반 친구들이 누구를 좋아하는지 분석하자!”, “급식 잔반을 줄이자!”
+  모두 흥미롭지만, 두 달 안에 고등학생 네 명이 <b>실제로 데이터를 모아 분석하고 결론까지 낼 수 있는</b> 주제는 어느 것일까요?
+  주제가 너무 크면 끝을 맺지 못하고, 데이터가 없으면 시작조차 못 하며, 다른 사람의 사생활을 침해하는 주제라면 해서는 안 됩니다.
+  오늘은 주제를 고르기 전에 반드시 거쳐야 할 <b>적합성 판단</b>을 연습합니다.
+</div>
+
+<h2><span class="sec-no">1</span>관심사를 ‘데이터로 답할 수 있는 질문’으로 <i class="pub-c">공통</i></h2>
+
+<p>좋은 프로젝트는 좋은 질문에서 시작합니다. 데이터 과학에서 좋은 질문이란 <b>측정할 수 있는 대상</b>과 <b>비교·관계·예측</b>이 분명히 드러나는 질문입니다.
+“기후 위기를 해결하자”는 훌륭한 관심사이지만 그대로는 분석할 수 없습니다. 범위를 좁히고, 무엇을 측정할지 정해야 합니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:170px">막연한 관심사</th><th>데이터로 답할 수 있는 질문</th><th style="width:170px">측정할 것</th></tr></thead>
+  <tbody>
+    <tr><td>기후 위기가 걱정된다</td><td><b>우리 학교 하루 전력 사용량</b>은 기온·수업 여부에 따라 어떻게 달라지며, 어떤 날에 절약할 여지가 가장 큰가?</td><td>날짜별 전력 사용량, 평균기온, 수업일 여부</td></tr>
+    <tr><td>급식을 많이 버린다</td><td>메뉴 종류와 요일에 따라 1인당 잔반량이 얼마나 차이 나는가?</td><td>날짜별 메뉴, 잔반 무게, 배식 인원</td></tr>
+    <tr><td>등굣길이 위험하다</td><td>학교 주변 교차로 중 어린이·청소년 교통사고가 많이 난 곳은 어디이며, 공통점은 무엇인가?</td><td>사고 위치·시간대, 신호등·횡단보도 유무</td></tr>
+    <tr><td>친구들이 잠을 못 잔다</td><td>스마트폰 사용 시간과 수면 시간 사이에 관계가 있는가? 학년별로 다른가?</td><td>익명 설문으로 모은 사용 시간·수면 시간·학년</td></tr>
+  </tbody>
+</table></div>
+
+<div class="box box-warn">
+  <span class="box-label">데이터로 답하기 어려운 질문</span>
+  ‘가장 아름다운 노래는?’처럼 <b>가치 판단</b>만으로 결론이 나는 질문, ‘100년 뒤 인류는?’처럼 <b>관련 데이터가 존재할 수 없는</b> 질문,
+  ‘우리 반에서 누가 가장 인기 있나?’처럼 <b>특정 개인을 드러내는</b> 질문은 데이터 과학 프로젝트 주제로 적합하지 않습니다.
+</div>
+
+<h2><span class="sec-no">2</span>적합성 판단 흐름도 <i class="pub">삼양</i></h2>
+
+<p>질문을 만들었다면 다음 네 관문을 차례로 통과하는지 확인합니다. 하나라도 ‘아니요’라면 주제를 버리기 전에 <b>범위를 줄이거나 데이터를 바꾸어</b> 다시 판단해 봅니다.</p>
+
+<figure>
+<svg viewBox="0 0 720 300" role="img" aria-label="주제 적합성 판단 흐름도">
+  <defs><marker id="a2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#555"/></marker></defs>
+  <g font-family="Pretendard Variable, sans-serif" font-size="12.5" text-anchor="middle">
+    <rect x="270" y="6" width="180" height="34" rx="17" fill="#7c3aed"/><text x="360" y="28" fill="#fff" font-weight="800">질문(주제 후보)</text>
+    <g>
+      <rect x="20" y="70" width="150" height="62" rx="10" fill="#f1eafd" stroke="#7c3aed"/>
+      <text x="95" y="93" font-weight="800">① 데이터 충분성</text><text x="95" y="112" font-size="11">구할 수 있는가?</text><text x="95" y="126" font-size="11">양·기간·품질은?</text>
+      <rect x="195" y="70" width="150" height="62" rx="10" fill="#f1eafd" stroke="#7c3aed"/>
+      <text x="270" y="93" font-weight="800">② 목적 적합성</text><text x="270" y="112" font-size="11">질문에 답하는 속성이</text><text x="270" y="126" font-size="11">들어 있는가?</text>
+      <rect x="370" y="70" width="150" height="62" rx="10" fill="#f1eafd" stroke="#7c3aed"/>
+      <text x="445" y="93" font-weight="800">③ 법적·윤리적 타당성</text><text x="445" y="112" font-size="11">개인정보·저작권·</text><text x="445" y="126" font-size="11">이용 약관 문제는?</text>
+      <rect x="545" y="70" width="150" height="62" rx="10" fill="#f1eafd" stroke="#7c3aed"/>
+      <text x="620" y="93" font-weight="800">④ 실행 가능성</text><text x="620" y="112" font-size="11">주어진 기간·도구·</text><text x="620" y="126" font-size="11">능력으로 가능한가?</text>
+    </g>
+    <path d="M360 40 V55 H95 V68" fill="none" stroke="#555" stroke-width="1.5" marker-end="url(#a2)"/>
+    <path d="M170 101 H193 M345 101 H368 M520 101 H543" stroke="#16a34a" stroke-width="2" marker-end="url(#a2)"/>
+    <text x="181" y="94" font-size="10" fill="#16a34a">예</text><text x="356" y="94" font-size="10" fill="#16a34a">예</text><text x="531" y="94" font-size="10" fill="#16a34a">예</text>
+    <path d="M620 132 V240" stroke="#16a34a" stroke-width="2" marker-end="url(#a2)"/><text x="632" y="190" font-size="10" fill="#16a34a">예</text>
+    <rect x="540" y="242" width="160" height="40" rx="20" fill="#16a34a"/><text x="620" y="267" fill="#fff" font-weight="800">적합한 주제 ✔</text>
+    <path d="M95 132 V180 M270 132 V180 M445 132 V180" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="4 3"/>
+    <text x="108" y="160" font-size="10" fill="#dc2626">아니요</text><text x="283" y="160" font-size="10" fill="#dc2626">아니요</text><text x="458" y="160" font-size="10" fill="#dc2626">아니요</text>
+    <path d="M95 180 H445" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="4 3"/>
+    <path d="M270 180 V238" stroke="#dc2626" stroke-width="1.5" marker-end="url(#a2)"/>
+    <rect x="130" y="240" width="280" height="44" rx="10" fill="#fdeeee" stroke="#dc2626"/>
+    <text x="270" y="259" font-weight="800" fill="#b32424">보완: 범위 좁히기 · 데이터 바꾸기</text><text x="270" y="276" font-size="11" fill="#b32424">· 익명화 · 직접 수집 설계 → 다시 판단</text>
+  </g>
+</svg>
+<figcaption>그림 1. 주제 적합성 판단 흐름도. ④에서 ‘아니요’가 나와도 범위를 줄이면 통과하는 경우가 많습니다.</figcaption>
+</figure>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:130px">관문</th><th>확인할 내용</th></tr></thead>
+  <tbody>
+    <tr><td><b>① 데이터 충분성</b></td><td>공공데이터포털·통계 사이트에 있거나 직접 수집(설문·측정)할 수 있는가? 분석에 필요한 만큼의 행(사례 수)과 기간이 있는가? 빈칸·오류가 너무 많지 않은가?</td></tr>
+    <tr><td><b>② 목적 적합성</b></td><td>질문에 답하려면 어떤 속성이 필요한가? 그 속성이 데이터에 실제로 들어 있는가? (예: 잔반의 원인을 알고 싶은데 ‘메뉴’ 정보가 없다면 부적합)</td></tr>
+    <tr><td><b>③ 법적·윤리적 타당성</b></td><td>개인을 알아볼 수 있는 정보를 동의 없이 쓰지 않는가? 사이트 이용 약관·저작권을 지키는가? 결과가 특정 집단에 대한 차별이나 낙인으로 이어지지 않는가?</td></tr>
+    <tr><td><b>④ 실행 가능성</b></td><td>프로젝트 기간(약 10차시) 안에 끝낼 수 있는가? 모둠이 다룰 수 있는 도구(스프레드시트·Orange·파이썬)로 분석할 수 있는가?</td></tr>
+  </tbody>
+</table></div>
+
+<h2><span class="sec-no">3</span>좋은 데이터와 쓸 수 없는 데이터 <i class="pub">씨마스</i></h2>
+
+<p>관문 ①과 ③을 판단하려면 데이터를 직접 열어 보아야 합니다. 다음 두 목록을 점검표처럼 사용하세요.</p>
+
+<div class="cards">
+  <div class="cardbox"><h4>✅ 좋은 데이터의 조건</h4><p>
+    <b>정확하다</b> — 값이 실제를 제대로 기록하고 있다.<br>
+    <b>목적에 맞다</b> — 알고 싶은 것을 실제로 측정한 속성이 있다.<br>
+    <b>형식이 통일되어 있다</b> — 단위·날짜 형식·범주 이름이 일정하다.<br>
+    <b>중복이 없다</b> — 같은 사례가 여러 번 들어가 있지 않다.<br>
+    <b>출처가 분명하다</b> — 누가, 언제, 어떻게 모았는지 설명(메타데이터)이 있다.</p></div>
+  <div class="cardbox"><h4>⛔ 쓰면 안 되는 데이터</h4><p>
+    <b>동의 없이 모은 개인정보</b> — 친구의 SNS 글·사진을 몰래 모은 것 등<br>
+    <b>민감 정보</b> — 건강·성적·가정 형편처럼 공개되면 피해를 줄 수 있는 정보(익명·가상 처리 없이 사용 금지)<br>
+    <b>출처를 알 수 없는 데이터</b> — 누가 만들었는지, 어떻게 모았는지 모른다.<br>
+    <b>왜곡·조작된 데이터</b> — 특정 결론에 맞게 일부만 골라낸 것</p></div>
+</div>
+
+<div class="box box-tip">
+  <span class="box-label">예시 프로젝트 점검</span>
+  <b>“우리 학교 전력 사용량을 줄이려면?”</b>을 네 관문에 넣어 봅시다.
+  ① 학교 행정실의 전력 사용 기록과 기상청의 기온 자료로 10개월(306일) 치 데이터를 만들 수 있습니다.
+  ② 전력 사용량·기온·수업일 여부가 모두 있어 “언제 많이 쓰는가”에 답할 수 있습니다.
+  ③ 학교 전체 사용량이라 개인정보가 없고, 기상 자료는 공공 데이터입니다. 단, 학교 자료는 <b>사용 허락</b>을 받아야 합니다.
+  ④ 스프레드시트나 파이썬으로 충분히 분석할 수 있습니다. → <b>적합</b>
+</div>
+
+<div class="pycell" data-title="데이터 충분성 빠르게 점검하기"><textarea>
+en = load_csv("energy.csv")
+print("행(일) 수:", len(en), "/ 속성:", list(en.columns))
+print("기간:", en["날짜"].min(), "~", en["날짜"].max())
+print("수업일 수:", (en["수업일"] == 1).sum(), "/ 수업이 없는 날:", (en["수업일"] == 0).sum())
+print("빈칸 개수:", en.isna().sum().sum())
+
+# ✏️ 월별 행 수를 세어 보세요: en["월"].value_counts().sort_index() — 어느 달이 데이터가 적은가요?
+</textarea></div>
+
+<h2><span class="sec-no">4</span>주제 선정 기준표와 SDGs <i class="pub">천재</i></h2>
+
+<p>네 관문을 통과한 후보가 여러 개라면, 어느 것이 <b>더 좋은</b> 주제인지 비교해야 합니다.
+다음 일곱 가지 기준에 각각 1~3점을 주어 합계를 비교해 보세요. 점수가 같다면 모둠원이 가장 궁금해하는 주제를 고르는 것이 끝까지 해내는 힘이 됩니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:130px">기준</th><th>3점이라면…</th></tr></thead>
+  <tbody>
+    <tr><td>현실성</td><td>우리 생활과 가까운 실제 문제이다.</td></tr>
+    <tr><td>범위</td><td>기간 안에 끝낼 수 있을 만큼 구체적이다.</td></tr>
+    <tr><td>데이터 확보</td><td>필요한 데이터를 바로 구할 수 있다.</td></tr>
+    <tr><td>데이터 품질</td><td>빈칸·오류가 적고 출처가 분명하다.</td></tr>
+    <tr><td>윤리·개인정보</td><td>개인정보 문제가 없거나 익명화로 해결된다.</td></tr>
+    <tr><td>분석 방법</td><td>배운 방법 두 가지 이상(회귀·분류·군집·연관 등)을 적용해 비교할 수 있다.</td></tr>
+    <tr><td>사회적 가치</td><td>결과가 누군가의 행동이나 결정을 바꿀 수 있고, SDGs와 연결된다.</td></tr>
+  </tbody>
+</table></div>
+
+<div class="sim">
+  <div class="sim-head">주제 적합성 판정기</div>
+  <div class="sim-body">
+    <div class="fit-top">
+      <label for="fit-preset" style="font-weight:700;font-size:.88rem">주제 후보</label>
+      <select id="fit-preset"></select>
+    </div>
+    <div class="fit-topic" id="fit-topic"></div>
+    <div class="fit-note" id="fit-note"></div>
+    <div id="fit-qs"></div>
+    <div class="fit-verdict" id="fit-verdict"></div>
+    <p class="widget-hint">관찰 포인트: 예시 주제를 고르면 판정이 미리 채워집니다. 답을 바꾸어 보면서 어떤 보완을 하면 ‘적합’으로 바뀌는지 확인하고, 마지막 ‘직접 입력’에서 우리 모둠의 주제를 판정해 보세요.</p>
+  </div>
+</div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  모둠이 주제를 너무 크게 잡는 경우가 가장 흔합니다. “그 질문에 답하려면 표의 한 줄(행)이 무엇이고, 열(속성)은 무엇이어야 하니?”라고 되물어
+  학생이 데이터 표의 모양을 먼저 그려 보게 하면 범위가 자연스럽게 좁혀집니다.
+  주제 선정은 포스트잇 투표나 온라인 협업 보드(패들렛 등)로 진행하면 모든 모둠원의 의견이 드러납니다.
+  학생 개인 성적·건강처럼 민감한 데이터를 쓰고 싶어 하면, 교재의 가상 데이터나 익명 설문으로 대신하도록 안내합니다.
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">모둠 활동</span>주제 후보 3개 평가하고 하나 고르기 <i class="pub">천재</i></div>
+  <div class="act-body">
+    <ol>
+      <li>지난 차시의 사례 조사를 바탕으로 모둠 주제 후보 3개를 ‘데이터로 답할 수 있는 질문’ 형태로 적으세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div><div class="line"></div></div></li>
+      <li>각 후보가 적합성 판단 흐름도의 네 관문을 통과하는지 ○/△/×로 표시하고, 기준표 점수(각 1~3점)를 매기세요.
+        <div class="table-wrap"><table>
+          <thead><tr><th>평가 항목</th><th>후보 A</th><th>후보 B</th><th>후보 C</th></tr></thead>
+          <tbody>
+            <tr><td>관문 ①②③④ (○/△/×)</td><td>&nbsp;</td><td></td><td></td></tr>
+            <tr><td>현실성</td><td>&nbsp;</td><td></td><td></td></tr>
+            <tr><td>범위</td><td>&nbsp;</td><td></td><td></td></tr>
+            <tr><td>데이터 확보</td><td>&nbsp;</td><td></td><td></td></tr>
+            <tr><td>데이터 품질</td><td>&nbsp;</td><td></td><td></td></tr>
+            <tr><td>윤리·개인정보</td><td>&nbsp;</td><td></td><td></td></tr>
+            <tr><td>분석 방법</td><td>&nbsp;</td><td></td><td></td></tr>
+            <tr><td>사회적 가치(관련 SDG)</td><td>&nbsp;</td><td></td><td></td></tr>
+            <tr><td><b>합계 (21점 만점)</b></td><td>&nbsp;</td><td></td><td></td></tr>
+          </tbody>
+        </table></div></li>
+      <li>최종 선택한 주제와 그 이유, 그리고 △나 ×가 나온 항목을 어떻게 보완할지 적으세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+    </ol>
+  </div>
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>막연한 관심사는 측정할 대상과 비교·관계·예측이 드러나는 구체적 질문으로 바꾼다.</li>
+    <li>적합성은 데이터 충분성 → 목적 적합성 → 법적·윤리적 타당성 → 실행 가능성의 네 관문으로 판단한다.</li>
+    <li>좋은 데이터는 정확하고, 목적에 맞고, 형식이 통일되고, 중복이 없고, 출처가 분명하다. 동의 없는 개인정보·민감 정보·출처 불명 데이터는 쓰지 않는다.</li>
+    <li>후보가 여럿이면 기준표로 점수를 매겨 비교하고, 부족한 점은 범위 축소·데이터 변경·익명화로 보완한다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 주제 적합성 판정기 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  // gate: 흐름도 관문 번호(1~4), 아니요면 부적합/보완
+  const QS = [
+    { id:"q1", gate:1, t:"필요한 데이터를 구하거나 직접 모을 수 있다.", s:"공공데이터포털, 통계 사이트, 설문·측정 등", fix:"공공데이터포털·국가통계포털에서 비슷한 데이터를 검색하거나, 설문·측정으로 직접 모을 계획을 세우세요." },
+    { id:"q2", gate:1, t:"분석하기에 충분한 양과 기간이다.", s:"최소 수십~수백 행, 비교할 집단마다 여러 사례", fix:"기간을 늘리거나 비교 집단을 줄이세요. 사례가 너무 적으면 우연한 결과를 믿게 됩니다." },
+    { id:"q3", gate:2, t:"질문에 답하는 데 필요한 속성이 데이터에 들어 있다.", s:"예: 원인을 알고 싶다면 원인 후보 속성이 있어야 함", fix:"질문을 데이터에 있는 속성에 맞게 고치거나, 필요한 속성이 있는 다른 데이터를 연결(통합)하세요." },
+    { id:"q4", gate:3, t:"개인을 알아볼 수 있는 정보를 동의 없이 쓰지 않는다.", s:"이름·학번·얼굴·SNS 글 등", fix:"개인 식별 정보를 빼고 익명 설문으로 바꾸거나, 집계된 통계만 사용하세요." },
+    { id:"q5", gate:3, t:"출처·이용 약관·저작권 문제가 없고, 결과가 특정 집단을 차별하지 않는다.", s:"공개 데이터의 이용 조건 확인, 결과의 낙인 효과 점검", fix:"이용 약관과 라이선스를 확인하고 출처를 밝히세요. 특정 집단을 탓하는 결론이 나오지 않도록 질문의 방향을 다듬으세요." },
+    { id:"q6", gate:4, t:"프로젝트 기간과 우리가 쓸 수 있는 도구로 끝낼 수 있다.", s:"약 10차시, 스프레드시트·Orange·파이썬", fix:"지역·기간·대상을 좁혀 범위를 줄이세요. ‘전 세계’보다 ‘우리 시’, ‘10년’보다 ‘최근 1~2년’이 현실적입니다." },
+    { id:"q7", gate:4, t:"두 가지 이상의 분석 방법을 적용해 비교할 수 있다.", s:"회귀·분류·군집·연관 중 2가지 이상 또는 같은 방법의 다른 설정", fix:"예측할 목표(수치/범주)를 정하면 회귀·분류 모델을 여러 개 비교할 수 있습니다. 목표가 없다면 군집과 연관 분석을 함께 써 보세요." }
+  ];
+  const PRESETS = [
+    { name:"우리 학교 전력 사용량을 줄이려면? (예시 프로젝트)", a:{q1:"y",q2:"y",q3:"y",q4:"y",q5:"p",q6:"y",q7:"y"},
+      note:"학교 전력 기록 + 기상청 기온 자료. 학교 자료는 행정실의 사용 허락이 필요하므로 ⑤를 ‘보통’으로 두었습니다." },
+    { name:"기후 위기를 해결하는 방법", a:{q1:"p",q2:"p",q3:"n",q4:"y",q5:"y",q6:"n",q7:"p"},
+      note:"관심사로는 훌륭하지만 너무 넓어 무엇을 측정할지 정해지지 않았습니다." },
+    { name:"우리 반에서 누가 누구를 좋아할까", a:{q1:"n",q2:"n",q3:"p",q4:"n",q5:"n",q6:"p",q7:"n"},
+      note:"특정 개인의 사생활을 드러내는 주제입니다." },
+    { name:"요일·메뉴에 따른 급식 잔반량 비교", a:{q1:"p",q2:"p",q3:"y",q4:"y",q5:"y",q6:"y",q7:"y"},
+      note:"영양사 선생님께 잔반 기록을 요청하거나 모둠이 2~4주간 직접 측정해야 합니다." },
+    { name:"우리 동네 공공자전거 대여량과 날씨", a:{q1:"y",q2:"y",q3:"y",q4:"y",q5:"y",q6:"y",q7:"y"},
+      note:"지방자치단체 열린 데이터와 기상 자료를 날짜로 연결하면 됩니다." },
+    { name:"SNS 게시물로 친구들의 기분 분석하기", a:{q1:"p",q2:"p",q3:"p",q4:"n",q5:"n",q6:"p",q7:"p"},
+      note:"공개 게시물이라도 동의 없이 수집·분석하면 개인정보 침해가 될 수 있습니다." },
+    { name:"✏️ 직접 입력 (우리 모둠 주제)", a:{}, note:"아래 질문에 모둠이 직접 답해 보세요.", custom:true }
+  ];
+  const LABEL = { y:"예", p:"보통", n:"아니요" };
+  let ans = {};
+
+  $("fit-preset").innerHTML = PRESETS.map((p, i) => `<option value="${i}">${p.name}</option>`).join("");
+  $("fit-qs").innerHTML = QS.map((q, i) => `<div class="fit-q"><div class="qt"><b>관문 ${q.gate}</b>${q.t}<small>${q.s}</small></div>
+    <div class="seg" data-q="${q.id}">${["y","p","n"].map(k => `<button type="button" class="${k}" data-v="${k}">${LABEL[k]}</button>`).join("")}</div></div>`).join("");
+
+  function load(i){
+    const p = PRESETS[i];
+    ans = Object.assign({}, p.a);
+    $("fit-topic").innerHTML = p.custom
+      ? `<input id="fit-own" type="text" placeholder="우리 모둠의 질문을 입력하세요" style="width:100%;max-width:520px">`
+      : "📝 " + p.name;
+    $("fit-note").textContent = p.note;
+    render();
+  }
+
+  function render(){
+    document.querySelectorAll("#fit-qs .seg").forEach(seg => {
+      [...seg.children].forEach(b => b.classList.toggle("on", ans[seg.dataset.q] === b.dataset.v));
+    });
+    const v = $("fit-verdict");
+    const answered = QS.filter(q => ans[q.id]).length;
+    if (answered < QS.length){
+      v.className = "fit-verdict fix";
+      v.innerHTML = `<h4>판정 대기 중 (${answered}/${QS.length})</h4>모든 질문에 답하면 판정과 보완 방법이 나타납니다.`;
+      return;
+    }
+    const no = QS.filter(q => ans[q.id] === "n"), part = QS.filter(q => ans[q.id] === "p");
+    const legal = no.some(q => q.gate === 3);
+    let cls, head;
+    if (legal){ cls = "no"; head = "⛔ 부적합 — 법적·윤리적 관문을 통과하지 못했습니다. 이 방향으로는 진행하지 마세요."; }
+    else if (no.length >= 2){ cls = "no"; head = `⛔ 지금 상태로는 부적합 — ‘아니요’가 ${no.length}개입니다. 질문을 크게 다시 설계하세요.`; }
+    else if (no.length === 1 || part.length >= 2){ cls = "fix"; head = "🛠 보완하면 가능 — 아래 항목을 고친 뒤 다시 판정해 보세요."; }
+    else { cls = "ok"; head = part.length ? "✅ 적합 — 네 관문을 통과했습니다. 아래 ⚠️ 항목은 계획을 세우면서 꼭 챙기세요." : "✅ 적합 — 네 관문을 모두 통과했습니다. 계획 수립 단계로 넘어가세요!"; }
+    const tips = [...no, ...part];
+    v.className = "fit-verdict " + cls;
+    v.innerHTML = `<h4>${head}</h4>` + (tips.length
+      ? `<ul>${tips.map(q => `<li><b>${ans[q.id]==="n"?"❌":"⚠️"} 관문 ${q.gate}</b> ${q.fix}</li>`).join("")}</ul>`
+      : "모든 항목이 ‘예’입니다. 그래도 데이터를 실제로 열어 보기 전까지는 확정하지 마세요.");
+  }
+
+  $("fit-qs").addEventListener("click", e => {
+    const b = e.target.closest(".seg button"); if (!b) return;
+    ans[b.parentElement.dataset.q] = b.dataset.v; render();
+  });
+  $("fit-preset").addEventListener("change", e => load(+e.target.value));
+  load(0);
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"다음 중 데이터 과학 프로젝트의 질문으로 가장 적합한 것은?",
+    choices:["세상에서 가장 맛있는 음식은 무엇인가?","우리 반에서 가장 인기 있는 학생은 누구인가?","최근 2년간 우리 시 공공자전거 대여량은 기온·강수량에 따라 어떻게 달라지는가?","100년 뒤 인류는 어떤 모습일까?","기후 위기를 완전히 해결하는 방법은?"], answer:2,
+    explain:"③은 측정 대상(대여량·기온·강수량), 범위(우리 시·최근 2년), 관계(어떻게 달라지는가)가 분명하고 공공 데이터로 답할 수 있습니다. ①은 가치 판단, ②는 개인 식별·사생활 침해, ④는 데이터가 존재할 수 없음, ⑤는 범위가 지나치게 넓습니다." },
+  { type:"ox", q:"공개된 SNS 게시물은 누구나 볼 수 있으므로, 특정 친구들의 게시물을 모아 성격을 분석하는 것은 윤리적으로 문제가 없다.",
+    answer:false, explain:"공개된 글이라도 특정 개인을 식별해 동의 없이 수집·분석하면 개인정보 침해와 사생활 침해가 될 수 있습니다. 프로젝트에서는 동의를 받거나 익명화·집계된 데이터를 사용합니다." },
+  { type:"mc", q:"‘급식 잔반을 줄이는 방법’을 알고 싶은데, 구한 데이터에 날짜와 잔반 무게만 있다. 적합성 판단의 어느 관문에서 가장 문제가 되는가?",
+    choices:["데이터 충분성","목적 적합성","법적·윤리적 타당성","실행 가능성","사회적 가치"], answer:1,
+    explain:"잔반을 줄이려면 원인 후보(메뉴, 조리법, 배식 인원 등)가 필요한데 해당 속성이 없습니다. 질문에 답하는 속성이 있는지 따지는 것이 ‘목적 적합성’입니다. 메뉴 데이터를 날짜로 연결(통합)하면 보완할 수 있습니다." },
+  { type:"mc", q:"주제 후보 A가 기준표 7개 항목에서 3, 2, 3, 2, 3, 1, 3점을 받았다. 합계와, 가장 먼저 보완해야 할 항목을 바르게 짝지은 것은? (항목 순서: 현실성, 범위, 데이터 확보, 데이터 품질, 윤리·개인정보, 분석 방법, 사회적 가치)",
+    choices:["16점 — 범위","17점 — 분석 방법","17점 — 데이터 품질","18점 — 분석 방법","18점 — 현실성"], answer:1,
+    explain:"3+2+3+2+3+1+3 = 17점입니다. 1점을 받은 ‘분석 방법’이 가장 약하므로, 두 가지 이상의 방법을 적용할 수 있도록 예측 목표를 정하는 등 보완이 필요합니다." },
+  { type:"short", q:"“기후 위기를 해결하자”라는 관심사를 고등학생 모둠이 10차시 안에 수행할 수 있는 ‘데이터로 답할 수 있는 질문’으로 바꾸고, 필요한 데이터 속성을 2개 이상 쓰세요.",
+    model:"예: “최근 3년간 우리 학교의 월별 전력 사용량은 기온과 어떤 관계가 있으며, 어느 달에 절약 여지가 가장 큰가?” 필요한 속성: 월(날짜), 전력 사용량, 평균기온, 수업일 수. 또는 “우리 구의 최근 2년간 공공자전거 이용량은 미세먼지 농도가 높은 날 얼마나 줄어드는가?” — 날짜, 대여량, 미세먼지 농도, 강수량." },
+]);
+</script>
+</body>
+</html>

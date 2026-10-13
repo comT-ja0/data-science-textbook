@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>기술 통계로 데이터 특성 파악 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 대푯값·산포도 실험실 */
+#ds-svg { width:100%; height:auto; background:#fff; border:1px solid var(--line); border-radius:10px; display:block; touch-action:none; user-select:none; }
+#ds-svg .pt { cursor:grab; }
+#ds-svg .pt:active { cursor:grabbing; }
+.ds-presets { display:flex; flex-wrap:wrap; gap:6px; }
+.ds-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; margin-top:12px; }
+.ds-stats .stat-chip { display:flex; justify-content:space-between; gap:6px; }
+.ds-stats .grp { grid-column:1/-1; font-size:.78rem; font-weight:800; color:var(--ink-faint); margin-top:4px; }
+.ds-msg { margin-top:10px; padding:9px 12px; border-radius:10px; background:var(--tip-bg); border:1px solid #cbe4f7; font-size:.86rem; }
+</style>
+</head>
+<body data-unit="2" data-lesson="L15">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>기술 통계로 데이터 특성 파악</h1>
+  <span class="std-badge">성취기준 12데과02-01</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>평균·중앙값·최빈값을 구하고 데이터의 모양에 알맞은 대푯값을 고를 수 있다.</li>
+      <li>범위·분산·표준편차·사분위범위(IQR)로 데이터가 흩어진 정도를 설명할 수 있다.</li>
+      <li>pandas로 기술 통계를 계산하고 집단을 비교하여 수집된 데이터의 특성을 분석할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과02-01] 데이터를 편향되지 않도록 수집하고, 수집된 데이터의 특성을 분석한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span>수집</span><span>전처리</span><span class="on">탐색</span><span>모델링</span><span>평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  수행평가 결과가 발표되었습니다. 선생님이 말씀하셨어요. “우리 반 평균은 50점이에요. 상위 절반에게는 보충 과제를 면제해 줄게요.”
+  51점을 받은 지우는 안심했습니다. ‘평균보다 높으니 당연히 상위 절반이겠지!’ 그런데 명단에 지우의 이름은 없었습니다.
+  무엇이 잘못된 걸까요? 오늘은 데이터를 숫자 몇 개로 요약하는 <b>기술 통계</b>와 그 함정을 배웁니다.
+</div>
+
+<h2><span class="sec-no">1</span>대푯값: 데이터의 중심 <i class="pub-c">공통</i></h2>
+
+<p>수집한 데이터의 특성을 몇 개의 숫자로 요약해 설명하는 것을 <span class="keyterm">기술 통계</span>라고 합니다. 가장 먼저 보는 것은 데이터의 ‘중심’을 나타내는 <span class="keyterm">대푯값</span>입니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:110px">대푯값</th><th>구하는 법</th><th style="width:250px">이럴 때 좋다</th></tr></thead>
+  <tbody>
+    <tr><td><b>평균</b></td><td>모든 값을 더해 개수로 나눈다.</td><td>값이 고르게 퍼져 있고 극단값이 없을 때</td></tr>
+    <tr><td><b>중앙값</b></td><td>크기순으로 줄 세웠을 때 한가운데 값. 개수가 짝수면 가운데 두 값의 평균</td><td>극단값이 있거나 한쪽으로 치우친 데이터(소득, 집값)</td></tr>
+    <tr><td><b>최빈값</b></td><td>가장 많이 나타난 값</td><td>범주형 데이터(가장 많이 팔린 신발 치수, 인기 메뉴)</td></tr>
+  </tbody>
+</table></div>
+
+<h3>손으로 구해 보기</h3>
+<p>동아리 부원 10명의 한 달 용돈(만 원)입니다: <code>3, 4, 4, 5, 5, 5, 6, 6, 7, 100</code> (마지막 한 명은 특별한 사정으로 100만 원)</p>
+<ul>
+  <li>평균 = (3+4+4+5+5+5+6+6+7+100) ÷ 10 = 145 ÷ 10 = <b>14.5만 원</b></li>
+  <li>중앙값 = 5번째와 6번째 값의 평균 = (5 + 5) ÷ 2 = <b>5만 원</b></li>
+  <li>최빈값 = 세 번 나온 <b>5만 원</b></li>
+</ul>
+<p>10명 중 9명이 7만 원 이하인데 평균은 14.5만 원입니다. 평균은 <b>극단값 하나에 크게 끌려가지만</b>, 중앙값은 거의 영향을 받지 않습니다.
+이 동아리의 ‘보통 용돈’을 말할 때는 중앙값 5만 원이 더 알맞습니다.</p>
+
+<h2><span class="sec-no">2</span>평균의 함정 <i class="pub">YBM</i> <i class="pub">씨마스</i></h2>
+
+<p>생각 열기의 지우네 반(10명) 점수는 다음과 같았습니다: <code>5, 10, 48, 51, 55, 58, 60, 62, 64, 87</code></p>
+
+<details class="reveal"><summary>지우(51점)가 상위 절반에 들지 못한 이유 확인하기</summary>
+<div class="reveal-body">
+평균 = 500 ÷ 10 = 50점이지만, 중앙값 = (55 + 58) ÷ 2 = <b>56.5점</b>입니다. 높은 점수부터 세면 87, 64, 62, 60, 58이 상위 5명이고 51점은 7등입니다.
+아주 낮은 점수 두 개(5점, 10점)가 평균을 끌어내렸기 때문에 <b>‘평균보다 높다’가 ‘상위 절반이다’를 뜻하지 않습니다.</b> 상위 절반의 기준은 중앙값입니다.
+</div></details>
+
+<p>평균만 보고 판단하면 이런 착각이 자주 생깁니다. 유명한 농담으로 “어느 대학 학과 졸업생의 평균 연봉이 유독 높았는데, 알고 보니 졸업생 중에 세계적인 운동선수가 한 명 있었다”는 이야기가 있습니다.
+뉴스에서 ‘평균 자산’, ‘평균 연봉’을 볼 때는 <b>중앙값은 얼마인지, 극단값이 있는지</b>를 함께 물어야 합니다.</p>
+
+<div class="box box-tip">
+  <span class="box-label">분포 모양과 대푯값의 위치</span>
+  좌우 대칭인 분포에서는 평균 ≈ 중앙값입니다. 큰 값 쪽으로 꼬리가 길면(오른쪽 꼬리) <b>평균 &gt; 중앙값</b>, 작은 값 쪽으로 꼬리가 길면 <b>평균 &lt; 중앙값</b>이 됩니다.
+  평균과 중앙값을 비교하면 그래프를 그리지 않아도 분포의 치우침을 짐작할 수 있습니다.
+</div>
+
+<h2><span class="sec-no">3</span>산포도: 데이터가 흩어진 정도 <i class="pub-c">공통</i></h2>
+
+<p>두 반의 수학 점수 평균이 똑같이 70점이어도 성격은 다를 수 있습니다.</p>
+<div class="table-wrap"><table class="data" style="max-width:520px">
+  <thead><tr><th>반</th><th>점수 (5명)</th><th>평균</th><th>범위</th></tr></thead>
+  <tbody>
+    <tr><td>가반</td><td>60, 65, 70, 75, 80</td><td>70</td><td>80 − 60 = 20</td></tr>
+    <tr><td>나반</td><td>50, 60, 70, 80, 90</td><td>70</td><td>90 − 50 = 40</td></tr>
+  </tbody>
+</table></div>
+
+<p>대푯값만으로는 이 차이가 보이지 않습니다. 값이 흩어진 정도를 나타내는 수치를 <span class="keyterm">산포도</span>라고 합니다.</p>
+<ul>
+  <li><span class="keyterm">범위</span> = 최댓값 − 최솟값. 계산은 쉽지만 극단값 하나에 크게 흔들립니다.</li>
+  <li><span class="keyterm">분산</span> = 각 값과 평균의 차이(편차)를 제곱해 평균 낸 값. <span class="keyterm">표준편차</span> = 분산의 제곱근(원래 단위로 돌아옴).</li>
+  <li><span class="keyterm">사분위범위(IQR)</span> = 제3사분위수(Q3, 하위 75% 지점) − 제1사분위수(Q1, 하위 25% 지점). 가운데 50%가 퍼진 폭으로, 극단값에 강합니다.</li>
+</ul>
+
+<span class="formula">분산 = {(x₁−평균)² + (x₂−평균)² + … + (xₙ−평균)²} ÷ n　　표준편차 = √분산
+<small>가반: 편차 −10, −5, 0, 5, 10 → 제곱의 합 100+25+0+25+100 = 250 → 분산 250 ÷ 5 = 50 → 표준편차 √50 ≈ 7.07점</small></span>
+
+<p>나반은 편차가 −20, −10, 0, 10, 20이므로 제곱의 합 1,000, 분산 200, 표준편차 √200 ≈ <b>14.14점</b>입니다. 나반 점수가 평균에서 약 두 배 더 멀리 흩어져 있다는 뜻입니다.
+사분위수는 가반이 Q1 = 65, Q3 = 75로 IQR = 10, 나반이 Q1 = 60, Q3 = 80으로 IQR = 20입니다.</p>
+
+<div class="box box-warn">
+  <span class="box-label">n으로 나눌까, n−1로 나눌까?</span>
+  위 공식은 가지고 있는 값 전체의 분산(÷n)입니다. pandas의 <code>var()</code>, <code>std()</code>는 기본적으로 표본으로 모집단을 추정하는 <b>표본 분산(÷(n−1))</b>을 계산하므로
+  가반의 경우 분산 250 ÷ 4 = 62.5, 표준편차 ≈ 7.91로 조금 더 크게 나옵니다. 데이터가 많아지면 두 값의 차이는 거의 사라집니다.
+  사분위수도 도구마다 계산법이 조금씩 달라 값이 약간 다를 수 있습니다(이 교재의 위젯은 pandas와 같은 방법을 씁니다).
+</div>
+
+<h2><span class="sec-no">4</span>대푯값·산포도 실험실 <i class="pub-c">공통</i></h2>
+
+<div class="sim">
+  <div class="sim-head">대푯값·산포도 실험실 — 점을 끌어서 옮겨 보세요</div>
+  <div class="sim-body">
+    <p style="margin-top:0;font-size:.92rem">파란 점 하나하나가 학생 한 명의 점수(0~100점)입니다. 점을 좌우로 끌면 아래 통계값과 상자 그림이 즉시 바뀝니다.
+    <span style="color:#dc2626;font-weight:800">▼ 빨간 삼각형</span>은 평균, <span style="color:#16a34a;font-weight:800">◆ 초록 마름모</span>는 중앙값입니다.</p>
+    <div class="sim-controls ds-presets">
+      <button class="ghost" data-preset="sym">대칭 분포</button>
+      <button class="ghost" data-preset="out">극단값 하나</button>
+      <button class="ghost" data-preset="tail">오른쪽 꼬리</button>
+      <button class="ghost" data-preset="trap">생각 열기 반</button>
+      <button id="ds-add" class="gray">＋ 점 추가</button>
+      <button id="ds-del" class="gray">－ 점 삭제</button>
+    </div>
+    <svg id="ds-svg" viewBox="0 0 640 240"></svg>
+    <div class="ds-stats">
+      <div class="grp">대푯값</div>
+      <span class="stat-chip">평균 <b id="ds-mean">—</b></span>
+      <span class="stat-chip">중앙값 <b id="ds-med">—</b></span>
+      <span class="stat-chip">최빈값 <b id="ds-mode">—</b></span>
+      <div class="grp">산포도</div>
+      <span class="stat-chip">범위 <b id="ds-range">—</b></span>
+      <span class="stat-chip">표준편차(÷n) <b id="ds-sd">—</b></span>
+      <span class="stat-chip">Q1 / Q3 <b id="ds-q">—</b></span>
+      <span class="stat-chip">IQR <b id="ds-iqr">—</b></span>
+    </div>
+    <div class="ds-msg" id="ds-msg"></div>
+    <p class="widget-hint">실험: ① ‘대칭 분포’에서 맨 오른쪽 점을 100점까지 끌어 보세요. 평균·중앙값·범위·IQR 중 어느 값이 크게 변하나요? ② 점들을 한곳으로 모으면 표준편차는 어떻게 되나요?</p>
+  </div>
+</div>
+
+<h2><span class="sec-no">5</span>파이썬으로 데이터 특성 분석하기 <i class="pub-c">공통</i></h2>
+
+<p>이제 <code>study.csv</code>(학생 120명)의 특성을 기술 통계로 분석해 봅시다.</p>
+
+<div class="pycell" data-title="① 성적의 대푯값과 산포도"><textarea>
+import pandas as pd
+
+df = load_csv("study.csv")
+score = df["성적"]
+
+print("평균:", round(score.mean(), 2))
+print("중앙값:", score.median())
+print("최빈값:", score.mode().tolist())
+print("범위:", score.max() - score.min(), f"({score.min()} ~ {score.max()})")
+print("표준편차(n-1):", round(score.std(), 2), "/ 표준편차(n):", round(score.std(ddof=0), 2))
+q1, q3 = score.quantile(0.25), score.quantile(0.75)
+print("Q1:", q1, "/ Q3:", q3, "/ IQR:", q3 - q1)
+print()
+print(df.describe().round(2))
+
+# ✏️ score = df["성적"]을 df["공부시간"]으로 바꿔 공부 시간의 특성도 분석해 보세요.
+</textarea></div>
+
+<div class="pycell" data-title="② 집단을 나누어 비교하기"><textarea>
+# 스마트폰을 하루 4시간 이상 쓰는 학생과 그렇지 않은 학생 비교
+df["스마트폰그룹"] = df["스마트폰시간"].apply(lambda h: "4시간 이상" if h >= 4 else "4시간 미만")
+
+summary = df.groupby("스마트폰그룹")["성적"].agg(["count", "mean", "median", "std", "min", "max"]).round(1)
+print(summary)
+
+# ✏️ '결석일수'가 2일 이상인 학생과 아닌 학생으로 나누어 비교해 보세요.
+</textarea></div>
+
+<div class="pycell" data-title="③ 히스토그램에 평균·중앙값 표시하기"><textarea>
+import matplotlib.pyplot as plt
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 3.4))
+for ax, col, unit in [(axes[0], "성적", "점"), (axes[1], "스마트폰시간", "시간")]:
+    ax.hist(df[col], bins=12, color="#9fd3df", edgecolor="white")
+    ax.axvline(df[col].mean(), color="#dc2626", linewidth=2, label=f"평균 {df[col].mean():.1f}")
+    ax.axvline(df[col].median(), color="#16a34a", linewidth=2, linestyle="--", label=f"중앙값 {df[col].median():.1f}")
+    ax.set_title(f"{col} 분포")
+    ax.set_xlabel(unit)
+    ax.legend()
+plt.tight_layout()
+plt.show()
+
+# ✏️ 두 그래프 중 평균과 중앙값이 더 많이 벌어진 쪽은 어디인가요? 분포의 꼬리는 어느 방향으로 길까요?
+</textarea></div>
+
+<p>분석 결과를 문장으로 정리해 봅시다. 성적의 평균은 64.68점, 중앙값은 64점으로 거의 같아 <b>대체로 대칭</b>인 분포입니다.
+표준편차는 약 11점으로, 많은 학생이 평균에서 ±11점 안팎에 모여 있습니다.
+스마트폰을 4시간 이상 쓰는 학생들(36명)의 평균 성적은 61.6점으로, 4시간 미만인 학생들(84명)의 66.0점보다 약 4.4점 낮습니다. 다만 두 집단 모두 표준편차가 10점 이상이라 집단 안의 차이가 집단 사이의 차이보다 훨씬 큽니다.
+한편 스마트폰시간은 평균(3.32시간)이 중앙값(2.95시간)보다 커서 <b>오른쪽 꼬리</b>가 있는 분포입니다. 소수의 학생이 아주 오래 쓰기 때문입니다.</p>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">탐구 활동</span>숫자 뒤에 숨은 분포 읽기 <i class="pub">씨마스</i></div>
+  <div class="act-body">
+    <ol>
+      <li>다음 두 모둠의 하루 수면 시간(시간)으로 표를 채우세요. (분산은 ÷n으로 계산)
+        <div class="table-wrap"><table class="data">
+          <thead><tr><th>모둠</th><th>수면 시간</th><th>평균</th><th>중앙값</th><th>범위</th><th>분산</th><th>표준편차</th></tr></thead>
+          <tbody>
+            <tr><td>A</td><td>6, 7, 7, 7, 8</td><td></td><td></td><td></td><td></td><td></td></tr>
+            <tr><td>B</td><td>4, 5, 7, 9, 10</td><td></td><td></td><td></td><td></td><td></td></tr>
+          </tbody>
+        </table></div>
+        <details class="reveal"><summary>정답 확인</summary><div class="reveal-body">
+          A: 평균 35 ÷ 5 = 7, 중앙값 7, 범위 2, 편차 제곱의 합 1+0+0+0+1 = 2 → 분산 0.4, 표준편차 ≈ 0.63<br>
+          B: 평균 35 ÷ 5 = 7, 중앙값 7, 범위 6, 편차 제곱의 합 9+4+0+4+9 = 26 → 분산 5.2, 표준편차 ≈ 2.28<br>
+          평균과 중앙값이 같아도 B 모둠은 수면 시간이 들쭉날쭉합니다.</div></details></li>
+      <li>뉴스나 광고에서 ‘평균’이 쓰인 문장을 하나 찾아 적고, 중앙값이나 산포도를 함께 알려 주어야 하는 이유를 쓰세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+      <li>파이썬 셀 ②의 결과를 보고 “스마트폰을 오래 쓰면 성적이 떨어진다”고 결론 내려도 되는지 토의하고, 모둠의 의견을 쓰세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+    </ol>
+  </div>
+</div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  위젯의 ‘생각 열기 반’ 버튼은 도입 이야기의 10명 점수를 그대로 보여 줍니다. 51점 점을 끌어 중앙값을 넘겨 보게 하면 ‘상위 절반의 기준은 중앙값’임을 몸으로 익힙니다.
+  비코딩 반은 스프레드시트의 <code>AVERAGE</code>, <code>MEDIAN</code>, <code>MODE</code>, <code>STDEV.P</code>(÷n)/<code>STDEV.S</code>(÷n−1), <code>QUARTILE.INC</code>로 같은 값을 구할 수 있습니다(<code>QUARTILE.INC</code>는 pandas와 같은 방법).
+  흔한 오개념: 표준편차가 크면 ‘성적이 나쁘다’고 생각하는 경우 — 표준편차는 높고 낮음이 아니라 <b>흩어진 정도</b>임을 강조하세요.
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>대푯값에는 평균·중앙값·최빈값이 있다. 극단값이나 치우침이 있으면 중앙값이 더 알맞고, 범주형에는 최빈값을 쓴다.</li>
+    <li>산포도는 흩어진 정도를 나타낸다: 범위(최대−최소), 분산·표준편차(평균에서 떨어진 정도), IQR(Q3−Q1, 극단값에 강함).</li>
+    <li>평균 &gt; 중앙값이면 오른쪽 꼬리, 평균 &lt; 중앙값이면 왼쪽 꼬리 분포이다. ‘평균보다 높다’는 ‘상위 절반’과 다르다.</li>
+    <li>pandas의 <code>describe()</code>, <code>groupby().agg()</code>로 기술 통계를 계산하고 집단을 비교한다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 대푯값·산포도 실험실 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const svg = $("ds-svg");
+  const W = 640, L = 30, R = 30, LINE_Y = 120, BOX_Y = 188;
+  const PRESETS = {
+    sym:  [40, 50, 55, 60, 60, 65, 70, 80],
+    out:  [52, 55, 58, 60, 62, 63, 65, 68, 100],
+    tail: [30, 32, 35, 36, 38, 40, 45, 55, 70, 92],
+    trap: [5, 10, 48, 51, 55, 58, 60, 62, 64, 87],
+  };
+  let vals = PRESETS.sym.slice();
+  let drag = -1;
+  const xp = v => L + v / 100 * (W - L - R);
+  const xv = x => Math.round(Math.min(100, Math.max(0, (x - L) / (W - L - R) * 100)));
+
+  function quantile(sorted, p){               // pandas 기본(선형 보간)
+    const pos = (sorted.length - 1) * p, lo = Math.floor(pos), hi = Math.ceil(pos);
+    return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+  }
+  function stats(){
+    const s = vals.slice().sort((a, b) => a - b), n = s.length;
+    const mean = s.reduce((a, b) => a + b, 0) / n;
+    const med = quantile(s, 0.5);
+    const cnt = {}; s.forEach(v => cnt[v] = (cnt[v] || 0) + 1);
+    const top = Math.max(...Object.values(cnt));
+    const mode = top > 1 ? Object.keys(cnt).filter(k => cnt[k] === top).map(Number) : [];
+    const sd = Math.sqrt(s.reduce((a, v) => a + (v - mean) ** 2, 0) / n);
+    const q1 = quantile(s, 0.25), q3 = quantile(s, 0.75);
+    return { s, n, mean, med, mode, sd, q1, q3, min: s[0], max: s[n - 1] };
+  }
+  const f1 = v => (Math.round(v * 100) / 100).toString();
+
+  function draw(){
+    const st = stats();
+    let g = "";
+    // 눈금
+    for (let v = 0; v <= 100; v += 10){
+      g += `<line x1="${xp(v)}" y1="${LINE_Y}" x2="${xp(v)}" y2="${LINE_Y + 6}" stroke="#8595a6"/><text x="${xp(v)}" y="${LINE_Y + 20}" font-size="11" text-anchor="middle" fill="#8595a6">${v}</text>`;
+    }
+    g += `<line x1="${L}" y1="${LINE_Y}" x2="${W - R}" y2="${LINE_Y}" stroke="#8595a6" stroke-width="1.5"/>`;
+    // 평균·중앙값 표시
+    g += `<line x1="${xp(st.mean)}" y1="22" x2="${xp(st.mean)}" y2="${LINE_Y}" stroke="#dc2626" stroke-dasharray="4 3"/>`;
+    g += `<path d="M${xp(st.mean) - 7},12 L${xp(st.mean) + 7},12 L${xp(st.mean)},22 z" fill="#dc2626"/>`;
+    g += `<line x1="${xp(st.med)}" y1="30" x2="${xp(st.med)}" y2="${LINE_Y}" stroke="#16a34a" stroke-dasharray="2 3"/>`;
+    g += `<path d="M${xp(st.med)},22 L${xp(st.med) + 7},30 L${xp(st.med)},38 L${xp(st.med) - 7},30 z" fill="#16a34a"/>`;
+    // 점 (같은 값은 위로 쌓기)
+    const seen = {};
+    vals.forEach((v, i) => {
+      const k = seen[v] = (seen[v] || 0) + 1;
+      g += `<circle class="pt" data-i="${i}" cx="${xp(v)}" cy="${LINE_Y - 12 - (k - 1) * 17}" r="8" fill="${i === drag ? "#1d4ed8" : "#2563eb"}" fill-opacity=".85" stroke="#fff" stroke-width="1.5"/>`;
+    });
+    // 상자 그림
+    g += `<text x="${L}" y="${BOX_Y - 22}" font-size="11" fill="#8595a6">상자 그림 (최솟값 · Q1 · 중앙값 · Q3 · 최댓값)</text>`;
+    g += `<line x1="${xp(st.min)}" y1="${BOX_Y}" x2="${xp(st.q1)}" y2="${BOX_Y}" stroke="#4b5a6b"/><line x1="${xp(st.q3)}" y1="${BOX_Y}" x2="${xp(st.max)}" y2="${BOX_Y}" stroke="#4b5a6b"/>`;
+    g += `<line x1="${xp(st.min)}" y1="${BOX_Y - 8}" x2="${xp(st.min)}" y2="${BOX_Y + 8}" stroke="#4b5a6b"/><line x1="${xp(st.max)}" y1="${BOX_Y - 8}" x2="${xp(st.max)}" y2="${BOX_Y + 8}" stroke="#4b5a6b"/>`;
+    g += `<rect x="${xp(st.q1)}" y="${BOX_Y - 14}" width="${Math.max(1, xp(st.q3) - xp(st.q1))}" height="28" fill="#e8effe" stroke="#2563eb" stroke-width="1.5"/>`;
+    g += `<line x1="${xp(st.med)}" y1="${BOX_Y - 14}" x2="${xp(st.med)}" y2="${BOX_Y + 14}" stroke="#16a34a" stroke-width="3"/>`;
+    g += `<text x="${(xp(st.q1) + xp(st.q3)) / 2}" y="${BOX_Y + 32}" font-size="11" text-anchor="middle" fill="#2563eb">IQR ${f1(st.q3 - st.q1)}</text>`;
+    svg.innerHTML = g;
+
+    $("ds-mean").textContent = f1(st.mean);
+    $("ds-med").textContent = f1(st.med);
+    $("ds-mode").textContent = st.mode.length ? st.mode.join(", ") : "없음";
+    $("ds-range").textContent = `${st.max - st.min}`;
+    $("ds-sd").textContent = f1(st.sd);
+    $("ds-q").textContent = `${f1(st.q1)} / ${f1(st.q3)}`;
+    $("ds-iqr").textContent = f1(st.q3 - st.q1);
+    const gap = st.mean - st.med;
+    let msg = `점 ${st.n}개 · `;
+    if (Math.abs(gap) < 1.5) msg += "평균과 중앙값이 거의 같습니다 → 대체로 대칭인 분포입니다.";
+    else if (gap > 0) msg += `평균이 중앙값보다 ${f1(gap)}점 큽니다 → 큰 값 쪽 꼬리(오른쪽 꼬리)나 큰 극단값이 평균을 끌어올리고 있어요.`;
+    else msg += `평균이 중앙값보다 ${f1(-gap)}점 작습니다 → 작은 값 쪽 꼬리(왼쪽 꼬리)나 작은 극단값이 평균을 끌어내리고 있어요.`;
+    $("ds-msg").textContent = msg;
+  }
+  function toVal(evt){
+    const r = svg.getBoundingClientRect();
+    return xv((evt.clientX - r.left) * (W / r.width));
+  }
+  svg.addEventListener("pointerdown", e => {
+    const c = e.target.closest(".pt");
+    if (c) drag = +c.dataset.i;
+    else {                                   // 점 근처(±5점)를 눌러도 가장 가까운 점을 잡는다
+      const v = toVal(e);
+      let best = -1, bd = 6;
+      vals.forEach((x, i) => { if (Math.abs(x - v) < bd){ bd = Math.abs(x - v); best = i; } });
+      if (best < 0) return;
+      drag = best;
+    } svg.setPointerCapture(e.pointerId); e.preventDefault(); draw();
+  });
+  svg.addEventListener("pointermove", e => {
+    if (drag < 0) return;
+    vals[drag] = toVal(e); draw();
+  });
+  const end = () => { if (drag >= 0){ drag = -1; draw(); } };
+  svg.addEventListener("pointerup", end);
+  svg.addEventListener("pointercancel", end);
+  document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => { vals = PRESETS[b.dataset.preset].slice(); draw(); }));
+  $("ds-add").addEventListener("click", () => { if (vals.length < 20){ vals.push(50); draw(); } });
+  $("ds-del").addEventListener("click", () => { if (vals.length > 2){ vals.pop(); draw(); } });
+  draw();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"데이터 2, 3, 3, 4, 13의 평균과 중앙값을 차례로 쓴 것은?",
+    choices:["3, 3","5, 3","5, 4","4, 3","5, 5"], answer:1,
+    explain:"평균 = (2+3+3+4+13) ÷ 5 = 25 ÷ 5 = 5, 크기순 가운데(3번째) 값인 중앙값 = 3입니다. 극단값 13 때문에 평균이 중앙값보다 커졌습니다." },
+  { type:"mc", q:"데이터 4, 6, 8, 10, 12의 분산(÷n)과 표준편차를 차례로 쓴 것은?",
+    choices:["4, 2","8, 약 2.83","10, 약 3.16","40, 약 6.32","8, 4"], answer:1,
+    explain:"평균 8, 편차 −4, −2, 0, 2, 4 → 제곱의 합 16+4+0+4+16 = 40 → 분산 40 ÷ 5 = 8, 표준편차 √8 ≈ 2.83입니다." },
+  { type:"ox", q:"어떤 반의 수학 점수 평균이 60점이면, 60점보다 높은 점수를 받은 학생은 반드시 반 등수가 상위 절반 안에 든다.",
+    answer:false, explain:"상위 절반의 기준은 평균이 아니라 중앙값입니다. 아주 낮은 점수가 평균을 끌어내리면 평균보다 높아도 중앙값보다 낮을 수 있습니다." },
+  { type:"mc", q:"한 동네 가구 소득을 조사했더니 평균이 중앙값보다 훨씬 컸다. 가장 알맞은 해석은?",
+    choices:["분포가 완전히 대칭이다","소득이 아주 높은 소수의 가구가 평균을 끌어올렸다","대부분의 가구가 평균보다 소득이 높다","표준편차가 0이다","최빈값이 평균보다 크다"], answer:1,
+    explain:"평균 > 중앙값이면 큰 값 쪽으로 꼬리가 긴(오른쪽 꼬리) 분포입니다. 소득처럼 소수의 매우 큰 값이 있는 데이터에서 흔합니다. 이때 ‘보통 가구’의 소득은 중앙값이 더 잘 나타냅니다." },
+  { type:"short", q:"두 반의 과학 점수가 평균은 70점으로 같고, 표준편차는 가반 5점, 나반 15점이었다. 두 반의 점수 분포 차이를 설명하고, 선생님이 나반 수업에서 고려하면 좋을 점을 한 가지 쓰세요.",
+    model:"가반은 대부분의 학생이 70점 근처에 모여 있고, 나반은 점수가 넓게 흩어져 있어 아주 잘하는 학생과 어려워하는 학생이 함께 있다. 나반에서는 수준별 과제나 보충·심화 활동을 나누어 제공하면 좋다." },
+]);
+</script>
+</body>
+</html>

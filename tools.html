@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>데이터 분석 도구 모음 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="assets/css/style.css?v=20260930">
+</head>
+<body data-page="tools">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs">부록</div>
+  <h1>🧰 데이터 분석 도구 모음</h1>
+  <p>이 교과서는 설치 없이 <b>브라우저 파이썬 셀</b>만으로 모든 실습을 할 수 있도록 만들었습니다.
+  학교 환경이나 수업 방식에 따라 아래 도구로 같은 분석을 옮겨 해 볼 수 있습니다. 교과서 4종이 주로 쓰는 도구를 함께 표시했습니다.</p>
+</header>
+
+<h2><span class="sec-no">1</span>코드 없이 분석하는 도구</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:22%">도구</th><th>용도</th><th style="width:18%">이 교재에서</th><th style="width:26%">참고</th></tr></thead>
+  <tbody>
+    <tr><td><b>Orange Data Mining</b><br><small>orangedatamining.com</small></td>
+      <td>위젯을 선으로 연결해 불러오기→전처리→시각화→모델→평가를 코드 없이 수행. 연관 규칙은 <b>Associate</b>, 텍스트는 <b>Text</b>, 지도는 <b>Geo</b> 애드온</td>
+      <td>Ⅱ·Ⅲ단원 전 차시의 대안 도구(지도 팁 상자 참고)</td>
+      <td>설치형(Windows·macOS). 애드온은 학기 초에 미리 설치. <i class="pub">씨마스</i><i class="pub">천재</i> 주 도구</td></tr>
+    <tr><td><b>구글 스프레드시트 / 엑셀</b></td>
+      <td>정렬·필터·피벗 테이블, AVERAGE·MEDIAN·STDEV·CORREL·RSQ 함수, 차트 추세선, VLOOKUP·XLOOKUP 통합</td>
+      <td>7·15·22·28차시 손계산 확인</td>
+      <td>회귀식을 SLOPE·INTERCEPT로 직접 구하면 원리가 잘 보임 <i class="pub">천재</i><i class="pub">씨마스</i></td></tr>
+    <tr><td><b>CODAP</b><br><small>codap.concord.org</small></td>
+      <td>드래그로 표·그래프를 만들고 최소제곱선을 그리는 교육용 웹 분석 도구</td>
+      <td>20·28차시 대안</td>
+      <td>설치 없음, 크롬북에서 사용 가능 <i class="pub">천재</i></td></tr>
+    <tr><td><b>Gapminder Tools</b><br><small>gapminder.org/tools</small></td>
+      <td>국가별 소득·기대수명 등 시계열 거품 차트로 '상식 검증'</td>
+      <td>11차시</td>
+      <td><i class="pub">씨마스</i></td></tr>
+    <tr><td><b>네이버 데이터랩 · 구글 트렌드</b></td>
+      <td>검색어 관심도 추이를 기기·성별·연령별로 비교</td>
+      <td>3·12차시</td>
+      <td>검색량은 상대 지수임에 유의 <i class="pub">YBM</i><i class="pub">삼양</i></td></tr>
+  </tbody>
+</table></div>
+
+<h2><span class="sec-no">2</span>코드로 분석하는 도구</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:22%">도구</th><th>용도</th><th style="width:18%">이 교재에서</th><th style="width:26%">참고</th></tr></thead>
+  <tbody>
+    <tr><td><b>교재 파이썬 셀</b><br><small>이 사이트</small></td>
+      <td>브라우저 안에서 pandas·numpy·matplotlib·scikit-learn·sqlite3 실행. <code>load_csv()</code>로 교재 데이터 불러오기</td>
+      <td>모든 실습</td>
+      <td>첫 실행 때 약 10~20MB 내려받음. 셀끼리 변수 공유(위→아래 순서로 실행)</td></tr>
+    <tr><td><b>Google Colab</b><br><small>colab.research.google.com</small></td>
+      <td>구글 계정으로 쓰는 주피터 노트북. 파일 업로드, 추가 패키지 설치(pip), 결과 공유</td>
+      <td>Ⅳ단원 프로젝트</td>
+      <td>교재 셀 코드를 복사하고 <code>load_csv("x.csv")</code>를 <code>pd.read_csv("x.csv")</code>로 바꾸면 그대로 동작 <i class="pub">삼양</i><i class="pub">YBM</i><i class="pub">씨마스</i></td></tr>
+    <tr><td><b>SQL 연습장</b></td>
+      <td>SQL 문 작성·실행</td>
+      <td>8차시</td>
+      <td>교재 셀의 sqlite3로 충분. 온라인 SQL 편집기도 가능 <i class="pub">씨마스</i></td></tr>
+  </tbody>
+</table></div>
+
+<h2><span class="sec-no">3</span>데이터를 구하는 곳</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:26%">포털</th><th>주요 데이터</th><th style="width:30%">활용 예</th></tr></thead>
+  <tbody>
+    <tr><td><b>공공데이터포털</b> data.go.kr</td><td>중앙·지방 행정 기관 공공 데이터, 오픈 API</td><td>교통사고, 전기차 충전소, 급식 식단</td></tr>
+    <tr><td><b>국가통계포털 KOSIS</b> kosis.kr</td><td>인구·경제·사회 국가 통계</td><td>지역별 인구, 병원 수, 청소년 통계</td></tr>
+    <tr><td><b>기상자료개방포털</b> data.kma.go.kr</td><td>관측소별 기온·강수·풍속, 기후 통계</td><td>기온과 전력·자전거 대여량</td></tr>
+    <tr><td><b>서울 열린데이터 광장</b> data.seoul.go.kr</td><td>서울시 데이터, 공공자전거 실시간 API</td><td>따릉이 대여소, 모기 활동 지수</td></tr>
+    <tr><td><b>에어코리아 · 국가미세먼지정보센터</b></td><td>대기 오염 측정·배출량</td><td>지역별 미세먼지 비교</td></tr>
+    <tr><td><b>전력통계정보시스템</b> epsis.kpx.or.kr</td><td>전력 수급·최대 전력</td><td>기온에 따른 전력 수요</td></tr>
+    <tr><td><b>AI 허브</b> aihub.or.kr</td><td>인공지능 학습용 대규모 데이터</td><td>이미지·텍스트·음성 데이터</td></tr>
+    <tr><td><b>Kaggle · 데이콘</b></td><td>전 세계·국내 공개 데이터셋과 대회</td><td>연습용 데이터(라이선스 확인)</td></tr>
+  </tbody>
+</table></div>
+
+<div class="box box-warn"><span class="box-label">데이터를 받을 때 확인할 것</span>
+① 출처와 작성 기관 ② 수집 기간과 단위 ③ 이용 조건(라이선스, 출처 표시) ④ 개인정보 포함 여부 ⑤ 파일 설명서(메타데이터).
+한글 CSV가 깨지면 <code>pd.read_csv("파일.csv", encoding="cp949")</code>로 열어 보세요.</div>
+
+<footer class="site-foot">도구 주소와 화면은 서비스 사정에 따라 바뀔 수 있습니다. · 수업 목적으로 자유롭게 활용할 수 있습니다.</footer>
+</main>
+</div>
+<script src="assets/js/common.js?v=20260930"></script>
+</body>
+</html>

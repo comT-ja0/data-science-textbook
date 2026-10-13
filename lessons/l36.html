@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>연관 규칙 찾기 실습 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* Apriori 가지치기 시각화 */
+.ap-top { display:grid; grid-template-columns:minmax(220px,300px) 1fr; gap:16px; }
+@media (max-width:760px){ .ap-top { grid-template-columns:1fr; } }
+.ap-tx { display:grid; grid-template-columns:1fr; gap:4px; }
+.ap-tx div { border:1.5px solid var(--line); border-radius:8px; padding:3px 9px; font-size:.8rem; background:#fff; }
+.ap-tx div b { color:var(--ink-faint); margin-right:6px; }
+.ap-tx div.hit { border-color:var(--accent); background:var(--accent-soft); font-weight:700; }
+.ap-levels { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }
+.ap-col { border:1px solid var(--line); border-radius:10px; padding:8px; background:var(--paper); }
+.ap-col h5 { margin:0 0 6px; font-size:.82rem; }
+.ap-col h5 small { font-weight:600; color:var(--ink-faint); }
+.iset { display:flex; justify-content:space-between; gap:6px; border-radius:7px; padding:3px 8px; margin:3px 0; font-size:.78rem; cursor:pointer; border:1.5px solid transparent; line-height:1.4; }
+.iset .cnt { font-weight:800; white-space:nowrap; }
+.iset.freq { background:#eafaf0; border-color:#ace8c4; color:#127a3c; }
+.iset.fail { background:#fdeeee; border-color:#f3b9b9; color:#b32424; }
+.iset.prune { background:#fff; border:1.5px dashed #c9d2dc; color:#8595a6; text-decoration:line-through; }
+.iset.sel { outline:2.5px solid var(--ink); }
+.ap-legend { display:flex; flex-wrap:wrap; gap:8px; font-size:.78rem; margin:8px 0; }
+.ap-legend span { padding:1px 8px; border-radius:6px; }
+.trace td, .trace th { text-align:center; }
+.trace td.ok { background:#eafaf0; color:#127a3c; font-weight:700; }
+.trace td.no { background:#fdeeee; color:#b32424; }
+</style>
+</head>
+<body data-unit="3" data-lesson="L36">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>연관 규칙 찾기 실습</h1>
+  <span class="std-badge">성취기준 12데과03-04</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>아프리오리(Apriori) 알고리즘이 후보를 줄이는 원리를 설명하고 단계 표로 추적할 수 있다.</li>
+      <li>최소 지지도·신뢰도 기준에 따라 찾아지는 규칙이 어떻게 달라지는지 비교할 수 있다.</li>
+      <li>분석 목적에 맞는 연관 규칙을 골라 의미를 해석할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과03-04] 데이터 간의 관계를 분석하고 상호 연관성을 파악하여 결과의 의미를 해석한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span>수집</span><span class="on">전처리</span><span>탐색</span><span class="on">모델링</span><span class="on">평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  지난 시간에 매점 규칙 하나하나의 지지도·신뢰도·향상도를 계산했습니다. 그런데 매점 점장님이 새로운 부탁을 합니다.
+  “상품이 10가지인데, 그중 <b>함께 잘 팔리는 조합을 전부</b> 찾아 줄 수 있겠니? 두 개짜리 조합도, 세 개짜리 조합도.”
+  10가지 상품으로 만들 수 있는 조합은 모두 몇 개일까요? 그걸 하나하나 다 세어야 할까요?
+</div>
+
+<div class="box box-tip">
+  <span class="box-label">확장 차시 안내</span>
+  이 차시는 L35의 지지도·신뢰도·향상도를 안다고 가정합니다. 기억할 식: 지지도 = 함께 든 거래 비율,
+  신뢰도(A→B) = 지지도(A∩B) ÷ 지지도(A), 향상도(A→B) = 신뢰도(A→B) ÷ 지지도(B).
+</div>
+
+<h2><span class="sec-no">1</span>조합이 폭발한다: 아프리오리 원리 <i class="pub-c">공통</i></h2>
+
+<p>상품이 n개이면 만들 수 있는 항목 집합(1개짜리부터 n개짜리까지)은 <b>2ⁿ − 1</b>개입니다.
+상품 10개면 1,023개, 20개면 1,048,575개, 편의점처럼 상품이 수천 개면 사실상 셀 수 없습니다.
+그래서 ‘자주 나오는 조합’만 효율적으로 찾는 방법이 필요합니다.</p>
+
+<p>지지도가 최소 기준(<span class="keyterm">최소 지지도</span>) 이상인 항목 집합을 <span class="keyterm">빈발 항목 집합</span>이라고 합니다.
+<span class="keyterm">아프리오리(Apriori) 알고리즘</span>은 다음 한 가지 사실을 이용합니다.</p>
+
+<div class="formula">{컵라면, 빵}이 드물다면, {컵라면, 빵, 우유}는 더 드물다.
+<small>큰 집합이 담긴 거래는 반드시 그 부분집합도 담고 있으므로, 부분집합보다 자주 나올 수 없습니다.</small></div>
+
+<p>그래서 <b>부분집합 중 하나라도 빈발하지 않은 후보는 세어 보지도 않고 버립니다</b>. 이를 <span class="keyterm">가지치기(pruning)</span>라고 합니다.
+알고리즘은 1-항목 → 2-항목 → 3-항목 순으로 한 층씩 올라가며 ‘후보 만들기 → 세기 → 기준 미달 버리기’를 반복하고, 더 이상 빈발 집합이 없으면 멈춥니다.</p>
+
+<h2><span class="sec-no">2</span>단계 표로 따라가기 <i class="pub">씨마스</i></h2>
+
+<p>매점 거래 10건으로 최소 지지도 <b>0.3</b>(10건 중 3건 이상)일 때를 손으로 추적해 봅시다.</p>
+
+<div class="table-wrap"><table class="data" style="max-width:520px">
+  <thead><tr><th>거래</th><th>담긴 상품</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td style="text-align:left">컵라면, 삼각김밥, 생수</td></tr>
+    <tr><td>2</td><td style="text-align:left">컵라면, 삼각김밥</td></tr>
+    <tr><td>3</td><td style="text-align:left">빵, 우유</td></tr>
+    <tr><td>4</td><td style="text-align:left">컵라면, 삼각김밥, 생수</td></tr>
+    <tr><td>5</td><td style="text-align:left">삼각김밥, 빵, 우유</td></tr>
+    <tr><td>6</td><td style="text-align:left">컵라면, 생수</td></tr>
+    <tr><td>7</td><td style="text-align:left">빵, 우유</td></tr>
+    <tr><td>8</td><td style="text-align:left">컵라면, 삼각김밥, 생수, 우유</td></tr>
+    <tr><td>9</td><td style="text-align:left">삼각김밥, 빵</td></tr>
+    <tr><td>10</td><td style="text-align:left">과자, 우유</td></tr>
+  </tbody>
+</table></div>
+
+<div class="table-wrap"><table class="trace">
+  <thead><tr><th>단계</th><th>후보 (거래 수)</th><th>빈발 항목 집합 (3건 이상)</th></tr></thead>
+  <tbody>
+    <tr><td>① 1-항목</td><td style="text-align:left">컵라면 5, 삼각김밥 6, 생수 4, 빵 4, 우유 5, 과자 1</td><td class="ok">과자를 뺀 5개</td></tr>
+    <tr><td>② 2-항목</td><td style="text-align:left">남은 5개로 만든 쌍 10개: 컵라면·삼각김밥 4, 컵라면·생수 4, 삼각김밥·생수 3, 빵·우유 3, 삼각김밥·빵 2, 삼각김밥·우유 2, 컵라면·우유 1, 생수·우유 1, 컵라면·빵 0, 생수·빵 0</td><td class="ok">{컵라면, 삼각김밥}, {컵라면, 생수}, {삼각김밥, 생수}, {빵, 우유}</td></tr>
+    <tr><td>③ 3-항목</td><td style="text-align:left">세 쌍이 모두 빈발한 조합만 후보: {컵라면, 삼각김밥, 생수} 3<br><small>예: {삼각김밥, 빵, 우유}는 {삼각김밥, 빵}이 미달이라 가지치기</small></td><td class="ok">{컵라면, 삼각김밥, 생수}</td></tr>
+    <tr><td>④ 4-항목</td><td colspan="2">3-항목 빈발 집합이 하나뿐이라 후보를 만들 수 없음 → <b>종료</b></td></tr>
+  </tbody>
+</table></div>
+
+<p>과자가 들어간 쌍 5개는 처음부터 만들지 않았고, 3-항목 조합 10개 중 9개는 세어 보지도 않고 버렸습니다.
+실제로 센 집합은 1-항목 6개 + 2-항목 10개 + 3-항목 1개 = <b>17개</b>로, 가능한 전체 집합 2⁶ − 1 = 63개의 약 27%입니다.</p>
+
+<p>빈발 항목 집합에서 규칙을 만들 때는 집합을 조건과 결과로 나눕니다. {컵라면, 삼각김밥, 생수}(3건)에서 나오는 규칙 몇 개를 계산하면 다음과 같습니다.</p>
+<ul>
+  <li>{컵라면, 삼각김밥} → {생수}: 신뢰도 = 3 ÷ 4 = <b>0.75</b>, 향상도 = 0.75 ÷ 0.4 = <b>1.875</b></li>
+  <li>{삼각김밥, 생수} → {컵라면}: 신뢰도 = 3 ÷ 3 = <b>1.0</b>, 향상도 = 1.0 ÷ 0.5 = <b>2.0</b></li>
+  <li>{생수} → {컵라면, 삼각김밥}: 신뢰도 = 3 ÷ 4 = <b>0.75</b>, 향상도 = 0.75 ÷ 0.4 = <b>1.875</b></li>
+</ul>
+
+<div class="sim">
+  <div class="sim-head">Apriori 가지치기 시각화 — 최소 지지도를 바꿔 보세요</div>
+  <div class="sim-body">
+    <div class="sim-controls">
+      <label for="ap-min">최소 지지도</label>
+      <input type="range" id="ap-min" min="1" max="6" step="1" value="3">
+      <b id="ap-min-v"></b>
+    </div>
+    <div class="ap-legend">
+      <span class="iset freq" style="display:inline-block">빈발 (기준 이상)</span>
+      <span class="iset fail" style="display:inline-block">세어 봤지만 미달</span>
+      <span class="iset prune" style="display:inline-block">가지치기 (세지 않음)</span>
+    </div>
+    <div class="ap-top">
+      <div><div class="cap" style="font-size:.78rem;font-weight:700;color:var(--ink-faint);margin-bottom:4px">거래 10건 (집합을 클릭하면 포함된 거래 강조)</div><div class="ap-tx" id="ap-tx"></div></div>
+      <div><div class="ap-levels" id="ap-levels"></div></div>
+    </div>
+    <div class="sim-stats">
+      <div class="stat-chip">실제로 센 후보 <b id="ap-counted">0</b>개</div>
+      <div class="stat-chip">가지치기로 건너뛴 조합 <b id="ap-pruned">0</b>개</div>
+      <div class="stat-chip">모두 셌다면 <b id="ap-all">63</b>개</div>
+      <div class="stat-chip">빈발 항목 집합 <b id="ap-freq">0</b>개</div>
+    </div>
+    <p class="widget-hint">관찰 포인트: 최소 지지도를 1건으로 낮추면 어떤 일이 벌어지나요? 4건 이상으로 올리면 {컵라면, 삼각김밥, 생수}는 왜 세어 보지도 않고 버려질까요?</p>
+  </div>
+</div>
+
+<h2><span class="sec-no">3</span>파이썬으로 Apriori 직접 구현하기 <i class="pub-c">공통</i></h2>
+
+<p>이제 매점 거래 300건(<code>basket.csv</code>)으로 같은 과정을 코드로 실행합니다.
+<code>mlxtend</code> 같은 전용 라이브러리를 쓰면 한 줄이지만, 여기서는 단계를 눈으로 확인할 수 있도록 직접 구현합니다.</p>
+
+<div class="pycell" data-title="Apriori로 빈발 항목 집합 찾기"><textarea>
+import pandas as pd
+from itertools import combinations
+
+tx = load_csv("basket.csv")
+basket = pd.crosstab(tx["거래번호"], tx["품목"]).clip(upper=1).astype(bool)
+
+def support(tb, itemset):
+    return tb[list(itemset)].all(axis=1).mean()        # 모두 담긴 거래의 비율
+
+def apriori(tb, min_sup, max_len=4, verbose=True):
+    freq = {}
+    items = sorted(tb.columns)
+    Lk = [(i,) for i in items if support(tb, [i]) >= min_sup]
+    for s in Lk: freq[s] = support(tb, s)
+    if verbose: print(f"1-항목: 후보 {len(items)}개 → 빈발 {len(Lk)}개")
+    k = 2
+    while Lk and k <= max_len:
+        prev = set(Lk)
+        pool = sorted(set(i for s in Lk for i in s))
+        # 가지치기: (k-1)개짜리 부분집합이 모두 빈발한 조합만 후보로
+        Ck = [c for c in combinations(pool, k)
+              if all(sub in prev for sub in combinations(c, k - 1))]
+        Lk = [c for c in Ck if support(tb, c) >= min_sup]
+        for s in Lk: freq[s] = support(tb, s)
+        if verbose: print(f"{k}-항목: 후보 {len(Ck)}개 → 빈발 {len(Lk)}개")
+        k += 1
+    return freq
+
+freq = apriori(basket, 0.05)
+for s, v in freq.items():
+    if len(s) >= 3:
+        print(s, round(v, 3))
+
+# ✏️ 최소 지지도를 0.1로 바꾸면 3-항목 빈발 집합은 몇 개 남나요?
+</textarea></div>
+
+<p>최소 지지도 0.05에서 1-항목 10개는 모두 빈발이고, 2-항목 후보 45개 중 <b>29개</b>가 빈발입니다.
+3-항목은 가능한 조합 120개(10개 중 3개) 대신 가지치기를 통과한 <b>39개</b>만 세었고, 그중 3개가 빈발입니다.
+{삼각김밥, 생수, 컵라면}은 지지도 0.107로 가장 자주 나오는 3-항목 조합입니다.</p>
+
+<div class="pycell" data-title="빈발 항목 집합에서 규칙 만들기"><textarea>
+def make_rules(freq, min_conf):
+    rows = []
+    for s, sup in freq.items():
+        if len(s) < 2: continue
+        for r in range(1, len(s)):
+            for A in combinations(s, r):                 # 조건 A, 결과 B로 나누기
+                B = tuple(i for i in s if i not in A)
+                conf = sup / freq[A]
+                lift = conf / freq[B]
+                if conf >= min_conf:
+                    rows.append((", ".join(A), ", ".join(B), round(sup, 3), round(conf, 3), round(lift, 2)))
+    return pd.DataFrame(rows, columns=["조건", "결과", "지지도", "신뢰도", "향상도"])
+
+rules = make_rules(freq, 0.3).sort_values("향상도", ascending=False)
+print("규칙 수:", len(rules))
+print(rules.head(8).to_string(index=False))
+print("--- 향상도가 가장 낮은 규칙 ---")
+print(rules.sort_values("향상도").head(3).to_string(index=False))
+
+# ✏️ 조건이 2개인 규칙만 골라 보세요: rules[rules["조건"].str.contains(",")]
+</textarea></div>
+
+<p>향상도 1위는 {삼각김밥, 초콜릿} → {컵라면}(신뢰도 0.947, 향상도 2.54)이지만 지지도가 0.06으로, 300건 중 18건에서만 나타난 조합입니다.
+반대로 {과자} → {컵라면}은 신뢰도 0.325로 기준(0.3)은 통과했는데 향상도가 <b>0.87</b>입니다.
+과자를 산 학생은 오히려 컵라면을 평소보다 덜 산다는 뜻이므로, 신뢰도만 보고 “과자 옆에 컵라면을 두자”고 하면 안 됩니다.</p>
+
+<h2><span class="sec-no">4</span>기준과 목적에 따라 달라지는 규칙 <i class="pub">YBM</i> <i class="pub">삼양</i></h2>
+
+<p>최소 지지도와 최소 신뢰도를 얼마로 할지는 정답이 없습니다. 기준에 따라 규칙 수가 얼마나 달라지는지 확인하고,
+분석 목적에 맞는 규칙을 골라 봅시다.</p>
+
+<div class="pycell" data-title="임계값 민감도와 목적별 규칙 고르기"><textarea>
+table = []
+for ms in [0.02, 0.05, 0.1, 0.15]:
+    f = apriori(basket, ms, verbose=False)
+    row = [ms, len(f)]
+    for mc in [0.3, 0.5, 0.7]:
+        row.append(len(make_rules(f, mc)))
+    table.append(row)
+print(pd.DataFrame(table, columns=["최소지지도", "빈발집합", "신뢰도≥0.3", "신뢰도≥0.5", "신뢰도≥0.7"]).to_string(index=False))
+
+# 목적: 재고가 남는 샌드위치를 더 팔고 싶다 → 결과가 샌드위치인 규칙만
+r2 = make_rules(apriori(basket, 0.05, verbose=False), 0.2)
+print(r2[r2["결과"] == "샌드위치"].sort_values("향상도", ascending=False).to_string(index=False))
+
+# ✏️ 목적을 '생수 판매 늘리기'로 바꾸어 결과가 생수인 규칙을 찾아보세요.
+</textarea></div>
+
+<p>최소 지지도 0.02·신뢰도 0.3에서는 규칙이 <b>122개</b>나 쏟아지지만, 0.15·0.7로 올리면 <b>2개</b>만 남습니다.
+기준이 너무 낮으면 우연히 몇 번 겹친 조합까지 규칙이 되어 믿기 어렵고, 너무 높으면 이미 누구나 아는 규칙만 남습니다.
+샌드위치 판매가 목표라면 {바나나우유} → {샌드위치}(신뢰도 0.422, 향상도 2.34)가 가장 쓸 만합니다.
+전체 향상도 순위에서는 1위가 아니지만, <b>목적에 맞는 규칙</b>이 가장 좋은 규칙입니다.</p>
+
+<div class="box box-warn">
+  <span class="box-label">어떤 규칙이 ‘좋은’ 규칙일까?</span>
+  같은 규칙표라도 목적에 따라 고르는 규칙이 달라집니다. 묶음 할인 세트를 만든다면 <b>지지도</b>가 충분히 커서 많은 학생에게 해당되는 규칙이,
+  특정 상품 판매를 늘리려면 <b>그 상품이 결과</b>인 규칙 중 향상도가 높은 것이, 새로운 발견을 원한다면 지지도는 낮아도 <b>향상도</b>가 아주 높은 규칙이 중요합니다.
+</div>
+
+<h3>설문 데이터로 연관 분석하기 <i class="pub">천재</i></h3>
+<p>연관 분석은 장바구니에만 쓰이지 않습니다. 설문이나 생활 기록처럼 <b>숫자로 된 데이터도 ‘항목’으로 바꾸면</b> 분석할 수 있습니다.
+이 과정을 <span class="keyterm">이산화(범주화)</span>라고 합니다. <code>study.csv</code>(가상의 학생 120명)의 숫자를 기준에 따라 참/거짓 항목으로 바꿔 봅시다.</p>
+
+<div class="pycell" data-title="숫자 데이터를 항목으로 바꿔 연관 분석"><textarea>
+st = load_csv("study.csv")
+items = pd.DataFrame({
+    "공부_많음": st["공부시간"] >= 3,
+    "공부_적음": st["공부시간"] <= 1.5,
+    "수면_부족": st["수면시간"] < 6,
+    "폰_많음":   st["스마트폰시간"] >= 5,
+    "결석_잦음": st["결석일수"] >= 3,
+    "성적_상":   st["성적"] >= 75,
+    "성적_하":   st["성적"] <= 55,
+})
+print(items.mean().round(3))                      # 항목별 지지도
+
+f2 = apriori(items, 0.05, max_len=3)
+r = make_rules(f2, 0.3)
+print(r[r["결과"].isin(["성적_상", "성적_하"])].sort_values("향상도", ascending=False).to_string(index=False))
+
+# ✏️ '수면_부족'의 기준을 6시간 미만에서 5.5시간 미만으로 바꾸면 규칙이 어떻게 달라지나요?
+</textarea></div>
+
+<p>{공부_적음, 수면_부족} → {성적_하}는 신뢰도 0.778, 향상도 <b>4.06</b>으로, 이 조합의 학생은 성적 하위일 가능성이 평소의 약 4배입니다.
+단, 이것은 <b>함께 나타난다</b>는 뜻이지 “잠을 줄이면 성적이 떨어진다”는 인과를 증명하지는 않습니다. 또 ‘많음·적음’의 기준을 어떻게 정하느냐에 따라 규칙이 달라지므로 기준을 반드시 함께 밝혀야 합니다.</p>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">모둠 활동</span>목적에 맞는 규칙 고르기 <i class="pub">삼양</i></div>
+  <div class="act-body">
+    <ol>
+      <li>모둠별로 매점의 목표 하나를 고르고, 파이썬 규칙표에서 근거가 될 규칙을 찾아 표를 완성하세요.
+        <div class="table-wrap"><table>
+          <thead><tr><th>목표</th><th>고른 규칙</th><th>중요하게 본 지표와 이유</th><th>실행 방안</th></tr></thead>
+          <tbody>
+            <tr><td>A. 두 상품 묶음 할인 세트 만들기</td><td></td><td></td><td></td></tr>
+            <tr><td>B. 판매가 부진한 샌드위치 살리기</td><td></td><td></td><td></td></tr>
+            <tr><td>C. 계산대 옆 진열 상품 정하기</td><td></td><td></td><td></td></tr>
+          </tbody>
+        </table></div></li>
+      <li>최소 지지도를 0.02로 낮췄을 때 새로 나타난 규칙 하나를 골라, 그 규칙을 믿어도 되는지 거래 건수를 근거로 판단하세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+      <li>고등학교 선택 과목 신청 데이터에서 {물리학} → {경제}의 향상도가 0.6이었다면 어떤 의미인지, 학교는 이 결과를 시간표 편성에 어떻게 활용할 수 있을지 써 보세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+    </ol>
+  </div>
+</div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  단계 표 추적은 거래 10건을 인쇄해 모둠별로 직접 세게 하면(15분) 가지치기의 효과를 체감합니다. 위젯으로 최소 지지도를 바꿔 결과를 확인시킵니다.
+  Orange 학급은 <b>Associate</b> 애드온의 Frequent Itemsets·Association Rules 위젯에서 Min. support·Min. confidence를 조절하며 규칙 수 변화를 관찰할 수 있습니다.
+  이 교재의 파이썬 환경에는 <code>mlxtend</code>가 없으므로 직접 구현 코드를 사용합니다(Colab에서는 <code>mlxtend.frequent_patterns</code>로 결과를 대조해 볼 수 있습니다).
+  흔한 오개념: “향상도가 가장 높은 규칙이 항상 가장 좋은 규칙이다”, “신뢰도 기준을 통과하면 양의 연관이다”.
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>상품 n개의 조합은 2ⁿ − 1개로 폭발하므로, 최소 지지도 이상인 빈발 항목 집합만 찾는다.</li>
+    <li>Apriori는 ‘드문 집합을 포함한 더 큰 집합은 더 드물다’는 원리로, 부분집합이 빈발하지 않은 후보를 세지 않고 버린다(가지치기).</li>
+    <li>최소 지지도·신뢰도를 낮추면 규칙이 급격히 늘고 우연한 규칙이 섞이며, 높이면 뻔한 규칙만 남는다.</li>
+    <li>좋은 규칙은 지표 순위가 아니라 분석 목적(묶음 판매, 특정 상품 판매, 새 발견)에 따라 달라진다.</li>
+    <li>숫자 데이터도 기준을 정해 항목으로 바꾸면 연관 분석을 할 수 있지만, 기준을 밝히고 인과로 해석하지 않는다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- Apriori 가지치기 시각화 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const T = [
+    ["컵라면","삼각김밥","생수"], ["컵라면","삼각김밥"], ["빵","우유"], ["컵라면","삼각김밥","생수"], ["삼각김밥","빵","우유"],
+    ["컵라면","생수"], ["빵","우유"], ["컵라면","삼각김밥","생수","우유"], ["삼각김밥","빵"], ["과자","우유"]
+  ].map(t => new Set(t));
+  const ITEMS = ["컵라면","삼각김밥","생수","빵","우유","과자"];
+  const N = T.length;
+  let selected = null;
+
+  const key = s => s.join("|");
+  const count = s => T.filter(t => s.every(i => t.has(i))).length;
+  function combos(arr, k){
+    const out = [];
+    (function rec(start, cur){
+      if (cur.length === k){ out.push(cur.slice()); return; }
+      for (let i = start; i < arr.length; i++){ cur.push(arr[i]); rec(i + 1, cur); cur.pop(); }
+    })(0, []);
+    return out;
+  }
+
+  function run(minc){
+    const levels = [];
+    // 1-항목: 모두 센다
+    let prev = new Set();
+    const lv1 = ITEMS.map(i => { const c = count([i]); const st = c >= minc ? "freq" : "fail"; if (st === "freq") prev.add(key([i])); return { s: [i], c, st }; });
+    levels.push(lv1);
+    const pool = ITEMS.filter(i => prev.has(key([i])));
+    for (let k = 2; k <= 4; k++){
+      if (prev.size < k) break;     // k-항목 집합은 (k-1)-항목 부분집합이 k개 필요
+      const all = combos(pool, k);
+      if (!all.length) break;
+      const lv = [], next = new Set();
+      all.forEach(s => {
+        const bad = combos(s, k - 1).find(sub => !prev.has(key(sub)));
+        if (bad){ lv.push({ s, c: null, st: "prune", why: bad }); return; }
+        const c = count(s); const st = c >= minc ? "freq" : "fail";
+        if (st === "freq") next.add(key(s));
+        lv.push({ s, c, st });
+      });
+      levels.push(lv);
+      prev = next;
+    }
+    return levels;
+  }
+
+  function render(){
+    const minc = +$("ap-min").value;
+    $("ap-min-v").textContent = `${(minc / N).toFixed(1)} (10건 중 ${minc}건 이상)`;
+    const levels = run(minc);
+    let counted = 0, pruned = 0, freq = 0;
+    $("ap-levels").innerHTML = levels.map((lv, idx) => {
+      const k = idx + 1;
+      const nC = lv.filter(o => o.st !== "prune").length, nF = lv.filter(o => o.st === "freq").length, nP = lv.filter(o => o.st === "prune").length;
+      counted += nC; pruned += nP; freq += nF;
+      const body = lv.length ? lv.map(o => {
+        const title = o.st === "prune" ? `부분집합 {${o.why.join(", ")}}이(가) 빈발하지 않아 세지 않음` : `${o.c}건 / ${N}건 = 지지도 ${(o.c / N).toFixed(1)}`;
+        const isSel = selected && key(selected) === key(o.s);
+        return `<div class="iset ${o.st}${isSel ? " sel" : ""}" data-k="${key(o.s)}" title="${title}"><span>{${o.s.join(", ")}}</span><span class="cnt">${o.st === "prune" ? "✂" : o.c}</span></div>`;
+      }).join("") : "<div style='font-size:.8rem;color:var(--ink-faint)'>후보 없음</div>";
+      return `<div class="ap-col"><h5>${k}-항목 <small>센 후보 ${nC} · 빈발 ${nF}${nP ? " · 가지치기 " + nP : ""}</small></h5>${body}</div>`;
+    }).join("") + `<div class="ap-col" style="background:#fff"><h5>종료</h5><div style="font-size:.8rem;color:var(--ink-soft)">빈발 집합이 부족해 다음 층의 후보를 만들 수 없으므로 멈춥니다.</div></div>`;
+    $("ap-counted").textContent = counted;
+    $("ap-pruned").textContent = pruned;
+    $("ap-freq").textContent = freq;
+    $("ap-all").textContent = Math.pow(2, ITEMS.length) - 1;
+    renderTx();
+  }
+
+  function renderTx(){
+    $("ap-tx").innerHTML = T.map((t, i) => {
+      const hit = selected && selected.every(s => t.has(s));
+      return `<div class="${hit ? "hit" : ""}"><b>${i + 1}</b>${[...t].join(", ")}</div>`;
+    }).join("");
+  }
+
+  $("ap-levels").addEventListener("click", e => {
+    const el = e.target.closest(".iset"); if (!el) return;
+    const s = el.dataset.k.split("|");
+    selected = (selected && key(selected) === el.dataset.k) ? null : s;
+    render();
+  });
+  $("ap-min").addEventListener("input", render);
+  render();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"상품이 6가지인 가게에서 만들 수 있는 항목 집합(1개짜리~6개짜리)은 모두 몇 개인가?",
+    choices:["6","15","36","63","64"], answer:3,
+    explain:"각 상품을 넣거나 빼는 경우 2⁶ = 64가지에서 아무것도 없는 경우 1가지를 빼면 63개입니다." },
+  { type:"ox", q:"{빵, 우유}의 지지도가 최소 지지도에 미달이면, {빵, 우유, 과자}는 거래 수를 세어 보지 않아도 미달임을 알 수 있다.",
+    answer:true, explain:"{빵, 우유, 과자}가 담긴 거래에는 반드시 {빵, 우유}도 담겨 있으므로 지지도가 {빵, 우유}보다 클 수 없습니다. 이것이 Apriori 가지치기의 원리입니다." },
+  { type:"mc", q:"2-항목 빈발 집합이 {A,B}, {A,C}, {B,C}, {B,D}뿐일 때, 가지치기 후 남는 3-항목 후보는?",
+    choices:["{A,B,C}","{A,B,D}","{B,C,D}","{A,B,C}와 {B,C,D}","후보가 없다"], answer:0,
+    explain:"{A,B,C}의 부분집합 {A,B}, {A,C}, {B,C}는 모두 빈발입니다. {A,B,D}는 {A,D}, {B,C,D}는 {C,D}가 빈발하지 않아 가지치기됩니다." },
+  { type:"mc", q:"최소 지지도를 0.15에서 0.02로 낮추었을 때 일어나는 일로 가장 알맞은 것은?",
+    choices:["규칙 수가 줄어든다","모든 규칙의 향상도가 1보다 커진다","규칙 수가 크게 늘고, 몇 번 우연히 겹친 조합으로 만든 믿기 어려운 규칙도 섞인다","신뢰도가 모두 1이 된다","계산해야 할 후보 수가 줄어든다"], answer:2,
+    explain:"매점 데이터에서도 신뢰도 0.3 기준일 때 규칙이 4개(0.15)에서 122개(0.02)로 늘었습니다. 지지도가 낮은 규칙은 적은 거래로 만들어져 우연일 가능성이 큽니다." },
+  { type:"short", q:"한 음원 앱이 ‘유료 구독 가입’으로 돈을 벌 때와 ‘광고 노출’로 돈을 벌 때, 연관 규칙을 고르는 기준이 어떻게 달라질 수 있는지 설명하세요.",
+    model:"구독 가입으로 돈을 번다면 결과가 ‘구독 가입’인 규칙 중 향상도와 신뢰도가 높은 규칙(어떤 행동을 한 사용자가 가입할 가능성이 높은지)을 골라 그 행동을 유도한다. 광고 노출로 돈을 번다면 많은 사용자에게 해당되어야 하므로 지지도가 높은 규칙을 골라 추천에 활용해 사용자가 더 오래 머물게 한다. 즉 목적에 따라 중요한 지표와 결과 항목이 달라진다." },
+]);
+</script>
+</body>
+</html>

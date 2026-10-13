@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>데이터 분석 도구 탐색 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 도구 선택 도우미 */
+.tool-grid { display:grid; grid-template-columns:minmax(230px,1fr) 1.2fr; gap:18px; }
+@media (max-width:760px){ .tool-grid { grid-template-columns:1fr; } }
+.cond { display:flex; flex-direction:column; gap:7px; }
+.cond label { display:flex; gap:8px; align-items:flex-start; font-size:.88rem; font-weight:600; background:var(--paper); border:1px solid var(--line); border-radius:9px; padding:7px 10px; cursor:pointer; }
+.cond label input { margin-top:3px; }
+.cond .rng { background:var(--paper); border:1px solid var(--line); border-radius:9px; padding:8px 10px; font-size:.86rem; font-weight:600; }
+.cond .rng input { width:100%; }
+.tbar { margin:9px 0; }
+.tbar .tt { display:flex; justify-content:space-between; font-size:.88rem; font-weight:700; }
+.tbar .tb { height:14px; background:var(--paper); border:1px solid var(--line); border-radius:999px; overflow:hidden; margin-top:3px; }
+.tbar .tb i { display:block; height:100%; background:#b9c6d4; border-radius:999px; transition:width .35s; }
+.tbar.top .tb i { background:var(--accent); }
+.tbar .why { font-size:.76rem; color:var(--ink-faint); }
+.tool-rec { margin-top:10px; padding:10px 14px; border-radius:10px; background:var(--accent-soft); font-weight:700; font-size:.9rem; }
+.same3 { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+@media (max-width:760px){ .same3 { grid-template-columns:1fr; } }
+.same3 .cardbox pre { font-size:.76rem; background:#212a36; color:#e6edf5; border-radius:8px; padding:8px 10px; overflow-x:auto; margin:6px 0 0; white-space:pre; }
+</style>
+</head>
+<body data-unit="3" data-lesson="L27">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>데이터 분석 도구 탐색</h1>
+  <span class="std-badge">성취기준 12데과03-01</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>스프레드시트, 블록·위젯형 도구(Orange·CODAP), 프로그래밍 언어(Python·R)의 특징을 비교할 수 있다.</li>
+      <li>같은 분석을 여러 도구로 수행하고 결과가 같음을 확인할 수 있다.</li>
+      <li>분석 목적과 상황에 맞는 도구를 근거를 들어 선택할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과03-01] 데이터 모델 개념을 이해하고 데이터 분석에 활용할 수 있는 도구를 탐색한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span>수집</span><span>전처리</span><span>탐색</span><span class="on">모델링</span><span>평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  목공 시간에 나무판에 구멍을 뚫는다고 해 봅시다. 송곳, 손드릴, 전동 드릴 중 무엇을 쓸까요?
+  작은 구멍 하나라면 송곳이 빠르고, 구멍 백 개를 똑같이 뚫어야 한다면 전동 드릴이 낫습니다.
+  데이터 분석 도구도 마찬가지입니다. <b>어떤 도구가 제일 좋다</b>가 아니라 <b>이 일에는 어떤 도구가 알맞다</b>가 있을 뿐입니다.
+  오늘은 여러 분석 도구를 직접 비교해 보고, 상황에 맞게 고르는 기준을 세워 봅시다.
+</div>
+
+<h2><span class="sec-no">1</span>데이터 분석 도구의 세 갈래 <i class="pub-c">공통</i></h2>
+
+<p>데이터 분석 도구는 사용하는 방식에 따라 크게 세 갈래로 나눌 수 있습니다.</p>
+
+<div class="cards">
+  <div class="cardbox"><h4>📊 스프레드시트</h4><p>엑셀·구글 시트·한셀 등. 표에 데이터를 넣고 <b>함수와 차트</b>로 분석한다. 누구나 쉽게 시작할 수 있다.</p></div>
+  <div class="cardbox"><h4>🧩 위젯·블록형(노코딩)</h4><p>Orange, CODAP 등. <b>위젯을 선으로 연결</b>하거나 끌어다 놓아 분석한다. 코드 없이 기계학습까지 체험할 수 있다.</p></div>
+  <div class="cardbox"><h4>⌨️ 프로그래밍 언어</h4><p>Python(pandas·scikit-learn), R 등. <b>코드</b>로 분석한다. 배우는 데 시간이 들지만 가장 자유롭고, 같은 분석을 그대로 반복할 수 있다.</p></div>
+</div>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:110px">도구</th><th>잘하는 일</th><th>아쉬운 점</th><th style="width:120px">이용 방법</th></tr></thead>
+  <tbody>
+    <tr><td><b>스프레드시트</b></td><td>데이터 입력·정리, 간단한 통계(AVERAGE·CORREL), 차트, 추세선</td><td>데이터가 매우 크면 느려짐. 복잡한 모델은 어려움. 어떤 순서로 작업했는지 남지 않음</td><td>설치형·웹</td></tr>
+    <tr><td><b>Orange</b></td><td>위젯 연결로 전처리→시각화→기계학습 모델 비교(Test and Score)</td><td>위젯에 없는 분석(예: 회귀 계수의 p값 같은 통계 검정)은 하기 어려움</td><td>무료 설치형</td></tr>
+    <tr><td><b>CODAP</b></td><td>그래프를 끌어다 놓으며 탐색, 점을 움직이며 관계 관찰, 수업용 데이터 탐색</td><td>기계학습 모델과 대용량 데이터에는 알맞지 않음</td><td>무료 웹</td></tr>
+    <tr><td><b>Python</b></td><td>수집(크롤링)부터 전처리·시각화·통계·기계학습까지 전 과정, 대용량 데이터, 자동화</td><td>문법을 익혀야 함. 오류 메시지를 해석할 수 있어야 함</td><td>무료(Colab·이 교재의 셀)</td></tr>
+    <tr><td><b>R</b></td><td>통계 분석과 통계 그래프에 특히 강함, 통계 전문가가 많이 씀</td><td>통계 밖의 일반 프로그래밍에는 Python보다 덜 쓰임</td><td>무료 설치형·웹</td></tr>
+  </tbody>
+</table></div>
+
+<h2><span class="sec-no">2</span>같은 분석, 세 가지 도구 <i class="pub">씨마스</i></h2>
+
+<p>도구가 달라도 <b>계산 원리가 같으면 결과도 같습니다</b>. 학생 5명의 공부시간(시간)과 성적(점) 데이터로 확인해 봅시다.</p>
+
+<div class="table-wrap"><table class="data" style="max-width:420px">
+  <thead><tr><th>학생</th><th>공부시간 (B열)</th><th>성적 (C열)</th></tr></thead>
+  <tbody>
+    <tr><td>가</td><td>1</td><td>55</td></tr><tr><td>나</td><td>2</td><td>60</td></tr><tr><td>다</td><td>3</td><td>70</td></tr><tr><td>라</td><td>4</td><td>75</td></tr><tr><td>마</td><td>5</td><td>90</td></tr>
+  </tbody>
+</table></div>
+
+<div class="same3">
+  <div class="cardbox"><h4>📊 스프레드시트</h4><p>셀에 함수를 입력한다.</p>
+<pre>=AVERAGE(C2:C6)     → 70
+=CORREL(B2:B6,C2:C6) → 0.98
+=SLOPE(C2:C6,B2:B6)  → 8.5
+=INTERCEPT(C2:C6,B2:B6) → 44.5</pre></div>
+  <div class="cardbox"><h4>🧩 Orange</h4><p>위젯을 연결하고 창을 연다.</p>
+<pre>File → Feature Statistics
+     (평균 70)
+File → Scatter Plot
+     (회귀선 표시)
+File → Linear Regression
+     → Data Table(계수)</pre></div>
+  <div class="cardbox"><h4>⌨️ Python</h4><p>코드 몇 줄로 계산한다.</p>
+<pre>df["성적"].mean()    # 70.0
+df["공부시간"].corr(df["성적"])
+np.polyfit(df["공부시간"],
+           df["성적"], 1)
+# [ 8.5  44.5]</pre></div>
+</div>
+
+<p>세 도구 모두 평균 70점, 상관계수 약 0.98, 추세선 <code>성적 = 8.5 × 공부시간 + 44.5</code>를 얻습니다.
+결과가 같다면 무엇이 다를까요? <b>작업이 기록되는 방식</b>입니다. 스프레드시트는 결과가 셀에 흩어져 남고, Orange는 작업 흐름이 <b>그림(위젯 연결)</b>으로 남고,
+Python은 작업 전체가 <b>코드(글)</b>로 남습니다. 코드와 위젯 흐름은 다른 데이터에 그대로 다시 적용하거나 친구에게 공유하기 쉽습니다.</p>
+
+<h2><span class="sec-no">3</span>Orange의 위젯 파이프라인 <i class="pub">천재</i> <i class="pub">씨마스</i></h2>
+
+<p>Orange는 각 기능이 <span class="keyterm">위젯</span>(작은 상자)으로 되어 있고, 위젯과 위젯을 선으로 이어 데이터가 흘러가는 길, 곧 <span class="keyterm">파이프라인</span>을 만듭니다.
+왼쪽에서 오른쪽으로 데이터가 흐르며, 앞 위젯의 결과가 뒤 위젯의 입력이 됩니다.</p>
+
+<figure>
+<svg viewBox="0 0 640 210" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard Variable, sans-serif" font-size="12">
+  <defs><marker id="ar27" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8595a6"/></marker></defs>
+  <g stroke="#8595a6" stroke-width="2" fill="none" marker-end="url(#ar27)">
+    <path d="M110,105 C150,105 150,40 186,40"/>
+    <path d="M110,105 L186,105"/>
+    <path d="M110,105 C150,105 150,170 186,170"/>
+    <path d="M290,105 L386,105"/>
+    <path d="M290,170 C340,170 340,120 386,114"/>
+    <path d="M490,105 L546,105"/>
+  </g>
+  <g font-weight="700" text-anchor="middle">
+    <circle cx="70" cy="105" r="38" fill="#fdf1de" stroke="#e8883a" stroke-width="2"/><text x="70" y="101">📁</text><text x="70" y="120">File</text>
+    <circle cx="238" cy="40" r="32" fill="#eef7ff" stroke="#3a7bd5" stroke-width="2"/><text x="238" y="44">Scatter Plot</text>
+    <circle cx="238" cy="105" r="32" fill="#eafaf0" stroke="#1f9d55" stroke-width="2"/><text x="238" y="102">Select</text><text x="238" y="116">Columns</text>
+    <circle cx="238" cy="170" r="32" fill="#f4f2ff" stroke="#6d4fc4" stroke-width="2"/><text x="238" y="166">Linear</text><text x="238" y="180">Regression</text>
+    <circle cx="438" cy="108" r="40" fill="#fdeeee" stroke="#d94848" stroke-width="2"/><text x="438" y="104">Test and</text><text x="438" y="120">Score</text>
+    <rect x="548" y="85" width="86" height="40" rx="8" fill="#fff" stroke="#dde4ec"/><text x="591" y="109">결과 표</text>
+  </g>
+  <g font-size="10.5" fill="#4b5a6b" text-anchor="middle">
+    <text x="70" y="160">데이터 불러오기</text>
+    <text x="336" y="98">Data</text><text x="336" y="160">Learner(학습기)</text>
+  </g>
+</svg>
+<figcaption>그림 1. Orange 파이프라인의 예 — 데이터를 불러와 산점도로 살펴보고, 속성을 고른 뒤 선형 회귀 모델을 평가한다.</figcaption>
+</figure>
+
+<div class="box box-tip">
+  <span class="box-label">Orange의 한계를 알고 쓰기</span>
+  Orange의 Linear Regression 위젯은 회귀 계수(기울기·절편)는 보여 주지만, 그 계수가 통계적으로 의미 있는지 알려 주는 <b>p값</b> 같은 검정 결과는 제공하지 않습니다.
+  통계적 회귀를 제대로 해석하려면 Python의 scipy·statsmodels나 R을 함께 씁니다. 다음 차시(L28)에서 Python으로 p값을 직접 구해 봅니다.
+</div>
+
+<h2><span class="sec-no">4</span>상황에 맞는 도구 고르기 <i class="pub-c">공통</i></h2>
+
+<p>아래 도우미에서 우리 모둠의 상황을 체크해 보세요. 조건마다 도구에 점수가 더해지고, 가장 알맞은 도구가 추천됩니다.
+정답이 하나로 정해진 것은 아니니 <b>왜 그 도구가 올라가는지</b> 막대 아래 이유를 읽어 보세요.</p>
+
+<div class="sim">
+  <div class="sim-head">도구 선택 도우미 — 조건을 체크하면 추천이 바뀝니다</div>
+  <div class="sim-body">
+    <div class="tool-grid">
+      <div class="cond" id="conds">
+        <div class="rng">데이터 크기: <b id="size-lab"></b><input type="range" id="size" min="0" max="3" step="1" value="1"></div>
+        <div class="rng">코딩 경험: <b id="code-lab"></b><input type="range" id="code" min="0" max="2" step="1" value="0"></div>
+        <label><input type="checkbox" data-k="ml"> 기계학습 모델을 여러 개 만들어 성능을 비교하고 싶다</label>
+        <label><input type="checkbox" data-k="stat"> 회귀 계수의 p값 같은 통계 검정 결과가 필요하다</label>
+        <label><input type="checkbox" data-k="repeat"> 같은 분석을 다른 데이터에도 반복·자동화하고 싶다</label>
+        <label><input type="checkbox" data-k="explore"> 그래프를 이리저리 끌어다 놓으며 빠르게 탐색하고 싶다</label>
+        <label><input type="checkbox" data-k="input"> 설문 결과를 직접 입력하고 간단한 표·차트만 만들면 된다</label>
+        <label><input type="checkbox" data-k="web"> 설치 없이 웹 브라우저에서만 해야 한다</label>
+      </div>
+      <div>
+        <div id="tool-bars"></div>
+        <div class="tool-rec" id="tool-rec"></div>
+      </div>
+    </div>
+    <p class="widget-hint">실험해 보기: ‘데이터 크기’를 가장 크게 하고 ‘코딩 경험’을 없음으로 두면 어떤 갈등이 생기나요? 이럴 땐 어떻게 해야 할까요?</p>
+  </div>
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">탐구 활동</span>두 도구로 같은 분석하고 비교하기 <i class="pub">씨마스</i></div>
+  <div class="act-body">
+    <ol>
+      <li>2절의 5명 데이터를 스프레드시트(또는 CODAP·Orange)와 아래 파이썬 셀로 각각 분석하여 표를 채우세요.
+        <div class="table-wrap"><table>
+          <thead><tr><th>항목</th><th>도구 1: ( &nbsp; &nbsp; &nbsp; )</th><th>도구 2: Python</th></tr></thead>
+          <tbody>
+            <tr><td>성적 평균</td><td></td><td></td></tr>
+            <tr><td>상관계수</td><td></td><td></td></tr>
+            <tr><td>추세선(기울기, 절편)</td><td></td><td></td></tr>
+            <tr><td>걸린 시간·어려웠던 점</td><td></td><td></td></tr>
+          </tbody>
+        </table></div></li>
+      <li>데이터가 5명이 아니라 5만 명이라면 어느 도구를 고르겠습니까? 이유는?
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+    </ol>
+  </div>
+</div>
+
+<h2><span class="sec-no">5</span>파이썬: 반복문 대신 한 줄로 <i class="pub-c">공통</i></h2>
+
+<p>프로그래밍 도구의 힘은 <b>라이브러리</b>에서 나옵니다. 평균 하나를 구할 때도 반복문을 직접 짜는 방법과 pandas 함수 한 줄로 끝내는 방법이 있습니다.
+결과가 같은지, 코드 길이와 실행 속도는 어떻게 다른지 비교해 보세요.</p>
+
+<div class="pycell" data-title="같은 평균, 두 가지 방법"><textarea>
+import pandas as pd
+
+df = pd.DataFrame({"학생": ["가", "나", "다", "라", "마"],
+                   "공부시간": [1, 2, 3, 4, 5],
+                   "성적": [55, 60, 70, 75, 90]})
+
+# 방법 1: 반복문으로 직접 계산
+total = 0
+for score in df["성적"]:
+    total = total + score
+print("반복문 평균:", total / len(df))
+
+# 방법 2: pandas 한 줄
+print("pandas 평균:", df["성적"].mean())
+
+# 상관계수와 추세선도 한 줄씩
+import numpy as np
+print("상관계수:", round(df["공부시간"].corr(df["성적"]), 4))
+print("추세선(기울기, 절편):", np.polyfit(df["공부시간"], df["성적"], 1).round(2))
+
+# ✏️ 반복문을 고쳐서 '성적이 70점 이상인 학생 수'를 세어 보고, pandas로는 (df["성적"] >= 70).sum() 한 줄로 확인해 보세요.
+</textarea></div>
+
+<div class="pycell" data-title="그룹별 평균: 딕셔너리 반복 vs groupby"><textarea>
+bike = load_csv("bike.csv")
+
+# 방법 1: 반복문 + 딕셔너리
+sums, counts = {}, {}
+for m, c in zip(bike["월"], bike["대여량"]):
+    sums[m] = sums.get(m, 0) + c
+    counts[m] = counts.get(m, 0) + 1
+loop_result = {m: round(sums[m] / counts[m]) for m in sorted(sums)}
+print("반복문 :", loop_result)
+
+# 방법 2: groupby 한 줄
+print("groupby:", bike.groupby("월")["대여량"].mean().round().astype(int).to_dict())
+
+# ✏️ "월" 대신 "요일"로 바꾸어 두 방법의 결과가 같은지 확인해 보세요.
+</textarea></div>
+
+<div class="pycell" data-title="데이터가 커지면? 속도 비교"><textarea>
+import time
+import numpy as np
+
+rng = np.random.default_rng(42)           # 난수 씨앗을 고정해 누구나 같은 데이터를 얻음
+big = pd.Series(rng.normal(70, 10, 200_000))   # 가상의 성적 20만 개
+
+t0 = time.time()
+s = 0
+for v in big:
+    s += v
+loop_mean = s / len(big)
+t1 = time.time()
+pd_mean = big.mean()
+t2 = time.time()
+
+print(f"반복문 평균 {loop_mean:.3f}  ({(t1 - t0) * 1000:.0f} ms)")
+print(f"pandas 평균 {pd_mean:.3f}  ({(t2 - t1) * 1000:.1f} ms)")
+print(f"pandas가 약 {(t1 - t0) / max(t2 - t1, 1e-6):.0f}배 빠름")
+
+# ✏️ 데이터 개수를 2_000_000으로 늘려 보세요. 스프레드시트였다면 이 행 수를 다룰 수 있을까요?
+</textarea></div>
+
+<p>두 방법의 결과는 같지만 pandas가 훨씬 짧고, 데이터가 커질수록 속도 차이가 수십 배 이상 벌어집니다(실행하는 컴퓨터마다 시간은 조금씩 다릅니다).
+참고로 스프레드시트 한 시트에 넣을 수 있는 행 수에는 한계가 있어(엑셀은 약 100만 행) 대용량 데이터에는 프로그래밍 도구가 알맞습니다.</p>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  이 차시는 ‘어느 도구가 최고인가’가 아니라 <b>상황에 따라 고르는 기준</b>을 세우는 것이 목표입니다. 컴퓨터실 환경이 허락하면 2절 데이터를 모둠별로 서로 다른 도구(구글 시트·CODAP·Orange·Python 셀)에 나누어 맡기고 결과를 칠판에 모아 같은지 확인하면 효과적입니다.
+  Orange 설치가 어려운 학교는 CODAP(웹)으로 대체할 수 있습니다. 흔한 오개념은 “코딩 도구가 더 정확하다”입니다. 계산 원리가 같으면 결과는 같고, 차이는 규모·재현성·표현력에 있다는 점을 강조하세요.
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>분석 도구는 스프레드시트, 위젯·블록형(Orange·CODAP), 프로그래밍 언어(Python·R)로 나눌 수 있다.</li>
+    <li>계산 원리가 같으면 도구가 달라도 결과는 같다. 차이는 사용 난이도·데이터 규모·재현(반복)·가능한 분석의 범위에 있다.</li>
+    <li>Orange는 위젯을 연결한 파이프라인으로 분석 흐름을 그림처럼 남기고, Python은 코드로 남겨 자동화와 공유가 쉽다.</li>
+    <li>도구는 데이터 크기, 사용자의 경험, 필요한 분석(기계학습·통계 검정), 환경을 고려해 고른다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 도구 선택 도우미 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const TOOLS = ["스프레드시트", "Orange", "CODAP", "Python", "R"];
+  const SIZE_LAB = ["수십 행", "수백~수천 행", "수만 행", "수십만 행 이상"];
+  const CODE_LAB = ["없음", "조금(따라 할 수 있음)", "능숙함"];
+  // 각 조건이 도구별로 더하는 점수와 이유
+  const RULES = {
+    ml:      { s:[0, 3, 0, 3, 2], why:["", "Test and Score로 모델 비교", "", "scikit-learn", "기계학습 패키지"] },
+    stat:    { s:[0, -1, 0, 3, 3], why:["", "통계 검정 위젯 부족", "", "scipy·statsmodels", "통계 분석에 강함"] },
+    repeat:  { s:[-1, 1, -1, 3, 3], why:["작업 순서가 남지 않음", "흐름 파일(.ows) 저장", "", "코드로 자동화", "코드로 자동화"] },
+    explore: { s:[1, 2, 3, 1, 0], why:["", "대화형 그래프", "끌어다 놓는 탐색", "", ""] },
+    input:   { s:[3, 0, 1, 0, 0], why:["입력·표·차트가 쉬움", "", "", "", ""] },
+    web:     { s:[2, -3, 2, 2, 0], why:["웹 스프레드시트", "설치 필요", "웹에서 바로", "Colab·교재 셀", ""] }
+  };
+  const SIZE_S = [[2,1,2,0,0],[1,1,1,1,1],[-1,1,-1,2,2],[-4,-1,-4,3,2]];
+  const CODE_S = [[2,2,2,-3,-3],[1,1,1,1,0],[0,0,0,3,2]];
+
+  function render(){
+    const size = +$("size").value, code = +$("code").value;
+    $("size-lab").textContent = SIZE_LAB[size];
+    $("code-lab").textContent = CODE_LAB[code];
+    const score = [3, 3, 3, 3, 3].map((b, i) => b + SIZE_S[size][i] + CODE_S[code][i]);
+    const why = TOOLS.map(() => []);
+    if (size === 3){ why[0].push("행이 너무 많음"); why[2].push("대용량에 부적합"); why[3].push("대용량 처리"); }
+    if (code === 0){ why[3].push("코딩 필요"); why[4].push("코딩 필요"); why[1].push("코딩 없이 가능"); }
+    document.querySelectorAll("#conds input[type=checkbox]").forEach(cb => {
+      if (!cb.checked) return;
+      const r = RULES[cb.dataset.k];
+      r.s.forEach((v, i) => { score[i] += v; if (r.why[i]) why[i].push(r.why[i]); });
+    });
+    const max = Math.max(...score), maxBar = 16;
+    const rank = TOOLS.map((t, i) => i).sort((a, b) => score[b] - score[a]);
+    $("tool-bars").innerHTML = rank.map(i => {
+      const w = Math.max(0, Math.min(score[i], maxBar)) / maxBar * 100;
+      return `<div class="tbar${score[i] === max ? " top" : ""}"><div class="tt"><span>${TOOLS[i]}</span><span>${score[i]}점</span></div>` +
+             `<div class="tb"><i style="width:${w}%"></i></div><div class="why">${why[i].join(" · ") || "&nbsp;"}</div></div>`;
+    }).join("");
+    const tops = TOOLS.filter((t, i) => score[i] === max);
+    let msg = `추천: ${tops.join(", ")}`;
+    if (size === 3 && code === 0) msg += " — 데이터는 크지만 코딩 경험이 없네요. Python 셀을 따라 하며 배우거나, 데이터를 요약·표본 추출해 작게 만든 뒤 쉬운 도구로 분석하는 방법을 고려하세요.";
+    else if (tops.length > 1) msg += " — 점수가 같다면 모둠이 이미 익숙한 도구를 고르는 것도 좋은 기준입니다.";
+    $("tool-rec").textContent = msg;
+  }
+  $("size").addEventListener("input", render);
+  $("code").addEventListener("input", render);
+  document.querySelectorAll("#conds input[type=checkbox]").forEach(cb => cb.addEventListener("change", render));
+  render();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"Orange와 같은 위젯형 분석 도구에 대한 설명으로 옳은 것은?",
+    choices:["코드를 반드시 작성해야 한다","위젯을 선으로 연결해 데이터가 흐르는 파이프라인을 만든다","기계학습 모델은 만들 수 없다","스프레드시트보다 항상 계산 결과가 정확하다","통계 검정 결과(p값)를 모든 모델에 대해 자동으로 보여 준다"], answer:1,
+    explain:"Orange는 위젯을 연결해 분석 흐름(파이프라인)을 만듭니다. 코드 없이 기계학습도 할 수 있지만 p값 같은 통계 검정은 제한적입니다. 계산 원리가 같다면 도구에 따라 정확도가 달라지지 않습니다." },
+  { type:"mc", q:"공부시간 1, 2, 3, 4, 5시간에 성적이 55, 60, 70, 75, 90점일 때, 스프레드시트 함수 =AVERAGE(성적 범위)의 결과는?",
+    choices:["60","65","70","75","350"], answer:2,
+    explain:"(55 + 60 + 70 + 75 + 90) ÷ 5 = 350 ÷ 5 = 70입니다. Python의 df[\"성적\"].mean()도 같은 값을 줍니다." },
+  { type:"ox", q:"같은 데이터에 같은 계산 방법(예: 최소제곱 추세선)을 적용하면 스프레드시트와 Python의 결과는 같다.",
+    answer:true, explain:"계산 원리가 같으면 도구가 달라도 결과는 같습니다(반올림 표시 차이는 있을 수 있음). 도구의 차이는 규모·재현성·가능한 분석의 범위에 있습니다." },
+  { type:"mc", q:"전국 기상 관측소의 10년치 시간별 기록(수백만 행)을 매달 같은 방식으로 새로 분석해야 한다. 가장 알맞은 도구는?",
+    choices:["종이와 계산기","스프레드시트","CODAP","Python","손그림 그래프"], answer:3,
+    explain:"데이터가 매우 크고 같은 분석을 반복해야 하므로 코드로 자동화할 수 있는 Python(또는 R)이 알맞습니다. 스프레드시트는 행 수에 한계가 있고 작업 순서가 남지 않습니다." },
+  { type:"short", q:"코딩 경험이 없는 학생 모둠이 학급 설문 30명 데이터로 ‘통학 시간과 수면 시간의 관계’를 알아보려 한다. 어떤 도구를 추천할지 쓰고, 이유를 두 가지 이상 드세요.",
+    model:"스프레드시트나 CODAP를 추천한다. 데이터가 30행으로 작아 대용량 처리가 필요 없고, 코딩 없이 산점도와 CORREL 함수(또는 드래그 그래프)로 관계를 바로 확인할 수 있으며, 설문 결과를 직접 입력·정리하기도 쉽기 때문이다." },
+]);
+</script>
+</body>
+</html>

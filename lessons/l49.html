@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>모델 개선과 재분석 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 속성 조합 실험실 */
+.fx-grid { display:grid; grid-template-columns:minmax(230px,1fr) 1.3fr; gap:16px; }
+@media (max-width:780px){ .fx-grid { grid-template-columns:1fr; } }
+.fx-feat label { display:flex; gap:8px; align-items:flex-start; padding:7px 9px; border:1.5px solid var(--line); border-radius:9px; margin:5px 0; font-size:.86rem; background:#fff; cursor:pointer; }
+.fx-feat label small { display:block; color:var(--ink-faint); font-size:.76rem; }
+.fx-feat label.leak { border-color:#f3b9b9; background:#fff8f8; }
+.fx-thr { display:grid; grid-template-columns:auto 1fr auto; gap:4px 8px; align-items:center; font-size:.8rem; font-weight:700; margin:2px 0 6px 26px; }
+.fx-thr output { font-family:var(--font-mono); }
+.fx-coef { font-family:var(--font-mono); font-size:.8rem; background:var(--paper); border-radius:8px; padding:8px 10px; white-space:pre-wrap; margin-top:8px; }
+.fx-warn { margin-top:8px; padding:9px 12px; border-radius:9px; background:#fdeeee; border:1.5px solid #f3b9b9; color:#8a1f1f; font-size:.86rem; display:none; }
+#fx-res td, #fx-res th { padding:5px 8px; font-size:.8rem; text-align:center; }
+.fx-bar { height:10px; background:var(--paper); border:1px solid var(--line); border-radius:999px; overflow:hidden; margin:3px 0 8px; }
+.fx-bar i { display:block; height:100%; background:var(--accent); transition:width .3s; }
+</style>
+</head>
+<body data-unit="4" data-lesson="L49">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>모델 개선과 재분석</h1>
+  <span class="std-badge">성취기준 12데과04-04</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>잔차(오류)를 분석하여 모델의 약점을 찾고, 이를 보완하는 파생 속성을 만들어 재분석할 수 있다.</li>
+      <li>교차 검증으로 설정을 고르고, 데이터 누수가 없는지 점검하여 개선이 진짜인지 확인할 수 있다.</li>
+      <li>개선된 모델의 결과가 문제 상황에서 무엇을 뜻하는지 해석할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과04-04] 복잡하고 어려운 문제라도 끝까지 해결하기 위한 자세를 갖추고 분석하여, 분석 결과에 대한 의미를 해석한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span>수집</span><span class="on">전처리</span><span>탐색</span><span class="on">모델링</span><span class="on">평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  시험을 본 뒤 점수만 확인하고 시험지를 덮는 학생과, 틀린 문제를 하나하나 다시 풀어 보며 “나는 분수 계산에서 자주 틀리는구나”를 찾아내는 학생이 있습니다.
+  다음 시험에서 누가 더 나아질까요? 모델도 마찬가지입니다. 이 차시는 우리 학교 전력 예측 모델이 <b>어떤 날을 틀리는지</b> 들여다보고,
+  그 약점을 고치는 새 속성을 만들어 <b>다시 분석</b>합니다. 한 번에 정답이 나오지 않아도 끝까지 원인을 추적하는 것이 데이터 과학의 진짜 모습입니다.
+</div>
+
+<div class="box box-tip">
+  <span class="box-label">지금까지의 줄거리 (이 차시만 공부하는 경우)</span>
+  예시 프로젝트는 한 학교의 2025년 수업일 198일 데이터(<code>energy.csv</code>, 교육용 가상 데이터)로 평균기온에서 하루 전력 사용량을 예측합니다.
+  기온과 사용량은 추운 날(난방)과 더운 날(냉방)에 모두 늘어나는 U자 관계입니다. 훈련 148일·테스트 50일(<code>random_state=42</code>)로 나누어
+  비교한 결과 선형 회귀는 실패했고(테스트 MAE 167.8kWh), <b>2차 다항 회귀</b>(MAE 82.5kWh, R² 0.723)와 <b>의사결정트리</b>(MAE 87.0kWh, R² 0.720)가 비슷하게 나았습니다.
+</div>
+
+<h2><span class="sec-no">1</span>끝까지 해결하는 분석의 순환: 오류부터 보기 <i class="pub">YBM</i></h2>
+
+<p>모델 개선은 무작정 복잡한 모델로 바꾸는 것이 아니라 <b>진단 → 가설 → 재분석 → 검증</b>의 순환입니다.
+진단의 출발점은 <span class="keyterm">오류 분석(error analysis)</span>, 즉 잔차(실제 − 예측)가 <b>어디서, 어떤 방향으로</b> 큰지 살펴보는 것입니다.</p>
+
+<figure>
+<svg viewBox="0 0 700 120" role="img" aria-label="모델 개선의 순환">
+  <defs><marker id="a9" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#7c3aed"/></marker></defs>
+  <g font-family="Pretendard Variable, sans-serif" font-size="13" text-anchor="middle">
+    <rect x="10" y="22" width="150" height="54" rx="12" fill="#f1eafd" stroke="#7c3aed"/><text x="85" y="45" font-weight="800">① 진단</text><text x="85" y="64" font-size="11">잔차가 큰 곳 찾기</text>
+    <rect x="185" y="22" width="150" height="54" rx="12" fill="#f1eafd" stroke="#7c3aed"/><text x="260" y="45" font-weight="800">② 가설</text><text x="260" y="64" font-size="11">왜 틀렸을까?</text>
+    <rect x="360" y="22" width="150" height="54" rx="12" fill="#f1eafd" stroke="#7c3aed"/><text x="435" y="45" font-weight="800">③ 재분석</text><text x="435" y="64" font-size="11">파생 속성·모델 수정</text>
+    <rect x="535" y="22" width="150" height="54" rx="12" fill="#f1eafd" stroke="#7c3aed"/><text x="610" y="45" font-weight="800">④ 검증</text><text x="610" y="64" font-size="11">교차 검증·누수 점검</text>
+    <path d="M160 49 H183 M335 49 H358 M510 49 H533" stroke="#7c3aed" stroke-width="2" marker-end="url(#a9)"/>
+    <path d="M610 78 C610 112, 85 112, 85 80" fill="none" stroke="#a78bfa" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#a9)"/>
+    <text x="350" y="112" font-size="11" fill="#6d28d9">만족스럽지 않으면 다시 진단</text>
+  </g>
+</svg>
+<figcaption>그림 1. 모델 개선의 순환.</figcaption>
+</figure>
+
+<div class="pycell" data-title="① 진단: 2차 다항 회귀는 어디서 틀리나?"><textarea>
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.pipeline import make_pipeline
+from sklearn.metrics import mean_absolute_error, r2_score
+
+en = load_csv("energy.csv")
+en["날짜"] = pd.to_datetime(en["날짜"])
+school = en[en["수업일"] == 1].reset_index(drop=True)
+school["요일"] = school["날짜"].dt.dayofweek                      # 0=월 … 4=금
+train, test = train_test_split(school, test_size=0.25, random_state=42)   # L47·L48과 같은 분할
+
+poly = make_pipeline(PolynomialFeatures(2), LinearRegression()).fit(train[["평균기온"]], train["전력사용량"])
+train = train.assign(잔차 = train["전력사용량"] - poly.predict(train[["평균기온"]]))
+
+print("[기온 구간별 평균 잔차]  + 는 과소 예측, − 는 과대 예측")
+print(train.groupby(pd.cut(train["평균기온"], [-5, 5, 12, 20, 24, 28, 32]), observed=True)["잔차"].agg(["mean", "count"]).round(0))
+print("\n[요일별 평균 잔차]")
+print(train.groupby("요일")["잔차"].mean().round(1).rename(index=dict(enumerate("월화수목금"))))
+
+# ✏️ 잔차 절댓값이 가장 큰 5일을 찾아 기온·냉난방시간과 함께 살펴보세요.
+</textarea></div>
+
+<p>기온 구간별 잔차에 여전히 <b>규칙</b>이 남아 있습니다. 12~20℃에서는 과소 예측(+), 20~28℃에서는 과대 예측(−), 28℃ 초과에서는 다시 크게 과소 예측(+)합니다.
+2차 곡선은 좌우 대칭인 둥근 그릇 모양이라, 실제 데이터의 <b>평평한 바닥</b>과 <b>더운 쪽의 가파른 오르막</b>을 동시에 표현하지 못하는 것입니다.
+반면 요일별 평균 잔차는 수십 kWh 수준으로 기온 구간의 잔차보다 작아, 요일은 개선 효과가 크지 않을 것으로 보입니다.</p>
+
+<div class="box box-story">
+  <span class="box-label">가설 세우기</span>
+  “사용량은 기준 온도 사이에서는 거의 일정하다가, <b>기준보다 추워진 만큼</b>(난방) 그리고 <b>기준보다 더워진 만큼</b>(냉방) 따로따로 늘어난다.
+  냉방과 난방은 기기가 다르므로 1℃당 늘어나는 양도 다를 것이다.”
+</div>
+
+<h2><span class="sec-no">2</span>파생 속성으로 재분석하기 <i class="pub">YBM</i></h2>
+
+<p>가설을 모델에 담기 위해 원래 속성(평균기온)에서 <span class="keyterm">파생 속성</span> 두 개를 만듭니다. 기준 온도를 각각 L(난방 기준), H(냉방 기준)라고 하면,</p>
+
+<span class="formula">난방필요도 = max(0, L − 평균기온)　　냉방필요도 = max(0, 평균기온 − H)
+<small>예: L = 8℃일 때 평균기온 3℃인 날의 난방필요도는 5, 15℃인 날은 0입니다. 에너지 분야에서 쓰는 ‘난방도일·냉방도일’과 같은 아이디어입니다.</small></span>
+
+<p>이 두 속성으로 <b>선형 회귀</b>를 하면, 기준 사이에서는 평평하고 양쪽에서 서로 다른 기울기로 올라가는 ‘하키 스틱 두 개’ 모양이 만들어집니다.
+그렇다면 기준 온도 L과 H는 몇 도로 정해야 할까요? 테스트 데이터를 보고 고르면 반칙이므로, <b>훈련 데이터 안에서 5-겹 교차 검증</b>으로 고릅니다.</p>
+
+<div class="pycell" data-title="② 파생 속성 만들기 + 교차 검증으로 기준 온도 고르기"><textarea>
+from sklearn.model_selection import KFold, cross_val_score
+
+def make_feats(d, L, H):
+    return pd.DataFrame({"난방필요도": (L - d["평균기온"]).clip(lower=0),
+                         "냉방필요도": (d["평균기온"] - H).clip(lower=0)})
+
+kf = KFold(n_splits=5, shuffle=True, random_state=0)
+rows = []
+for L in range(6, 16, 2):
+    for H in range(18, 28, 2):
+        mae = -cross_val_score(LinearRegression(), make_feats(train, L, H), train["전력사용량"],
+                               cv=kf, scoring="neg_mean_absolute_error").mean()
+        rows.append((L, H, round(mae, 1)))
+
+cv_table = pd.DataFrame(rows, columns=["L(난방 기준)", "H(냉방 기준)", "교차검증 MAE"])
+print(cv_table.sort_values("교차검증 MAE").head(5).to_string(index=False))
+best_L, best_H = cv_table.sort_values("교차검증 MAE").iloc[0, :2].astype(int)
+print("선택한 기준 온도:", best_L, "℃ /", best_H, "℃")
+
+# ✏️ 기준 후보를 1℃ 간격(range(6, 16), range(18, 28))으로 촘촘하게 바꾸면 선택이 달라지나요?
+</textarea></div>
+
+<div class="pycell" data-title="③ 최종 모델을 테스트 데이터로 단 한 번 평가"><textarea>
+from sklearn.tree import DecisionTreeRegressor
+
+Xtr, Xte = make_feats(train, best_L, best_H), make_feats(test, best_L, best_H)
+hinge = LinearRegression().fit(Xtr, train["전력사용량"])
+print(f"전력사용량 = {hinge.intercept_:.1f} + {hinge.coef_[0]:.1f}×난방필요도 + {hinge.coef_[1]:.1f}×냉방필요도")
+
+tree = DecisionTreeRegressor(max_depth=3, random_state=0).fit(train[["평균기온"]], train["전력사용량"])
+cands = [("2차 다항 회귀", poly.predict(test[["평균기온"]])),
+         ("트리(깊이 3)", tree.predict(test[["평균기온"]])),
+         ("파생 속성 선형 회귀", hinge.predict(Xte))]
+for name, p in cands:
+    print(f"{name:12s} 테스트 R² {r2_score(test['전력사용량'], p):.3f}  MAE {mean_absolute_error(test['전력사용량'], p):.1f} kWh")
+
+# ✏️ 기준 온도를 교차 검증 결과 대신 (10, 24)로 넣으면 테스트 성능은? 그래도 (8, 24)를 쓰는 이유는?
+</textarea></div>
+
+<p>교차 검증은 L = <b>8℃</b>, H = <b>24℃</b>를 골랐습니다. 이 기준으로 만든 모델은
+<b>전력사용량 ≈ 1198.4 + 86.8×난방필요도 + 131.4×냉방필요도</b>이고, 테스트 데이터에서 <b>R² 0.855, MAE 60.2kWh</b>를 기록했습니다.
+2차 다항 회귀(MAE 82.5kWh)보다 오차가 약 27% 줄었습니다. 더 복잡한 모델을 쓴 것이 아니라, EDA와 오류 분석에서 얻은 <b>도메인 지식을 속성으로 표현</b>한 결과입니다.</p>
+
+<h2><span class="sec-no">3</span>개선이 진짜인지 점검하기: 교차 검증과 데이터 누수 <i class="pub">삼양</i></h2>
+
+<p>좋아진 점수를 보고 기뻐하기 전에 두 가지를 확인해야 합니다.</p>
+<ul>
+  <li><b>우연이 아닌가?</b> 테스트 50일은 적은 표본이라 분할에 따라 점수가 흔들립니다. 여러 번 나누어 평균을 내는 <span class="keyterm">k-겹 교차 검증</span>으로도 순위가 유지되는지 확인합니다.</li>
+  <li><b>반칙은 없는가?</b> 예측하는 시점에 <b>알 수 없는 정보</b>가 입력에 들어가 점수가 부풀려지는 것을 <span class="keyterm">데이터 누수(data leakage)</span>라고 합니다.
+    테스트 데이터로 설정을 고르는 것도 누수의 한 형태입니다.</li>
+</ul>
+
+<div class="pycell" data-title="④ 교차 검증 비교 + 누수 점검(냉난방시간)"><textarea>
+models = {
+    "2차 다항 회귀":        (make_pipeline(PolynomialFeatures(2), LinearRegression()), train[["평균기온"]]),
+    "트리(깊이 3)":         (DecisionTreeRegressor(max_depth=3, random_state=0), train[["평균기온"]]),
+    "파생 속성 선형 회귀":  (LinearRegression(), make_feats(train, best_L, best_H)),
+}
+for name, (m, X) in models.items():
+    mae = -cross_val_score(m, X, train["전력사용량"], cv=kf, scoring="neg_mean_absolute_error")
+    print(f"{name:12s} 5-겹 교차검증 MAE {mae.mean():.1f} (각 겹: {np.round(mae, 0)})")
+
+# 누수 점검: '냉난방시간'을 입력에 넣으면?
+leak = LinearRegression().fit(train[["평균기온", "냉난방시간"]], train["전력사용량"])
+p = leak.predict(test[["평균기온", "냉난방시간"]])
+print(f"\n[주의] 냉난방시간 포함 모델: 테스트 R² {r2_score(test['전력사용량'], p):.3f}, MAE {mean_absolute_error(test['전력사용량'], p):.1f}")
+
+# ✏️ 냉난방시간은 '내일' 사용량을 예측하는 시점에 알 수 있는 값일까요? 주석으로 답을 적어 보세요.
+</textarea></div>
+
+<p>교차 검증에서도 파생 속성 모델의 MAE가 가장 작아, 개선이 한 번의 분할에서 생긴 우연이 아님을 알 수 있습니다.
+한편 <code>냉난방시간</code>을 넣으면 점수가 더 좋아 보이지만, 냉난방기를 몇 시간 켰는지는 <b>그날이 끝나야 알 수 있는 값</b>이고
+전력 사용량과 사실상 같은 현상을 다르게 잰 것입니다. “내일 사용량을 기온 예보로 미리 알기”라는 목적에서는 쓸 수 없는 입력이므로 최종 모델에서 제외합니다.
+(반대로 ‘이미 지난 날의 사용량이 냉난방 때문인지 분석’하는 목적이라면 쓸 수 있습니다. 누수는 <b>목적과 예측 시점</b>에 따라 판단합니다.)</p>
+
+<div class="sim">
+  <div class="sim-head">속성 조합 실험실 — 무엇을 넣으면 좋아질까?</div>
+  <div class="sim-body">
+    <p style="margin-top:0;font-size:.92rem">입력 속성을 골라 선형 회귀를 다시 학습합니다(훈련 148일 → 같은 테스트 50일로 평가).
+    오른쪽 아래 표는 이 모델이 테스트에서 가장 크게 틀린 날입니다.</p>
+    <div class="fx-grid">
+      <div class="fx-feat">
+        <label><input type="checkbox" data-f="t" checked><span>평균기온<small>원래 속성</small></span></label>
+        <label><input type="checkbox" data-f="t2"><span>평균기온²<small>2차 곡선(다항 회귀)</small></span></label>
+        <label><input type="checkbox" data-f="h"><span>난방필요도 = max(0, L − 기온)<small>파생 속성</small></span></label>
+        <div class="fx-thr"><span>L</span><input type="range" id="fx-L" min="0" max="16" value="8"><output id="fx-Lv">8℃</output></div>
+        <label><input type="checkbox" data-f="c"><span>냉방필요도 = max(0, 기온 − H)<small>파생 속성</small></span></label>
+        <div class="fx-thr"><span>H</span><input type="range" id="fx-H" min="16" max="30" value="24"><output id="fx-Hv">24℃</output></div>
+        <label><input type="checkbox" data-f="dow"><span>요일 (화·수·목·금, 월요일 기준)<small>날짜에서 파생</small></span></label>
+        <label class="leak"><input type="checkbox" data-f="hv"><span>냉난방시간 ⚠<small>그날이 끝나야 알 수 있는 값</small></span></label>
+      </div>
+      <div>
+        <div class="sim-stats" style="margin-top:0">
+          <span class="stat-chip">테스트 R² <b id="fx-r2">-</b></span>
+          <span class="stat-chip">테스트 MAE <b id="fx-mae">-</b> kWh</span>
+          <span class="stat-chip">훈련 R² <b id="fx-tr">-</b></span>
+        </div>
+        <div class="fx-bar" title="테스트 MAE (짧을수록 좋음, 막대 끝 = 200kWh)"><i id="fx-bar"></i></div>
+        <div class="fx-warn" id="fx-warn">⚠ 데이터 누수 주의: 냉난방시간은 예측 시점(전날)에 알 수 없습니다. 점수는 좋아 보여도 ‘내일 예측’ 모델에는 쓸 수 없어요.</div>
+        <div class="fx-coef" id="fx-coef"></div>
+        <div class="table-wrap"><table id="fx-res"></table></div>
+      </div>
+    </div>
+    <p class="widget-hint">관찰 포인트: ‘평균기온’만 → ‘평균기온²’ 추가 → 파생 속성 두 개로 바꿔 가며 MAE를 비교하세요. L·H 슬라이더를 움직여 테스트 MAE가 가장 작은 값을 찾는 것은 왜 반칙일까요? 요일을 더하면 얼마나 좋아지나요?</p>
+  </div>
+</div>
+
+<h2><span class="sec-no">4</span>개선된 결과의 의미 해석하기 <i class="pub-c">공통</i></h2>
+
+<p>최종 모델 <b>전력사용량 ≈ 1198.4 + 86.8×난방필요도 + 131.4×냉방필요도</b>(L = 8℃, H = 24℃)는 숫자 하나하나가 문제 상황의 언어로 번역됩니다.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:170px">모델의 숫자</th><th>문제 상황에서의 의미</th></tr></thead>
+  <tbody>
+    <tr><td><b>1198.4</b> (절편)</td><td>평균기온이 8~24℃인 선선한 수업일의 기본 사용량(조명·컴퓨터·급식실 등). 냉난방과 관계없는 전기이므로 대기 전력 관리 같은 다른 절약 방법이 필요하다.</td></tr>
+    <tr><td><b>86.8</b> (난방필요도)</td><td>8℃보다 1℃ 추워질 때마다 하루 약 87kWh 증가. 한파일(−3℃)에는 기본보다 약 950kWh를 더 쓴다.</td></tr>
+    <tr><td><b>131.4</b> (냉방필요도)</td><td>24℃보다 1℃ 더워질 때마다 하루 약 131kWh 증가. 1℃당 증가량이 난방보다 약 1.5배 크므로, <b>여름 냉방 관리</b>의 절약 효과가 더 클 수 있다.</td></tr>
+  </tbody>
+</table></div>
+
+<div class="box box-warn">
+  <span class="box-label">해석의 한계도 함께</span>
+  이 결과는 한 학교의 10개월 가상 데이터에서 얻은 것입니다. 기준 온도(8℃, 24℃)는 학교 건물·설비·설정 온도에 따라 달라질 수 있고,
+  모델은 ‘기온 때문에’ 사용량이 늘었다는 인과를 증명하지 않습니다(같은 시기에 시험·행사가 겹쳤을 수도 있음). 학습 범위(−3.4~31.7℃) 밖 날씨의 예측도 불확실합니다.
+  이런 한계는 L50에서 더 깊이 다룹니다.
+</div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  이 차시는 확장 차시이므로 3학점 반은 L48의 비교 결과로 L50에 바로 넘어가도 됩니다.
+  파생 속성 아이디어는 학생이 스스로 떠올리기 어려우므로, EDA의 ‘기온 구간별 평균’ 막대그래프를 다시 보여 주며 “바닥은 어디서 끝나지?”라고 묻는 것이 좋은 실마리가 됩니다.
+  Orange에서는 <b>Feature Constructor</b>에 <code>max(0, 8 - 평균기온)</code> 같은 식을 넣어 파생 속성을 만들고 <b>Test and Score</b>의 Cross validation으로 비교할 수 있습니다.
+  개선에 실패한 시도(예: 요일 추가)도 기록하게 하여, ‘좋아지지 않았다’는 것도 의미 있는 결과임을 강조하세요.
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">모둠 활동</span>우리 모둠 모델 개선 일지 <i class="pub">YBM</i></div>
+  <div class="act-body">
+    <ol>
+      <li>지난 차시에 고른 모델의 오류를 분석하세요. 크게 틀린 사례 3개와 그 공통점을 적습니다.
+        <div class="table-wrap"><table>
+          <thead><tr><th>사례(행)</th><th>실제</th><th>예측</th><th>그 사례의 특징</th></tr></thead>
+          <tbody><tr><td>&nbsp;</td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td></tr></tbody>
+        </table></div>
+        공통점: <div class="write-lines"><div class="line"></div></div></li>
+      <li>개선 시도를 두 가지 이상 기록하세요. 실패한 시도도 적습니다.
+        <div class="table-wrap"><table>
+          <thead><tr><th>시도 (가설 → 바꾼 것)</th><th>교차 검증 성능 (전 → 후)</th><th>누수 점검 (예측 시점에 알 수 있는가?)</th><th>채택 여부</th></tr></thead>
+          <tbody><tr><td>&nbsp;</td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td></tr></tbody>
+        </table></div></li>
+      <li>최종 모델의 숫자(계수·규칙) 하나를 골라 문제 상황의 언어로 해석하고, 가장 어려웠던 순간과 그것을 어떻게 넘겼는지 적으세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div><div class="line"></div></div></li>
+    </ol>
+  </div>
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>모델 개선은 진단(오류 분석) → 가설 → 재분석 → 검증의 순환이다. 잔차에 남은 규칙이 개선의 실마리다.</li>
+    <li>도메인 지식을 담은 파생 속성(난방필요도·냉방필요도)으로 선형 회귀의 테스트 MAE를 82.5kWh(2차 다항)에서 60.2kWh로 줄였다.</li>
+    <li>설정값은 훈련 데이터의 교차 검증으로 고르고, 테스트 데이터는 마지막에 한 번만 쓴다.</li>
+    <li>예측 시점에 알 수 없는 값(냉난방시간)을 입력에 넣는 것은 데이터 누수이다. 누수 여부는 목적과 예측 시점으로 판단한다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 속성 조합 실험실 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  // [평균기온, 전력사용량, 테스트여부(random_state=42 분할), 요일(0=월), 월, 냉난방시간, 날짜]
+  const D=[[3.4,1682,0,0,3,4.5,"03-03"],[2.9,1737,0,1,3,5.0,"03-04"],[8.1,1266,0,2,3,0.0,"03-05"],[5.4,1434,0,3,3,2.3,"03-06"],[3.6,1634,0,4,3,3.4,"03-07"],[7.4,1174,1,0,3,0.6,"03-10"],[0.7,1804,0,1,3,6.6,"03-11"],[7.1,1244,0,2,3,0.7,"03-12"],[5.0,1344,0,3,3,2.9,"03-13"],[9.5,1311,1,4,3,0.0,"03-14"],[3.2,1621,0,0,3,4.3,"03-17"],[5.0,1491,0,1,3,2.8,"03-18"],[8.0,1294,1,2,3,0.0,"03-19"],[6.1,1480,0,3,3,2.0,"03-20"],[7.2,1213,0,4,3,0.3,"03-21"],[5.5,1414,1,0,3,1.9,"03-24"],[6.6,1339,1,1,3,1.5,"03-25"],[7.2,1323,0,2,3,1.1,"03-26"],[9.0,1315,1,3,3,0.7,"03-27"],[7.4,1306,1,4,3,0.5,"03-28"],[8.9,1196,0,0,3,0.0,"03-31"],[12.2,1216,0,1,4,0.1,"04-01"],[9.0,1248,0,2,4,0.1,"04-02"],[7.9,1208,0,3,4,0.0,"04-03"],[12.6,1274,1,4,4,0.0,"04-04"],[10.8,1250,0,0,4,0.1,"04-07"],[11.9,1116,0,1,4,0.1,"04-08"],[10.9,1247,0,2,4,0.0,"04-09"],[11.7,1207,0,3,4,0.1,"04-10"],[12.7,1170,0,4,4,0.0,"04-11"],[10.7,1090,1,0,4,0.0,"04-14"],[14.8,1222,0,1,4,0.5,"04-15"],[13.9,1231,0,2,4,0.0,"04-16"],[12.9,1150,0,3,4,0.0,"04-17"],[13.3,1253,0,4,4,0.0,"04-18"],[11.1,1227,1,0,4,0.4,"04-21"],[20.6,1156,0,1,4,0.0,"04-22"],[16.4,1129,0,2,4,0.0,"04-23"],[13.1,1260,0,3,4,0.0,"04-24"],[19.0,1189,0,4,4,0.0,"04-25"],[22.2,1139,0,0,4,0.1,"04-28"],[16.3,1196,0,1,4,0.2,"04-29"],[18.9,1311,0,2,4,0.4,"04-30"],[16.1,1246,0,3,5,0.0,"05-01"],[15.0,1225,0,4,5,0.0,"05-02"],[24.7,1338,1,0,5,1.0,"05-05"],[22.1,1253,0,1,5,0.0,"05-06"],[19.6,1159,0,2,5,0.3,"05-07"],[21.1,1256,0,3,5,0.4,"05-08"],[22.2,1266,0,4,5,0.0,"05-09"],[17.0,1170,0,0,5,0.0,"05-12"],[18.8,1166,0,1,5,0.0,"05-13"],[18.6,1174,0,2,5,0.0,"05-14"],[21.8,1161,0,3,5,0.0,"05-15"],[17.9,1158,0,4,5,0.0,"05-16"],[24.9,1283,1,0,5,1.2,"05-19"],[19.5,1202,1,1,5,0.0,"05-20"],[21.0,1118,0,2,5,0.3,"05-21"],[22.9,1260,0,3,5,0.0,"05-22"],[21.9,1195,0,4,5,0.0,"05-23"],[19.0,1267,1,0,5,0.4,"05-26"],[19.1,1137,0,1,5,0.0,"05-27"],[24.0,1285,0,2,5,0.3,"05-28"],[27.4,1566,0,3,5,4.5,"05-29"],[23.9,1092,0,4,5,0.1,"05-30"],[23.7,1058,1,0,6,0.0,"06-02"],[24.6,1379,1,1,6,0.8,"06-03"],[24.3,1180,0,2,6,0.4,"06-04"],[26.9,1386,1,3,6,3.7,"06-05"],[24.4,1417,1,4,6,1.0,"06-06"],[19.2,1215,0,0,6,0.2,"06-09"],[21.4,1207,0,1,6,0.0,"06-10"],[20.6,1159,0,2,6,0.1,"06-11"],[21.0,1237,1,3,6,0.0,"06-12"],[31.7,2154,0,4,6,10.0,"06-13"],[28.1,1756,0,0,6,6.3,"06-16"],[25.0,1337,1,1,6,1.0,"06-17"],[25.8,1456,0,2,6,2.6,"06-18"],[28.7,1859,0,3,6,6.9,"06-19"],[23.6,1183,0,4,6,0.0,"06-20"],[25.7,1458,0,0,6,2.7,"06-23"],[27.2,1622,0,1,6,4.4,"06-24"],[25.9,1382,1,2,6,2.5,"06-25"],[25.9,1371,0,3,6,2.6,"06-26"],[25.9,1440,0,4,6,3.1,"06-27"],[26.1,1431,1,0,6,2.5,"06-30"],[25.3,1444,0,1,7,1.7,"07-01"],[25.8,1270,0,2,7,2.4,"07-02"],[25.6,1322,0,3,7,1.9,"07-03"],[28.9,1837,0,4,7,7.0,"07-04"],[29.0,1862,0,0,7,6.8,"07-07"],[29.3,1906,0,1,7,7.3,"07-08"],[27.1,1593,0,2,7,4.3,"07-09"],[28.6,1919,0,3,7,6.4,"07-10"],[24.1,1140,0,4,7,0.1,"07-11"],[29.2,1894,0,0,7,7.4,"07-14"],[30.5,2012,1,1,7,9.1,"07-15"],[28.1,1773,0,2,7,6.0,"07-16"],[25.3,1394,1,3,7,2.1,"07-17"],[23.7,1184,0,4,7,0.5,"07-18"],[28.2,1718,0,0,7,5.8,"07-21"],[27.3,1700,0,1,7,4.2,"07-22"],[21.0,1098,0,2,8,0.0,"08-20"],[27.4,1672,0,3,8,5.2,"08-21"],[24.2,1158,1,4,8,0.0,"08-22"],[21.4,1119,0,0,8,0.0,"08-25"],[23.9,1230,0,1,8,0.0,"08-26"],[20.5,1359,0,2,8,0.2,"08-27"],[27.1,1577,0,3,8,4.2,"08-28"],[21.0,1232,0,4,8,0.0,"08-29"],[20.9,1113,0,0,9,0.0,"09-01"],[18.4,1216,1,1,9,0.4,"09-02"],[23.2,1085,0,2,9,0.0,"09-03"],[22.8,1217,1,3,9,0.0,"09-04"],[23.5,1184,1,4,9,0.3,"09-05"],[16.1,1188,1,0,9,0.0,"09-08"],[20.3,1209,0,1,9,0.2,"09-09"],[22.7,1176,1,2,9,0.3,"09-10"],[24.7,1250,0,3,9,0.9,"09-11"],[22.4,1135,1,4,9,0.3,"09-12"],[18.7,1271,0,0,9,0.0,"09-15"],[12.4,1138,0,1,9,0.1,"09-16"],[21.5,1203,0,2,9,0.1,"09-17"],[20.7,1246,0,3,9,0.0,"09-18"],[19.6,1188,1,4,9,0.0,"09-19"],[19.0,1208,1,0,9,0.0,"09-22"],[16.5,1180,1,1,9,0.0,"09-23"],[16.9,1261,0,2,9,0.2,"09-24"],[17.5,1171,0,3,9,0.0,"09-25"],[17.1,1156,0,4,9,0.0,"09-26"],[15.5,1198,0,0,9,0.5,"09-29"],[18.8,1265,0,1,9,0.1,"09-30"],[21.8,1081,0,2,10,0.0,"10-01"],[10.0,1247,0,3,10,0.0,"10-02"],[18.3,1250,0,4,10,0.0,"10-03"],[13.0,1199,0,0,10,0.0,"10-06"],[15.3,1156,0,1,10,0.0,"10-07"],[15.7,1354,1,2,10,0.0,"10-08"],[20.6,1314,1,3,10,0.1,"10-09"],[12.6,1215,0,4,10,0.2,"10-10"],[11.2,1204,1,0,10,0.0,"10-13"],[13.4,1347,1,1,10,0.1,"10-14"],[7.3,1316,0,2,10,0.8,"10-15"],[9.8,1152,0,3,10,0.0,"10-16"],[11.9,1192,0,4,10,0.2,"10-17"],[11.3,1170,0,0,10,0.0,"10-20"],[11.4,1222,0,1,10,0.1,"10-21"],[9.6,1164,1,2,10,0.0,"10-22"],[8.8,1093,0,3,10,0.0,"10-23"],[14.3,1285,0,4,10,0.0,"10-24"],[9.4,1143,1,0,10,0.0,"10-27"],[10.7,1245,0,1,10,0.0,"10-28"],[12.7,1211,0,2,10,0.2,"10-29"],[12.5,1175,0,3,10,0.0,"10-30"],[11.4,1229,0,4,10,0.1,"10-31"],[6.5,1420,0,0,11,1.4,"11-03"],[12.4,1168,1,1,11,0.0,"11-04"],[7.4,1181,0,2,11,0.3,"11-05"],[9.8,1247,1,3,11,0.0,"11-06"],[9.9,1286,0,4,11,0.0,"11-07"],[5.1,1475,0,0,11,2.2,"11-10"],[3.1,1580,1,1,11,4.6,"11-11"],[4.3,1431,0,2,11,3.3,"11-12"],[6.7,1367,1,3,11,1.4,"11-13"],[9.8,1285,0,4,11,0.0,"11-14"],[4.9,1477,0,0,11,3.0,"11-17"],[4.4,1584,0,1,11,3.7,"11-18"],[2.2,1769,1,2,11,5.2,"11-19"],[2.1,1655,0,3,11,5.0,"11-20"],[3.4,1479,0,4,11,4.1,"11-21"],[1.8,1801,1,0,11,5.9,"11-24"],[0.9,1730,1,1,11,6.0,"11-25"],[7.1,1218,0,2,11,0.8,"11-26"],[2.8,1639,0,3,11,4.9,"11-27"],[6.1,1451,0,4,11,2.0,"11-28"],[4.9,1350,1,0,12,2.4,"12-01"],[-3.3,2289,0,1,12,9.8,"12-02"],[3.6,1462,0,2,12,4.1,"12-03"],[2.7,1684,0,3,12,4.8,"12-04"],[5.1,1469,0,4,12,2.6,"12-05"],[-1.5,2039,0,0,12,8.9,"12-08"],[-2.4,2091,0,1,12,9.5,"12-09"],[0.2,1881,0,2,12,7.5,"12-10"],[-0.2,1865,0,3,12,7.1,"12-11"],[1.3,1650,0,4,12,6.1,"12-12"],[0.6,1886,0,0,12,6.4,"12-15"],[-3.4,2088,0,1,12,9.8,"12-16"],[3.0,1604,1,2,12,4.6,"12-17"],[0.7,1806,0,3,12,6.5,"12-18"],[0.3,1824,0,4,12,6.7,"12-19"],[2.4,1690,0,0,12,5.4,"12-22"],[0.2,1838,1,1,12,6.8,"12-23"],[3.5,1592,0,2,12,4.0,"12-24"],[-2.6,2192,0,3,12,9.7,"12-25"],[1.4,1782,0,4,12,6.2,"12-26"],[-1.9,1994,0,0,12,8.4,"12-29"],[-0.8,2061,0,1,12,8.0,"12-30"],[-1.8,2074,0,2,12,8.7,"12-31"]];
+  const TR = D.filter(d => !d[2]), TE = D.filter(d => d[2]);
+  const DOW = ["월","화","수","목","금"];
+
+  function names(sel, L, H){
+    const n = [];
+    if (sel.t) n.push("평균기온");
+    if (sel.t2) n.push("평균기온²");
+    if (sel.h) n.push(`난방필요도(L=${L})`);
+    if (sel.c) n.push(`냉방필요도(H=${H})`);
+    if (sel.dow) n.push("화", "수", "목", "금");
+    if (sel.hv) n.push("냉난방시간");
+    return n;
+  }
+  function row(d, sel, L, H){
+    const t = d[0], r = [1];
+    if (sel.t) r.push(t);
+    if (sel.t2) r.push(t * t);
+    if (sel.h) r.push(Math.max(0, L - t));
+    if (sel.c) r.push(Math.max(0, t - H));
+    if (sel.dow) for (let k = 1; k <= 4; k++) r.push(d[3] === k ? 1 : 0);
+    if (sel.hv) r.push(d[5]);
+    return r;
+  }
+  function solve(Xs, ys){
+    const m = Xs[0].length, A = Array.from({length:m}, () => new Array(m + 1).fill(0));
+    Xs.forEach((x, i) => { for (let r = 0; r < m; r++){ for (let c = 0; c < m; c++) A[r][c] += x[r] * x[c]; A[r][m] += x[r] * ys[i]; } });
+    for (let r = 1; r < m; r++) A[r][r] += 1e-9;           // 아주 작은 값으로 수치 안정화
+    for (let c = 0; c < m; c++){
+      let p = c; for (let r = c + 1; r < m; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;
+      [A[c], A[p]] = [A[p], A[c]];
+      if (Math.abs(A[c][c]) < 1e-12) continue;
+      for (let r = 0; r < m; r++){ if (r === c) continue; const k = A[r][c] / A[c][c]; for (let q = c; q <= m; q++) A[r][q] -= k * A[c][q]; }
+    }
+    return A.map((row, i) => Math.abs(row[i]) < 1e-12 ? 0 : row[m] / row[i]);
+  }
+  const dot = (w, x) => x.reduce((s, v, i) => s + v * w[i], 0);
+  function metrics(ds, w, sel, L, H){
+    const my = ds.reduce((s, d) => s + d[1], 0) / ds.length;
+    let sse = 0, sst = 0, ae = 0;
+    ds.forEach(d => { const e = d[1] - dot(w, row(d, sel, L, H)); sse += e * e; ae += Math.abs(e); sst += (d[1] - my) ** 2; });
+    return { r2: 1 - sse / sst, mae: ae / ds.length };
+  }
+
+  function update(){
+    const sel = {};
+    document.querySelectorAll(".fx-feat input[type=checkbox]").forEach(c => sel[c.dataset.f] = c.checked);
+    const L = +$("fx-L").value, H = +$("fx-H").value;
+    $("fx-Lv").textContent = L + "℃"; $("fx-Hv").textContent = H + "℃";
+    $("fx-warn").style.display = sel.hv ? "block" : "none";
+    const nm = names(sel, L, H);
+    let w;
+    if (!nm.length){
+      const mean = TR.reduce((s, d) => s + d[1], 0) / TR.length; w = [mean];
+    } else {
+      w = solve(TR.map(d => row(d, sel, L, H)), TR.map(d => d[1]));
+    }
+    const a = metrics(TR, w, sel, L, H), b = metrics(TE, w, sel, L, H);
+    $("fx-r2").textContent = b.r2.toFixed(3);
+    $("fx-mae").textContent = b.mae.toFixed(1);
+    $("fx-tr").textContent = a.r2.toFixed(3);
+    $("fx-bar").style.width = Math.min(b.mae / 200, 1) * 100 + "%";
+    $("fx-coef").textContent = "전력사용량 = " + w[0].toFixed(1) +
+      (nm.length ? nm.map((n, i) => `\n   ${w[i + 1] >= 0 ? "+" : "−"} ${Math.abs(w[i + 1]).toFixed(2)} × ${n}`).join("") : "   (입력 없음: 훈련 평균으로만 예측)");
+    const errs = TE.map(d => ({ d, p: dot(w, row(d, sel, L, H)) })).map(o => ({ ...o, e: o.d[1] - o.p }))
+      .sort((x, y) => Math.abs(y.e) - Math.abs(x.e)).slice(0, 5);
+    $("fx-res").innerHTML = `<thead><tr><th>가장 크게 틀린 날</th><th>기온</th><th>실제</th><th>예측</th><th>잔차</th></tr></thead><tbody>` +
+      errs.map(o => `<tr><td>${o.d[6]} (${DOW[o.d[3]]})</td><td>${o.d[0]}℃</td><td>${o.d[1]}</td><td>${Math.round(o.p)}</td><td style="color:${o.e > 0 ? "#b32424" : "#1d6fb8"}">${o.e > 0 ? "+" : ""}${Math.round(o.e)}</td></tr>`).join("") + `</tbody>`;
+  }
+  document.querySelectorAll(".fx-feat input").forEach(el => el.addEventListener(el.type === "range" ? "input" : "change", update));
+  update();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"난방 기준 L = 8℃일 때, 평균기온이 −2℃인 날의 난방필요도 max(0, L − 기온)은?",
+    choices:["0","6","8","10","−10"], answer:3,
+    explain:"max(0, 8 − (−2)) = max(0, 10) = 10입니다. 기온이 8℃ 이상인 날은 0이 됩니다." },
+  { type:"mc", q:"모델 ‘전력사용량 = 1198.4 + 86.8×난방필요도 + 131.4×냉방필요도’(L = 8℃, H = 24℃)로 평균기온 28℃인 수업일의 사용량을 예측하면?",
+    choices:["약 1198kWh","약 1330kWh","약 1545kWh","약 1724kWh","약 2410kWh"], answer:3,
+    explain:"28℃에서 난방필요도 = 0, 냉방필요도 = 28 − 24 = 4입니다. 1198.4 + 131.4 × 4 = 1198.4 + 525.6 = 1724kWh입니다." },
+  { type:"ox", q:"여러 설정값 중 테스트 데이터에서 MAE가 가장 작은 설정을 골라 최종 모델로 발표하면, 그 테스트 MAE는 새로운 날에 대한 성능을 공정하게 나타낸다.",
+    answer:false, explain:"테스트 데이터를 보고 설정을 고르면 테스트 데이터가 선택 과정에 쓰인 셈이어서(누수) 성능이 부풀려집니다. 설정은 훈련 데이터의 교차 검증으로 고르고 테스트는 마지막에 한 번만 사용합니다." },
+  { type:"mc", q:"‘내일의 학교 전력 사용량을 오늘 저녁에 예측’하는 모델의 입력으로 쓰면 데이터 누수가 되는 것은?",
+    choices:["내일의 기온 예보","내일의 요일","내일이 수업일인지 여부(학사 일정)","내일의 냉난방기 가동 시간 기록","지난주 같은 요일의 사용량"], answer:3,
+    explain:"냉난방기 가동 시간은 내일이 끝나야 기록되는 값이므로 예측 시점에 알 수 없습니다. 게다가 전력 사용량과 거의 같은 현상을 잰 값이라 점수를 크게 부풀립니다." },
+  { type:"short", q:"모둠이 요일 속성을 추가했더니 교차 검증 MAE가 거의 줄지 않았습니다. 이 결과를 보고서에 어떻게 쓰면 좋을지, 그리고 이 ‘실패’가 왜 의미 있는 결과인지 쓰세요.",
+    model:"예: “요일(화~금)을 추가해도 교차 검증 MAE가 거의 변하지 않아 최종 모델에서 제외했다. 이 학교의 수업일 전력 사용량은 요일보다 기온(냉난방)의 영향을 훨씬 크게 받는다.” 의미: 효과가 없다는 것도 데이터가 알려 준 사실이며, 불필요한 속성을 빼 모델을 단순하고 해석하기 쉽게 유지하는 근거가 된다. 또 절약 대책을 요일별 운영이 아니라 냉난방 관리에 집중해야 한다는 판단으로 이어진다." },
+]);
+</script>
+</body>
+</html>

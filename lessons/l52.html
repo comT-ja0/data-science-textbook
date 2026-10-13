@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>사회적 영향과 데이터 윤리 성찰 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 윤리 점검 시나리오 판정 */
+.ej-card { border:1.5px solid var(--line); border-radius:12px; padding:14px 16px; background:#fff; }
+.ej-top { display:flex; justify-content:space-between; align-items:center; font-size:.8rem; font-weight:700; color:var(--ink-faint); margin-bottom:6px; }
+.ej-tag { background:var(--accent-soft); color:var(--accent); border-radius:999px; padding:1px 10px; }
+.ej-text { font-size:.96rem; line-height:1.65; min-height:4.6em; }
+.ej-choices { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+.ej-choices button { flex:1; min-width:110px; }
+.ej-choices button.pick-ok { background:var(--ok); }
+.ej-choices button.pick-mid { background:#d97706; }
+.ej-choices button.pick-no { background:var(--no); }
+.ej-fb { margin-top:12px; padding:10px 14px; border-radius:10px; font-size:.9rem; display:none; }
+.ej-fb.right { background:#eafaf0; border:1.5px solid #ace8c4; display:block; }
+.ej-fb.wrong { background:#fdeeee; border:1.5px solid #f3b9b9; display:block; }
+.ej-dots { display:flex; gap:5px; margin-top:12px; flex-wrap:wrap; }
+.ej-dots span { width:22px; height:22px; border-radius:50%; background:var(--paper); border:1.5px solid var(--line); font-size:.7rem; display:flex; align-items:center; justify-content:center; font-weight:700; cursor:pointer; }
+.ej-dots span.cur { border-color:var(--accent); color:var(--accent); }
+.ej-dots span.r { background:#eafaf0; border-color:var(--ok); }
+.ej-dots span.w { background:#fdeeee; border-color:var(--no); }
+pre.robots { background:#212a36; color:#e6edf5; border-radius:10px; padding:12px 16px; font-size:.84rem; overflow-x:auto; }
+.check-tbl td:first-child { width:34px; text-align:center; font-size:1.1rem; }
+</style>
+</head>
+<body data-unit="4" data-lesson="L52">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>사회적 영향과 데이터 윤리 성찰</h1>
+  <span class="std-badge">성취기준 12데과04-05</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>개인정보·가명정보·익명정보를 구분하고, 가명처리와 재식별 위험 점검을 수행할 수 있다.</li>
+      <li>데이터 분석 결과에 담길 수 있는 편향·고정관념과 데이터 수집(크롤링) 과정의 윤리 문제를 판단할 수 있다.</li>
+      <li>프로젝트 전 과정을 ‘일반화 및 공유’ 체크리스트로 성찰하고, 사회적 영향을 고려한 결과 활용 방안과 모델 수정 방향을 제시할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과04-05] 분석을 위한 목적부터 데이터 수집 및 분석에 이르는 전 과정을 성찰하고, 사회적 영향을 고려하여 분석 결과의 활용 방안을 탐색한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span class="on">문제 정의</span><span class="on">수집</span><span class="on">전처리</span><span class="on">탐색</span><span class="on">모델링</span><span class="on">평가·해석</span><span class="on">공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  우리 모둠의 전력 분석 결과를 본 한 친구가 아이디어를 냅니다. “학교 와이파이 접속 기록을 보면 어느 교실에 사람이 있는지 알 수 있잖아.
+  접속한 기기가 없는 교실은 냉난방을 자동으로 끄면 전기를 훨씬 아낄 수 있어!”
+  좋은 아이디어 같지만 마음 한구석이 불편합니다. 와이파이 기록에는 <b>누가, 언제, 어디에 있었는지</b>가 담겨 있으니까요.
+  또 폭염 날 냉방을 줄였다가 누군가 건강을 해친다면요? 데이터 과학의 결과는 사람들의 삶에 영향을 줍니다.
+  오늘은 프로젝트 전 과정을 돌아보며 <b>“이 분석은 괜찮은가?”</b>를 묻는 연습을 합니다.
+</div>
+
+<h2><span class="sec-no">1</span>분석 결과의 사회적 영향 <i class="pub-c">공통</i> <i class="pub">YBM</i></h2>
+
+<p>같은 분석 결과도 어떻게 활용하느냐에 따라 사회에 좋은 영향과 나쁜 영향을 동시에 줄 수 있습니다.
+예를 들어 날씨로 <b>최대 전력 수요를 예측</b>하는 모델은 발전량을 미리 준비해 대규모 정전(블랙아웃)을 막는 데 쓰이지만,
+예측이 틀리면 전력 공급이 부족해지거나 불필요한 발전으로 온실가스를 더 배출할 수도 있습니다.
+분석 결과를 활용하기 전에는 <b>누가 이익을 얻고, 누가 부담을 지며, 틀렸을 때 누가 피해를 보는지</b>를 따져야 합니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:150px">예시 프로젝트 제안</th><th>기대 효과</th><th>생길 수 있는 부작용</th><th style="width:210px">보완 방향</th></tr></thead>
+  <tbody>
+    <tr><td>냉난방 시간 30분 줄이기</td><td>전력·탄소 배출 감소 (SDG 7·13)</td><td>폭염·한파 때 학생 건강 위협. 남향·꼭대기 층 교실 학생에게 부담 집중</td><td>기온 기준 예외 규정, 교실별 온도 측정 후 차등 적용</td></tr>
+    <tr><td>와이파이 기록으로 빈 교실 자동 차단</td><td>낭비 전력 감소</td><td>학생 위치 추적·감시 우려, 목적 외 사용 위험</td><td>개인 식별 없이 ‘재실 인원 수’만 집계, 동작 감지 센서 등 대안 검토</td></tr>
+    <tr><td>반별 전력 사용 순위 공개</td><td>절약 경쟁 유도</td><td>특정 반 낙인, 교실 위치(일조량) 차이로 불공정</td><td>순위 대신 반별 ‘작년 대비 개선율’ 공개</td></tr>
+  </tbody>
+</table></div>
+
+<h2><span class="sec-no">2</span>개인정보와 가명정보 <i class="pub-c">공통</i> <i class="pub">씨마스</i></h2>
+
+<p><span class="keyterm">개인정보</span>는 살아 있는 개인을 알아볼 수 있는 정보입니다. 이름·주민등록번호처럼 혼자서 개인을 알아볼 수 있는 정보뿐 아니라,
+<b>다른 정보와 쉽게 결합하여</b> 알아볼 수 있는 정보도 포함됩니다. 건강·사상·신념처럼 공개되면 큰 피해를 줄 수 있는 정보는
+<span class="keyterm">민감정보</span>로 더 엄격하게 보호됩니다. 우리나라 「개인정보 보호법」은 2020년 개정으로 개인정보를 처리 정도에 따라 다음처럼 구분합니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:110px">구분</th><th>뜻</th><th style="width:250px">예 (학생 설문 자료)</th></tr></thead>
+  <tbody>
+    <tr><td><b>개인정보</b></td><td>특정 개인을 알아볼 수 있는 정보</td><td>“2학년 3반 김○○, 수면 5시간, 스트레스 8점”</td></tr>
+    <tr><td><b>가명정보</b></td><td>추가 정보(대응표) 없이는 개인을 알아볼 수 없도록 <b>가명처리</b>한 정보. 통계 작성·과학적 연구·공익적 기록 보존 목적이면 정보 주체의 동의 없이도 처리할 수 있지만, 안전 조치와 재식별 금지 의무가 따른다.</td><td>“ID S07, 2학년, 수면 5시간, 스트레스 8점” (S07이 누구인지는 담당 교사만 대응표로 앎)</td></tr>
+    <tr><td><b>익명정보</b></td><td>어떤 정보를 더해도 더 이상 개인을 알아볼 수 없게 처리한 정보</td><td>“2학년 평균 수면 6.2시간” 같은 집계 결과</td></tr>
+  </tbody>
+</table></div>
+
+<h3>가명처리 기법과 재식별 위험</h3>
+<p>가명처리에는 식별자 <b>삭제</b>(이름 지우기), <b>대체</b>(학번 → 임의 ID), <b>범주화</b>(생년월일 → 출생 연도, 통학 시간 → 구간), <b>마스킹</b>(전화번호 일부를 * 처리) 등이 있습니다.
+그런데 이름을 지워도 안심할 수 없습니다. <b>성별 + 출생 연도 + 사는 동네</b>처럼 하나하나는 평범한 정보도 조합하면 한 사람만 남을 수 있기 때문입니다.
+이런 속성을 <span class="keyterm">준식별자</span>라고 하며, 준식별자 조합이 같은 사람이 적어도 k명 이상이 되도록 만드는 기준을 <span class="keyterm">k-익명성</span>이라고 합니다.</p>
+
+<div class="pycell" data-title="가명처리와 재식별 위험 점검"><textarea>
+import pandas as pd
+import numpy as np
+
+# 가상의 학생 생활 설문 원자료 (실제 인물 아님)
+raw = pd.DataFrame({
+    "이름":   ["김가온","이나래","박다솜","최라온","정마루","강바다","조사랑","윤아름","장하늘","임새봄","한여름","오가을"],
+    "학번":   [20301,20302,20303,20304,20305,20306,20307,20308,20309,20310,20311,20312],
+    "생년월일": ["2009-03-02","2009-07-15","2009-01-30","2009-11-08","2009-05-21","2008-12-24",
+              "2009-02-11","2009-09-09","2009-06-17","2009-04-04","2009-08-28","2009-10-13"],
+    "성별":   ["여","여","남","남","남","여","여","여","남","여","남","남"],
+    "주소":   ["가람구 해오름동","가람구 해오름동","가람구 별빛동","나래구 솔숲동","가람구 해오름동","나래구 솔숲동",
+              "가람구 별빛동","나래구 솔숲동","가람구 별빛동","가람구 해오름동","나래구 솔숲동","가람구 해오름동"],
+    "통학시간": [12, 35, 8, 41, 15, 28, 10, 33, 22, 9, 47, 18],
+    "스트레스": [6, 8, 4, 7, 5, 9, 3, 6, 5, 4, 8, 6],
+})
+
+pseudo = raw.drop(columns=["이름"])                                    # 삭제
+rng = np.random.default_rng(0)
+ids = [f"S{n:02d}" for n in rng.permutation(len(raw)) + 1]
+key_table = pd.DataFrame({"학번": raw["학번"], "ID": ids})              # 대응표는 따로 보관!
+pseudo["학번"] = ids                                                    # 대체
+pseudo = pseudo.rename(columns={"학번": "ID"})
+pseudo["출생연도"] = pseudo.pop("생년월일").str[:4]                     # 범주화
+pseudo["주소"] = pseudo["주소"].str.split().str[0]                      # 동 → 구
+pseudo["통학시간"] = pd.cut(pseudo["통학시간"], [0, 20, 40, 60], labels=["20분 이하", "21~40분", "41분 이상"])
+print(pseudo.to_string(index=False))
+
+# 재식별 위험: 준식별자 조합별 인원 수
+qi = ["출생연도", "성별", "주소"]
+groups = pseudo.groupby(qi).size()
+print("\n준식별자 조합별 인원:\n", groups.to_string())
+print("\n가장 작은 그룹 크기(k):", groups.min(), "/ 1명뿐인 조합 수:", (groups == 1).sum())
+
+# ✏️ qi에서 "출생연도"를 빼면 k는 몇이 되나요? 분석에 꼭 필요하지 않은 준식별자는 공유하지 않는 것이 안전합니다.
+</textarea></div>
+
+<p>실행 결과를 보면 이름을 지우고 동을 구로 바꿨는데도 ‘2008년생·여·나래구’와 ‘2009년생·여·나래구’ 조합은 각각 <b>한 명뿐</b>이라, 이 조합을 아는 사람은 누구인지 짐작할 수 있습니다(k = 1). 출생 연도를 빼면 가장 작은 그룹이 2명으로 늘어납니다(k = 2).
+이런 경우 출생 연도처럼 분석에 필요 없는 준식별자를 빼거나 범주를 더 넓혀야 합니다.
+또한 대응표(<code>key_table</code>)는 가명정보와 <b>분리해서 보관</b>하고, 공유 자료에는 절대 넣지 않습니다.</p>
+
+<h2><span class="sec-no">3</span>편향과 고정관념, 그리고 모델 수정 <i class="pub">YBM</i> <i class="pub">씨마스</i></h2>
+
+<p>데이터는 세상을 있는 그대로 비추는 거울 같지만, 사실은 <b>수집한 방법과 과거의 관행</b>이 함께 담긴 기록입니다.
+그래서 분석 결과가 편향이나 고정관념을 그대로 재생산할 수 있습니다.</p>
+
+<div class="cards">
+  <div class="cardbox"><h4>표본의 편향</h4><p>온라인 설문에 응답한 학생만 분석하면, 응답을 잘하는 집단의 목소리가 크게 반영됩니다. 결과를 전체 학생의 의견처럼 공유하면 왜곡이 됩니다.</p></div>
+  <div class="cardbox"><h4>고정관념 강화</h4><p>생활 이동 자료로 연관 규칙을 찾았더니 ‘여성·고령 → 집 근처 이동’이 나왔다고 해서 이 집단에게만 특정 시설을 권하면, 이미 있던 제약을 ‘선호’로 오해하고 굳힐 수 있습니다.</p></div>
+  <div class="cardbox"><h4>과거 차별의 학습</h4><p>과거 합격자 자료로 학습한 채용 모델은 과거에 적게 뽑힌 집단을 낮게 평가하는 규칙을 배울 수 있습니다. 성별 열을 지워도 관련된 다른 속성(대리 변수)이 같은 역할을 합니다.</p></div>
+</div>
+
+<p>편향을 발견했다면 <b>모델을 수정</b>합니다. 대표적인 방향은 다음과 같습니다.</p>
+<ul>
+  <li><b>데이터 보강</b> — 적게 대표된 집단의 데이터를 더 모으거나 가중치를 준다.</li>
+  <li><b>집단별 점검</b> — 전체 정확도만 보지 말고 성별·학년·지역 등 집단별 오차와 결과를 나누어 비교한다.</li>
+  <li><b>속성 재검토</b> — 민감 속성과 그 대리 변수를 쓸지 신중히 결정하고, 쓴다면 이유를 밝힌다.</li>
+  <li><b>사람의 검토</b> — 중요한 결정은 모델이 단독으로 내리지 않고 사람이 최종 확인한다.</li>
+</ul>
+
+<div class="pycell" data-title="공유 전 편향 점검: 누구의 목소리인가?"><textarea>
+sp = load_csv("survey_population.csv")     # 전교생 1000명의 가상 자료
+online = sp[sp["온라인설문응답"] == 1]
+
+print(f"전교생 급식 만족도 평균: {sp['급식만족도'].mean():.2f}")
+print(f"온라인 응답자({len(online)}명) 평균: {online['급식만족도'].mean():.2f}")
+
+sp["통학구간"] = pd.cut(sp["통학시간"], [0, 20, 40, 200], labels=["20분 이하", "21~40분", "41분 이상"])
+summary = sp.groupby("통학구간", observed=True).agg(
+    학생수=("학생", "size"),
+    응답률=("온라인설문응답", "mean"),
+    만족도=("급식만족도", "mean")).round(2)
+print(summary)
+
+# ✏️ "통학구간" 대신 "학년"으로 묶어 보세요. 어느 학년의 응답률이 특히 높은가요? 공유할 때 어떻게 밝혀야 할까요?
+</textarea></div>
+
+<p>통학 시간이 41분 이상인 학생은 응답률이 <b>0.52</b>로 20분 이하 학생(<b>0.31</b>)보다 높고 만족도는 <b>2.69</b>로 가장 낮습니다.
+그래서 온라인 응답자 평균(<b>3.31</b>)이 전교생 평균(<b>3.40</b>)보다 낮게 나옵니다.
+결과를 공유할 때는 “온라인 응답자 366명 기준이며, 통학 시간이 긴 학생의 응답 비율이 높다”는 점을 함께 밝혀야 합니다.</p>
+
+<h2><span class="sec-no">4</span>수집 과정의 윤리: 크롤링 <i class="pub">씨마스</i></h2>
+
+<p>웹 페이지에서 데이터를 자동으로 모으는 <span class="keyterm">크롤링(crawling)</span>은 편리하지만, 공개된 정보라고 해서 마음대로 모아도 되는 것은 아닙니다.
+크롤링 전에는 다음을 확인합니다.</p>
+<ol>
+  <li><b>robots.txt</b> — 사이트 주소 뒤에 <code>/robots.txt</code>를 붙이면 자동 수집을 허용·금지하는 경로가 적혀 있습니다.</li>
+  <li><b>이용약관</b> — 자동 수집이나 상업적 이용을 금지하는지 확인합니다. OpenAPI를 제공한다면 API를 우선 사용합니다.</li>
+  <li><b>서버 부담</b> — 요청 사이에 충분한 간격을 두고, 필요한 만큼만 수집합니다.</li>
+  <li><b>개인정보·저작권</b> — 댓글 작성자 아이디, 사진, 글 전문은 개인정보이거나 저작물일 수 있습니다. 분석에 필요한 부분만 가공해 쓰고 원문을 그대로 재배포하지 않습니다.</li>
+</ol>
+<pre class="robots"># 예시 사이트의 robots.txt (가상)
+User-agent: *
+Disallow: /member/       ← 회원 정보 경로: 수집 금지
+Disallow: /search        ← 검색 결과: 수집 금지
+Allow: /notice/          ← 공지 게시판: 수집 허용
+Crawl-delay: 10          ← 요청 간격 10초 이상 권장</pre>
+<p>robots.txt는 법률 그 자체는 아니지만 사이트 운영자의 의사를 밝힌 약속입니다. 이를 무시하고 대량으로 수집하면 서비스 방해나 약관 위반 문제가 생길 수 있습니다.</p>
+
+<div class="sim">
+  <div class="sim-head">윤리 점검 시나리오 판정 — 8개의 상황</div>
+  <div class="sim-body">
+    <p style="margin-top:0;font-size:.92rem">각 상황이 <b>적절</b>한지, <b>보완이 필요</b>한지, <b>부적절</b>한지 판정하세요. 판정 후 근거를 확인하고 다음 상황으로 넘어갑니다.</p>
+    <div class="ej-card">
+      <div class="ej-top"><span id="ej-no">상황 1 / 8</span><span class="ej-tag" id="ej-tag"></span></div>
+      <div class="ej-text" id="ej-text"></div>
+      <div class="ej-choices">
+        <button data-v="ok" class="pick-ok">✅ 적절</button>
+        <button data-v="mid" class="pick-mid">⚠️ 보완 필요</button>
+        <button data-v="no" class="pick-no">⛔ 부적절</button>
+      </div>
+      <div class="ej-fb" id="ej-fb"></div>
+      <div class="sim-controls" style="margin:12px 0 0">
+        <button id="ej-prev" class="gray">◀ 이전</button>
+        <button id="ej-next" class="ghost">다음 ▶</button>
+        <span class="stat-chip">맞힌 상황 <b id="ej-score">0</b> / 8</span>
+      </div>
+      <div class="ej-dots" id="ej-dots"></div>
+    </div>
+  </div>
+</div>
+
+<h2><span class="sec-no">5</span>‘일반화 및 공유’ 체크리스트로 전 과정 성찰하기 <i class="pub">YBM</i> <i class="pub">천재</i></h2>
+
+<p>프로젝트를 마무리하며 결과를 공유하기 전에, 문제 정의부터 분석까지 <b>전 과정</b>을 돌아봅니다. 아래 체크리스트는 모든 모둠이 공통으로 사용합니다.
+‘아니요’가 나온 항목은 보고서에 한계로 밝히거나 모델·자료를 수정합니다.</p>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">모둠 활동</span>일반화 및 공유 체크리스트</div>
+  <div class="act-body">
+    <div class="table-wrap"><table class="check-tbl">
+      <thead><tr><th>✔</th><th style="width:110px">단계</th><th>점검 질문</th><th style="width:180px">근거·보완 계획</th></tr></thead>
+      <tbody>
+        <tr><td>☐</td><td>문제 정의</td><td>이 문제를 해결하면 누가 이익을 얻고, 누가 부담을 지는가? 소외되는 사람은 없는가?</td><td></td></tr>
+        <tr><td>☐</td><td>수집</td><td>개인정보 수집에 동의를 받았는가? 필요한 최소한의 정보만 모았는가? 크롤링은 robots.txt·약관을 지켰는가?</td><td></td></tr>
+        <tr><td>☐</td><td>수집</td><td>표본이 특정 집단에 치우치지 않았는가? 치우쳤다면 그 방향을 알고 있는가?</td><td></td></tr>
+        <tr><td>☐</td><td>전처리</td><td>결측·이상치를 처리한 방법과 이유를 기록했는가? 처리 때문에 특정 집단이 빠지지 않았는가?</td><td></td></tr>
+        <tr><td>☐</td><td>분석</td><td>상관을 인과로 말하지 않았는가? 집단별로 나누어도 결론이 유지되는가?</td><td></td></tr>
+        <tr><td>☐</td><td>해석</td><td>결과가 적용되는 범위(대상·기간·값 범위)를 밝혔는가? 오류 가능성을 적었는가?</td><td></td></tr>
+        <tr><td>☐</td><td>공유</td><td>공유 자료에서 개인을 알아볼 수 없는가(가명·익명 처리, k-익명성)? 출처를 밝혔는가?</td><td></td></tr>
+        <tr><td>☐</td><td>공유</td><td>결과 표현이 특정 집단을 낙인찍거나 고정관념을 강화하지 않는가? 서로를 존중하는 표현인가?</td><td></td></tr>
+      </tbody>
+    </table></div>
+    <p><b>모델 수정 방향</b> — 체크리스트에서 가장 걱정되는 항목 하나를 골라, 모델이나 자료를 어떻게 고칠지 쓰세요.</p>
+    <div class="write-lines"><div class="line"></div><div class="line"></div></div>
+  </div>
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">토론 활동</span>“빈 교실 자동 차단을 위해 와이파이 접속 기록을 활용해야 한다” <i class="pub">YBM</i></div>
+  <div class="act-body">
+    <ol>
+      <li>모둠을 찬성·반대로 나누고, 각자 <b>데이터 근거</b>와 <b>가치(에너지 절약, 사생활, 건강, 공정성)</b>를 하나씩 준비합니다.</li>
+      <li>진행: 입론(각 2분) → 반론 준비(2분) → 반론(각 2분) → 최종 발언(각 1분) → 역할을 바꿔 한 번 더 생각해 보기.</li>
+      <li>토론이 끝나면 양쪽의 우려를 모두 줄일 수 있는 <b>수정안</b>을 모둠이 함께 만듭니다.</li>
+    </ol>
+    <div class="table-wrap"><table>
+      <thead><tr><th style="width:50%">찬성 측 근거</th><th>반대 측 근거</th></tr></thead>
+      <tbody><tr><td style="height:84px"></td><td></td></tr></tbody>
+    </table></div>
+    <p><b>우리 모둠의 수정안</b> (누가, 어떤 데이터를, 어떤 방식으로, 어떤 안전장치와 함께)</p>
+    <div class="write-lines"><div class="line"></div><div class="line"></div></div>
+  </div>
+</div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  토론은 ‘이기기’보다 <b>수정안 만들기</b>에 무게를 두세요. 흔한 오개념은 “이름만 지우면 익명”, “공개된 웹 정보는 마음대로 써도 된다”, “민감 속성을 빼면 공정해진다”입니다.
+  위 파이썬 셀의 k = 1 결과와 대리 변수 사례로 각각 반박해 볼 수 있습니다. 코딩이 어려운 반은 가명처리를 스프레드시트에서 열 삭제·<code>LEFT</code> 함수(생년월일 → 연도)·피벗 테이블(조합별 인원 수)로 해도 됩니다.
+  시간 배분: 사회적 영향(7분) → 개인정보·가명처리(12분) → 편향·크롤링(10분) → 시나리오 판정(6분) → 체크리스트·토론(15분, 토론은 다음 차시 초반으로 이어도 좋음).
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>분석 결과를 활용하기 전에 누가 이익·부담·피해를 받는지 따지고, 부작용을 줄이는 보완책을 함께 제안한다.</li>
+    <li>가명정보는 대응표 없이는 개인을 알 수 없게 처리한 정보이다. 이름을 지워도 준식별자 조합으로 재식별될 수 있으므로 k-익명성을 점검한다.</li>
+    <li>데이터에는 수집 방법과 과거 관행의 편향이 담긴다. 집단별 점검·데이터 보강·속성 재검토·사람의 검토로 모델을 수정한다.</li>
+    <li>크롤링은 robots.txt·이용약관·서버 부담·개인정보·저작권을 확인한다. 공유 전에는 ‘일반화 및 공유’ 체크리스트로 전 과정을 성찰한다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 윤리 점검 시나리오 판정 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const S = [
+    { tag:"개인정보", ans:"no", t:"스트레스 연구를 위해 반 친구들의 이름·학번·스트레스 점수를 모은 원자료를 그대로 모둠 단톡방과 학급 게시판에 올렸다.",
+      why:"개인을 알아볼 수 있는 정보와 스트레스(건강 관련) 정보를 동의 없이 공개했습니다. 분석은 가명처리한 자료로 하고, 공유는 집계 결과만 합니다." },
+    { tag:"가명정보", ans:"mid", t:"설문 자료에서 이름을 지우고 학번을 임의 ID로 바꿨다. 그런데 공유 파일에 ‘반·성별·생일’ 열이 그대로 남아 있다.",
+      why:"가명처리는 시작했지만 준식별자 조합(반+성별+생일)으로 한 명이 특정될 수 있습니다. 생일은 빼거나 범주화하고 k-익명성을 점검해야 합니다." },
+    { tag:"크롤링", ans:"no", t:"영화 리뷰를 모으려고 robots.txt에서 금지한 경로까지 1초에 수십 번씩 요청해 작성자 아이디와 함께 리뷰 10만 건을 수집했다.",
+      why:"운영자의 수집 금지 의사를 무시했고 서버에 부담을 주었으며, 작성자 아이디라는 개인정보까지 모았습니다. API·허용 경로·요청 간격을 지키고 필요한 정보만 수집해야 합니다." },
+    { tag:"공공데이터", ans:"ok", t:"공공데이터포털에서 공개된 지역별 월평균 기온 자료를 내려받아 출처와 이용 조건을 밝히고 분석에 사용했다.",
+      why:"공개된 집계 자료를 이용 조건에 맞게 쓰고 출처를 밝혔습니다. 적절한 활용입니다." },
+    { tag:"편향", ans:"mid", t:"급식 만족도를 온라인 설문으로 조사해 ‘우리 학교 학생 만족도 3.31점’이라고 학교 소식지에 발표하려 한다. 응답률은 37%이다.",
+      why:"응답자만의 결과를 전교생의 결과처럼 발표하면 표본 편향이 숨겨집니다. 응답자 수·응답률과 응답자 특성을 함께 밝히거나 표본을 보완해야 합니다." },
+    { tag:"고정관념", ans:"no", t:"동아리 가입 자료의 연관 규칙에서 ‘여학생 → 독서 동아리’가 나오자, 신입생 동아리 추천 앱이 여학생에게는 독서 동아리만 보여 주도록 만들었다.",
+      why:"과거의 선택 패턴을 성별에 따른 추천으로 굳혀 고정관념을 강화하고 선택 기회를 좁힙니다. 성별 대신 개인의 관심사를 쓰고 다양한 선택지를 보여 주도록 모델을 수정해야 합니다." },
+    { tag:"사회적 영향", ans:"mid", t:"전력 분석 결과에 따라 ‘모든 교실 냉방 온도 28℃ 고정, 예외 없음’ 규칙을 만들자고 학생회에 제안했다.",
+      why:"절약 효과는 있지만 폭염·교실 위치에 따른 건강 부담을 고려하지 않았습니다. 기온·교실별 예외 규정과 모니터링 계획을 함께 제안해야 합니다." },
+    { tag:"공유", ans:"ok", t:"분석이 끝난 전력 자료를 공개하며 날짜별 집계값만 남기고, 열 설명(메타데이터)·수집 기간·한계를 함께 적은 설명 파일을 첨부했다.",
+      why:"개인정보가 없는 집계 자료에 메타데이터와 한계를 함께 공개해 다른 사람이 올바르게 재사용할 수 있게 했습니다." },
+  ];
+  const LABEL = { ok:"적절", mid:"보완 필요", no:"부적절" };
+  const picks = new Array(S.length).fill(null);
+  let cur = 0;
+
+  function render(){
+    const s = S[cur];
+    $("ej-no").textContent = `상황 ${cur + 1} / ${S.length}`;
+    $("ej-tag").textContent = s.tag;
+    $("ej-text").textContent = s.t;
+    const fb = $("ej-fb"), p = picks[cur];
+    document.querySelectorAll(".ej-choices button").forEach(b => { b.disabled = p !== null; b.style.outline = (p === b.dataset.v) ? "3px solid #1e2733" : ""; });
+    if (p === null){ fb.className = "ej-fb"; fb.innerHTML = ""; }
+    else {
+      const ok = p === s.ans;
+      fb.className = "ej-fb " + (ok ? "right" : "wrong");
+      fb.innerHTML = `<b>${ok ? "정답!" : "다시 생각해 봐요."}</b> 판정: <b>${LABEL[s.ans]}</b> — ${s.why}`;
+    }
+    $("ej-prev").disabled = cur === 0;
+    $("ej-next").disabled = cur === S.length - 1;
+    $("ej-score").textContent = picks.filter((v, i) => v === S[i].ans).length;
+    $("ej-dots").innerHTML = S.map((x, i) => `<span data-i="${i}" class="${i === cur ? "cur " : ""}${picks[i] === null ? "" : (picks[i] === x.ans ? "r" : "w")}">${i + 1}</span>`).join("");
+  }
+  document.querySelectorAll(".ej-choices button").forEach(b => b.addEventListener("click", () => { if (picks[cur] === null){ picks[cur] = b.dataset.v; render(); } }));
+  $("ej-prev").addEventListener("click", () => { if (cur > 0){ cur--; render(); } });
+  $("ej-next").addEventListener("click", () => { if (cur < S.length - 1){ cur++; render(); } });
+  $("ej-dots").addEventListener("click", e => { const d = e.target.closest("span[data-i]"); if (d){ cur = +d.dataset.i; render(); } });
+  render();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"다음 중 <b>가명정보</b>에 해당하는 것은?",
+    choices:["“2학년 3반 김○○, 수면 5시간”","“ID S07, 2학년, 수면 5시간” (대응표는 담당 교사가 별도 보관)","“2학년 평균 수면 6.2시간”","학생의 주민등록번호 목록","공공데이터포털의 지역별 평균 기온"], answer:1,
+    explain:"가명정보는 추가 정보(대응표) 없이는 개인을 알아볼 수 없게 처리한 정보입니다. ①④는 개인정보, ③은 집계된 익명정보, ⑤는 개인과 무관한 공공 자료입니다." },
+  { type:"mc", q:"이름을 삭제한 자료에서 (출생 연도, 성별, 사는 구) 조합별 인원이 각각 4, 3, 1, 2, 5명이었다. 이 자료의 k-익명성의 k 값과 가장 알맞은 조치는?",
+    choices:["k=5, 그대로 공유","k=15, 그대로 공유","k=1, 1명인 조합이 있으므로 준식별자를 빼거나 범주를 넓힌다","k=3, 평균이 3이므로 안전","k=0, 이름을 지웠으므로 재식별 위험 없음"], answer:2,
+    explain:"k는 가장 작은 그룹의 크기이므로 1입니다. 한 명뿐인 조합은 그 사람을 특정할 수 있으므로, 분석에 필요 없는 준식별자를 빼거나 범주를 넓혀 k를 키워야 합니다." },
+  { type:"ox", q:"웹 페이지에 공개된 정보라면 robots.txt나 이용약관과 관계없이 크롤링해서 분석·재배포해도 된다.",
+    answer:false, explain:"공개 정보라도 robots.txt·이용약관을 지켜야 하고, 서버 부담을 주지 않아야 하며, 개인정보·저작권이 포함될 수 있으므로 필요한 부분만 가공해 사용해야 합니다." },
+  { type:"mc", q:"채용 모델에서 성별 열을 삭제했는데도 특정 성별의 합격률이 여전히 낮게 예측되었다. 가장 그럴듯한 이유는?",
+    choices:["삭제가 제대로 되지 않았다","성별과 관련된 다른 속성(대리 변수)이 같은 역할을 했다","모델의 정확도가 100%이기 때문이다","테스트 데이터가 너무 많다","성별은 예측에 전혀 영향이 없다"], answer:1,
+    explain:"취미·경력 공백·출신 학교 등 성별과 관련된 속성이 대리 변수로 작용하면 민감 속성을 지워도 편향이 남습니다. 집단별 결과 점검과 속성 재검토가 필요합니다." },
+  { type:"short", q:"‘우리 학교 전력 절감’ 프로젝트 결과를 학교에 제안하기 전에 고려해야 할 사회적 영향을 한 가지 들고, 이를 줄이기 위한 보완 방안을 쓰세요.",
+    model:"예: 냉난방 시간을 일괄적으로 줄이면 폭염·한파 때 학생 건강을 해칠 수 있고, 햇빛이 많이 드는 교실 학생에게 부담이 집중될 수 있다. 보완: 일정 기온 이상·이하에서는 예외를 두고, 교실별 온도를 측정해 차등 적용하며, 시행 후 학생 의견과 온도 자료로 효과와 부작용을 다시 점검한다." },
+]);
+</script>
+</body>
+</html>

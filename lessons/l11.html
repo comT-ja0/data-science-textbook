@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ⅰ영역 미니 프로젝트 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 상식 O/X 검증기 */
+.ox-tabs { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+.ox-tab { background:#fff; color:var(--ink-soft); border:1.5px solid var(--line); border-radius:9px; padding:5px 11px; font-size:.8rem; }
+.ox-tab:hover { filter:none; border-color:var(--accent); }
+.ox-tab.cur { border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
+.ox-tab.right::after { content:" ✔"; color:var(--ok); }
+.ox-tab.wrong::after { content:" ✘"; color:var(--no); }
+.ox-claim { font-size:1.08rem; font-weight:800; padding:12px 14px; background:var(--paper); border-radius:10px; border-left:5px solid var(--accent); }
+.ox-btns { display:flex; gap:10px; margin:12px 0; flex-wrap:wrap; }
+.ox-btns button { min-width:130px; }
+.ox-result { display:none; }
+.ox-result.show { display:block; }
+.ox-chart { width:100%; max-width:620px; height:auto; display:block; margin:6px auto; }
+.ox-verdict { padding:10px 14px; border-radius:10px; font-weight:700; font-size:.9rem; margin-top:8px; }
+.ox-verdict.o { background:#eafaf0; border:1.5px solid #ace8c4; color:#127a3c; }
+.ox-verdict.x { background:#fdeeee; border:1.5px solid #f3b9b9; color:#b32424; }
+.ox-note { font-size:.84rem; color:var(--ink-soft); margin-top:8px; line-height:1.6; }
+</style>
+</head>
+<body data-unit="1" data-lesson="L11">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>Ⅰ영역 미니 프로젝트</h1>
+  <span class="std-badge">성취기준 12데과01-01~04</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>생활 속 상식을 데이터로 확인할 수 있는 질문으로 바꾸고, 데이터를 근거로 참·거짓을 판단할 수 있다.</li>
+      <li>데이터 기반 의사 결정 사례를 문제·데이터·분석·결정의 흐름으로 분석해 보고서를 쓸 수 있다.</li>
+      <li>Ⅰ영역에서 배운 데이터의 형태·속성·통합·사회 변화 개념을 프로젝트에 적용할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과01-01] 데이터 과학의 개념을 이해하고, 문제 해결 사례를 데이터 기반 의사 결정 상황에 적용한다.
+      [12데과01-02] 정형 데이터와 비정형 데이터를 구분하고, 데이터 속성에서 데이터의 잠재적 가치를 파악한다.
+      [12데과01-03] 데이터셋의 집합인 데이터베이스를 이해하고, 서로 다른 데이터셋의 데이터를 분석이 가능한 형태로 통합하는 것의 의미를 파악한다.
+      [12데과01-04] 데이터로 인한 사회 변화를 인식하고, 진로 및 직업과 관련한 데이터 기반 문제 해결 사례를 분석한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span class="on">문제 정의</span><span class="on">수집</span><span>전처리</span><span class="on">탐색</span><span>모델링</span><span class="on">평가·해석</span><span class="on">공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  “요즘 여름은 옛날보다 훨씬 덥다니까.” 할머니 말씀에 삼촌이 반박합니다. “그건 기분 탓이에요. 옛날에도 더웠어요.”
+  둘 중 누구 말이 맞을까요? 목소리가 큰 사람이 이기는 말싸움 대신, <b>데이터를 펼쳐 보면</b> 결론을 낼 수 있습니다.
+  오늘은 우리가 ‘당연히 맞다’고 믿는 상식을 데이터로 검증하고, 데이터로 결정을 내린 실제 사례를 분석하는 미니 프로젝트를 합니다.
+</div>
+
+<h2><span class="sec-no">1</span>프로젝트 안내: 상식을 데이터로 검증하기 <i class="pub">씨마스</i></h2>
+
+<p>상식 검증 프로젝트는 데이터 과학의 문제 해결 과정을 작게 한 바퀴 돌아 보는 활동입니다. 다음 다섯 단계로 진행합니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:130px">단계</th><th>할 일</th><th style="width:240px">예시</th></tr></thead>
+  <tbody>
+    <tr><td>① 상식 고르기</td><td>주변에서 흔히 듣는 말 중 데이터로 확인할 수 있는 것을 고른다.</td><td>“요즘 여름이 더 덥다.”</td></tr>
+    <tr><td>② 질문으로 바꾸기</td><td>무엇을, 언제와 언제를, 어떤 값으로 비교할지 <b>측정 가능한 질문</b>으로 바꾼다.</td><td>“최근 10년의 연평균기온은 50년 전 10년보다 높은가?”</td></tr>
+    <tr><td>③ 데이터 찾기</td><td>질문에 답할 수 있는 데이터를 찾고 출처·기간·속성을 기록한다.</td><td>climate.csv (연도, 연평균기온, 폭염일수)</td></tr>
+    <tr><td>④ 분석·판단</td><td>평균 비교, 그래프 등으로 확인하고 O/X를 판단한다.</td><td>두 기간 평균 비교, 연도별 선 그래프</td></tr>
+    <tr><td>⑤ 한계·공유</td><td>데이터의 한계(기간·지역·표본)를 밝히고 결과를 발표한다.</td><td>“한 지역 자료이므로 전국으로 일반화하려면…”</td></tr>
+  </tbody>
+</table></div>
+
+<div class="box box-tip">
+  <span class="box-label">측정 가능한 질문 만들기</span>
+  “요즘 청소년은 책을 안 읽는다”처럼 모호한 말은 그대로 검증할 수 없습니다.
+  <b>누구</b>(고등학생), <b>무엇</b>(한 달 독서 권수), <b>비교 기준</b>(10년 전과 비교)을 정해야 데이터로 답할 수 있는 질문이 됩니다.
+</div>
+
+<h2><span class="sec-no">2</span>상식 O/X 검증기 <i class="pub">씨마스</i></h2>
+
+<div class="sim">
+  <div class="sim-head">상식 O/X 검증기 — 먼저 예측하고, 데이터로 확인하기</div>
+  <div class="sim-body">
+    <p style="margin-top:0;font-size:.92rem">상식 카드를 고르고 O 또는 X를 먼저 예측하세요. 예측하면 교재 데이터로 계산한 그래프와 판정이 나타납니다.
+    (교재 데이터는 수업용 가상 데이터입니다. 실제 통계로 검증하려면 공공 데이터를 찾아야 합니다.)</p>
+    <div class="ox-tabs" id="ox-tabs"></div>
+    <div class="ox-claim" id="ox-claim"></div>
+    <div class="ox-btns">
+      <button id="ox-o">⭕ 맞다 (O)</button>
+      <button id="ox-x" class="ghost">❌ 아니다 (X)</button>
+    </div>
+    <div class="ox-result" id="ox-result">
+      <svg class="ox-chart" id="ox-chart" viewBox="0 0 620 260"></svg>
+      <div class="ox-verdict" id="ox-verdict"></div>
+      <div class="ox-note" id="ox-note"></div>
+    </div>
+    <div class="sim-stats">
+      <span class="stat-chip">예측한 카드 <b id="ox-done">0</b>/6</span>
+      <span class="stat-chip">내 상식 적중 <b id="ox-hit">0</b>개</span>
+    </div>
+    <p class="widget-hint">생각해 보기: 예측이 틀린 카드는 왜 그런 상식이 생겼을까요? 그리고 그래프의 세로축이 0에서 시작하는지도 꼭 확인하세요.</p>
+  </div>
+</div>
+
+<h2><span class="sec-no">3</span>파이썬으로 상식 검증하기 <i class="pub-c">공통</i></h2>
+
+<p>생각 열기의 질문 “요즘 여름이 더 덥다”를 climate.csv로 직접 검증해 봅시다. 이 데이터는 한 지역의 1975~2025년 연평균기온과 폭염일수(하루 최고기온이 33℃ 이상인 날의 수)를 담고 있습니다.</p>
+
+<div class="pycell" data-title="① 50년 전 10년 vs 최근 10년"><textarea>
+import pandas as pd
+
+df = load_csv("climate.csv")
+print(df.head(3))
+print("행, 열:", df.shape)
+
+old = df[df["연도"] <= 1984]          # 1975~1984년
+new = df[df["연도"] >= 2016]          # 2016~2025년
+print("1975~1984 평균 기온:", round(old["연평균기온"].mean(), 2), "℃ / 평균 폭염일수:", old["폭염일수"].mean(), "일")
+print("2016~2025 평균 기온:", round(new["연평균기온"].mean(), 2), "℃ / 평균 폭염일수:", new["폭염일수"].mean(), "일")
+
+# ✏️ 비교 기간을 20년씩(1975~1994 vs 2006~2025)으로 바꾸면 결론이 달라지나요?
+</textarea></div>
+
+<div class="pycell" data-title="② 해마다의 변화를 그래프로 보기"><textarea>
+import matplotlib.pyplot as plt
+
+df["10년이동평균"] = df["연평균기온"].rolling(10).mean()
+
+plt.figure(figsize=(7, 3.6))
+plt.plot(df["연도"], df["연평균기온"], marker="o", markersize=3, color="#8595a6", label="해마다의 연평균기온")
+plt.plot(df["연도"], df["10년이동평균"], color="#0e7490", linewidth=3, label="최근 10년 이동 평균")
+plt.title("연평균기온의 변화 (1975~2025)")
+plt.xlabel("연도"); plt.ylabel("기온(℃)")
+plt.legend()
+plt.show()
+
+print("기온이 전년보다 내려간 해의 수:", (df["연평균기온"].diff() < 0).sum(), "번")
+
+# ✏️ 같은 방법으로 '폭염일수' 그래프를 그려 보세요. 기온보다 들쭉날쭉한가요?
+</textarea></div>
+
+<p>두 기간의 평균을 비교하면 최근 10년이 약 1.3℃ 높고, 폭염일수도 평균 7.5일에서 18.9일로 늘었습니다. 그런데 그래프를 보면 기온이 전년보다 <b>내려간 해도 스무 번이 넘습니다</b>.
+그래서 “작년보다 올해가 더 덥다”는 늘 맞는 말은 아니지만, “수십 년 동안 더워지는 <b>추세</b>가 있다”는 말은 이 데이터로 뒷받침됩니다.
+한 해 한 해의 들쭉날쭉함과 긴 흐름을 구분하는 것이 데이터를 읽는 힘입니다.</p>
+
+<div class="pycell" data-title="③ 나만의 상식 검증 템플릿"><textarea>
+bike = load_csv("bike.csv")
+
+# 상식: "비 오는 날에는 자전거를 덜 탄다"
+bike["비"] = bike["강수량"] > 0
+result = bike.groupby("비")["대여량"].agg(["count", "mean"]).round(1)
+print(result)
+
+# ✏️ '휴일'(0=평일, 1=휴일)로 바꾸어 "휴일에 자전거를 더 많이 탄다"는 상식도 검증해 보세요.
+</textarea></div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">모둠 활동</span>우리 모둠의 상식 검증 <i class="pub">씨마스</i></div>
+  <div class="act-body">
+    <p style="margin-top:0">교재 데이터(<code>bike.csv</code>, <code>air.csv</code>, <code>study.csv</code>, <code>climate.csv</code>) 또는 공공 데이터 포털·국가통계포털(KOSIS)의 자료로 상식 하나를 검증하세요.</p>
+    <div class="table-wrap"><table>
+      <tbody>
+        <tr><th style="width:170px">① 검증할 상식</th><td>&nbsp;</td></tr>
+        <tr><th>② 측정 가능한 질문</th><td>&nbsp;</td></tr>
+        <tr><th>③ 사용한 데이터 (출처·기간·속성)</th><td>&nbsp;</td></tr>
+        <tr><th>④ 분석 방법과 결과 (수치·그래프)</th><td style="height:70px">&nbsp;</td></tr>
+        <tr><th>⑤ 판정 (O / X / 판단 불가)</th><td>&nbsp;</td></tr>
+        <tr><th>⑥ 데이터의 한계</th><td>&nbsp;</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<h2><span class="sec-no">4</span>데이터 기반 의사 결정 사례 분석 보고서 <i class="pub">삼양</i> <i class="pub">씨마스</i></h2>
+
+<p>두 번째 과제는 실제 사회에서 데이터로 결정을 내린 사례를 조사해 분석하는 것입니다. 사례를 분석할 때는 데이터 분석이
+<b>어떤 목적</b>에 쓰였는지 네 가지로 나누어 보면 이해가 깊어집니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:120px">목적</th><th>묻는 질문</th><th>예시 (학교 매점)</th></tr></thead>
+  <tbody>
+    <tr><td><b>설명</b></td><td>무슨 일이 일어났나?</td><td>지난달 가장 많이 팔린 상품은 컵라면이었다.</td></tr>
+    <tr><td><b>진단</b></td><td>왜 일어났나?</td><td>시험 기간에 야간 자율 학습 인원이 늘어 컵라면 판매가 늘었다.</td></tr>
+    <tr><td><b>예측</b></td><td>앞으로 무슨 일이 일어날까?</td><td>다음 시험 기간에는 컵라면이 평소의 약 1.5배 팔릴 것이다.</td></tr>
+    <tr><td><b>처방</b></td><td>그래서 무엇을 해야 하나?</td><td>시험 2주 전부터 컵라면 재고를 늘리고 뜨거운 물 공급기를 추가한다.</td></tr>
+  </tbody>
+</table></div>
+
+<p>사례를 고를 때는 이 교재에서 본 사례(심야 버스 노선, 머니볼, 전력 수요 예측 등)도 좋고, 뉴스에서 새로 찾아도 좋습니다.
+다만 <b>출처가 분명한 자료</b>를 쓰고, 기사 문장을 그대로 옮기지 말고 자기 말로 정리해야 합니다.</p>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">조사 활동</span>데이터 기반 의사 결정 사례 분석 보고서 <i class="pub">삼양</i></div>
+  <div class="act-body">
+    <div class="table-wrap"><table>
+      <tbody>
+        <tr><th style="width:160px">사례 제목·출처</th><td colspan="2">&nbsp;</td></tr>
+        <tr><th>해결하려던 문제</th><td colspan="2">&nbsp;</td></tr>
+        <tr><th>사용한 데이터</th><td>종류(정형/비정형):</td><td>주요 속성:</td></tr>
+        <tr><th>데이터 통합 여부</th><td colspan="2">여러 데이터를 어떤 공통 속성(키)으로 연결했나?</td></tr>
+        <tr><th>분석 목적</th><td colspan="2">□ 설명　□ 진단　□ 예측　□ 처방 (해당하는 것 모두)</td></tr>
+        <tr><th>결정과 결과</th><td colspan="2" style="height:60px">&nbsp;</td></tr>
+        <tr><th>사회적 영향·한계</th><td colspan="2" style="height:60px">좋은 점 / 걱정되는 점(개인정보·편향 등)</td></tr>
+        <tr><th>관련 직업</th><td colspan="2">이 사례에서 일했을 직업과 그 역할</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<h2><span class="sec-no">5</span>발표와 자기 평가 <i class="pub">씨마스</i></h2>
+
+<p>모둠별로 3분 동안 상식 검증 결과 또는 사례 분석 결과를 발표합니다. 발표 뒤에는 아래 기준으로 스스로 평가하고, 다른 모둠에게 질문을 하나씩 해 봅시다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th>평가 기준</th><th style="width:80px">잘함</th><th style="width:80px">보통</th><th style="width:80px">노력</th></tr></thead>
+  <tbody>
+    <tr><td>상식을 측정 가능한 질문으로 바꾸었다.</td><td>□</td><td>□</td><td>□</td></tr>
+    <tr><td>데이터의 출처·기간·속성을 밝혔다.</td><td>□</td><td>□</td><td>□</td></tr>
+    <tr><td>수치나 그래프를 근거로 판정했다.</td><td>□</td><td>□</td><td>□</td></tr>
+    <tr><td>데이터의 한계와 일반화의 주의점을 설명했다.</td><td>□</td><td>□</td><td>□</td></tr>
+    <tr><td>모둠원과 역할을 나누어 협력했다.</td><td>□</td><td>□</td><td>□</td></tr>
+  </tbody>
+</table></div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  이 차시는 확장 차시로, 1차시(50분)에 운영할 때는 상식 검증(검증기 10분 + 파이썬 또는 스프레드시트 20분 + 발표 15분)에 집중하고 사례 분석 보고서는 과제로 돌립니다.
+  2차시로 늘릴 수 있으면 Gapminder Tools(무료 웹 도구)로 ‘세계의 기대 수명·소득’ 같은 상식을 검증하는 활동을 추가해도 좋습니다.
+  학생들이 교재 가상 데이터의 결과를 실제 사실로 받아들이지 않도록, 결론 문장에 “이 데이터에서는”을 붙이는 습관을 지도하세요.
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>상식을 검증하려면 누구·무엇·비교 기준을 정해 측정 가능한 질문으로 바꾸어야 한다.</li>
+    <li>한 해·한 번의 값과 긴 기간의 추세를 구분하고, 그래프의 축과 데이터의 한계를 함께 확인한다.</li>
+    <li>데이터 기반 의사 결정 사례는 문제–데이터–분석(설명·진단·예측·처방)–결정–영향의 흐름으로 분석한다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 상식 O/X 검증기 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  // 교재 데이터(climate/bike/air/study.csv)에서 미리 계산한 값
+  const CARDS = [
+    { t:"🌡️ 기온", claim:"우리 지역의 연평균기온은 수십 년 동안 올라가는 추세이다.", ans:true,
+      labels:["1975~79","1980년대","1990년대","2000년대","2010년대","2020~25"], vals:[12.09,12.65,13.04,12.92,13.36,13.65], unit:"℃", base:11,
+      verdict:"맞습니다. 10년 단위 평균이 1970년대 후반 12.09℃에서 2020년대 13.65℃로 올랐습니다.",
+      note:"climate.csv 10년 단위 평균. 2000년대는 1990년대보다 조금 낮아 매번 오르기만 한 것은 아니지만 전체 흐름은 상승입니다. ⚠ 세로축이 11℃에서 시작하므로 막대 길이 차이가 실제보다 크게 보입니다." },
+    { t:"🌧️ 비와 자전거", claim:"비가 오는 날에는 공공자전거 대여량이 줄어든다.", ans:true,
+      labels:["비 안 온 날 (268일)","비 온 날 (97일)"], vals:[3709.3,2896.5], unit:"건", base:0,
+      verdict:"맞습니다. 비 온 날의 하루 평균 대여량이 약 813건 적습니다.",
+      note:"bike.csv 강수량 > 0인 날과 아닌 날의 하루 평균 대여량. 다만 비 오는 날이 여름에 몰려 있다면 계절의 영향도 섞여 있을 수 있습니다." },
+    { t:"🏖️ 휴일과 자전거", claim:"휴일에는 놀러 나가는 사람이 많아 자전거 대여량이 평일보다 많다.", ans:false,
+      labels:["평일 (246일)","휴일 (119일)"], vals:[3608.2,3255.8], unit:"건", base:0,
+      verdict:"아닙니다. 이 데이터에서는 휴일 평균이 평일보다 약 352건 적습니다.",
+      note:"bike.csv 휴일(주말·공휴일) 여부별 하루 평균 대여량. 출퇴근·통학용 이용이 많은 도시라면 평일이 더 많을 수 있습니다. 도시마다 결과가 다를 수 있으니 일반화에 주의!" },
+    { t:"😷 미세먼지", claim:"미세먼지 농도는 여름철에 가장 높다.", ans:false,
+      labels:["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"],
+      vals:[44.7,50.4,50.4,49.1,45.9,37.3,31.5,27.6,24.9,29.1,30.9,37.2], unit:"㎍/㎥", base:0,
+      verdict:"아닙니다. 2~3월이 가장 높고(50.4), 8~9월이 가장 낮습니다(24.9~27.6).",
+      note:"air.csv 8개 지역·3년의 월별 평균. 여름에는 비가 많이 내려 먼지가 씻겨 내려가고, 겨울·봄에는 난방과 대기 정체, 황사 등의 영향을 받습니다." },
+    { t:"📚 공부 시간", claim:"하루 공부 시간이 긴 학생일수록 성적이 높은 경향이 있다.", ans:true,
+      labels:["1시간 이하 (14명)","1~2시간 (45명)","2~3시간 (38명)","3시간 초과 (23명)"], vals:[53.6,59.8,65.7,79.3], unit:"점", base:0,
+      verdict:"맞습니다. 공부 시간 구간이 길어질수록 평균 성적이 53.6점 → 79.3점으로 높아집니다.",
+      note:"study.csv 공부시간 구간별 평균 성적. ‘경향’이 있다는 뜻이지, 공부 시간이 성적의 유일한 원인이라는 뜻은 아닙니다." },
+    { t:"📱 스마트폰과 잠", claim:"스마트폰을 오래 쓰는 학생일수록 잠을 적게 잔다.", ans:false,
+      labels:["2시간 이하 (29명)","2~4시간 (57명)","4~6시간 (23명)","6시간 초과 (11명)"], vals:[6.52,6.43,6.67,6.95], unit:"시간", base:0,
+      verdict:"이 데이터로는 확인되지 않습니다. 구간별 평균 수면 시간이 6.4~7.0시간으로 뚜렷한 감소가 없습니다.",
+      note:"study.csv 스마트폰시간 구간별 평균 수면시간. ‘6시간 초과’ 구간은 11명뿐이라 평균이 흔들리기 쉽습니다. 상식이 틀렸다기보다 이 데이터(120명, 가상)로는 뒷받침되지 않는다고 말하는 것이 정확합니다." },
+  ];
+  let cur = 0;
+  const guess = new Array(CARDS.length).fill(null);
+
+  function chart(c){
+    const W = 620, H = 260, L = 56, R = 12, T = 18, B = 58;
+    const n = c.vals.length, max = Math.max(...c.vals), top = max * 1.12;
+    const y = v => T + (H - T - B) * (1 - (v - c.base) / (top - c.base));
+    const bw = (W - L - R) / n;
+    let s = `<line x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}" stroke="#8595a6"/>`;
+    s += `<line x1="${L}" y1="${T}" x2="${L}" y2="${H - B}" stroke="#8595a6"/>`;
+    for (let k = 0; k <= 4; k++){
+      const v = c.base + (top - c.base) * k / 4, yy = y(v);
+      s += `<line x1="${L}" y1="${yy}" x2="${W - R}" y2="${yy}" stroke="#eef1f5"/>`;
+      s += `<text x="${L - 6}" y="${yy + 4}" font-size="11" text-anchor="end" fill="#8595a6">${v >= 100 ? Math.round(v) : v.toFixed(1)}</text>`;
+    }
+    c.vals.forEach((v, i) => {
+      const x = L + i * bw + bw * 0.15, w = bw * 0.7, yy = y(v);
+      const hi = v === max;
+      s += `<rect x="${x}" y="${yy}" width="${w}" height="${H - B - yy}" rx="4" fill="${hi ? "#0e7490" : "#9fd3df"}"/>`;
+      s += `<text x="${x + w / 2}" y="${yy - 5}" font-size="${n > 8 ? 9.5 : 12}" text-anchor="middle" font-weight="700" fill="#1e2733">${v}</text>`;
+      const lab = c.labels[i], two = lab.indexOf(" (");
+      if (two > 0 && n <= 6){
+        s += `<text x="${x + w / 2}" y="${H - B + 17}" font-size="11.5" text-anchor="middle" fill="#4b5a6b">${lab.slice(0, two)}</text>`;
+        s += `<text x="${x + w / 2}" y="${H - B + 32}" font-size="10.5" text-anchor="middle" fill="#8595a6">${lab.slice(two + 1)}</text>`;
+      } else {
+        s += `<text x="${x + w / 2}" y="${H - B + 17}" font-size="${n > 8 ? 10 : 11.5}" text-anchor="middle" fill="#4b5a6b">${lab}</text>`;
+      }
+    });
+    s += `<text x="${L}" y="${H - 6}" font-size="11" fill="#8595a6">단위: ${c.unit}${c.base ? ` · 세로축 ${c.base}부터 시작` : ""}</text>`;
+    return s;
+  }
+  function renderTabs(){
+    $("ox-tabs").innerHTML = CARDS.map((c, i) => {
+      let cls = "ox-tab" + (i === cur ? " cur" : "");
+      if (guess[i] !== null) cls += guess[i] === c.ans ? " right" : " wrong";
+      return `<button class="${cls}" data-i="${i}">${c.t}</button>`;
+    }).join("");
+    const done = guess.filter(g => g !== null).length;
+    const hit = guess.filter((g, i) => g !== null && g === CARDS[i].ans).length;
+    $("ox-done").textContent = done; $("ox-hit").textContent = hit;
+  }
+  function render(){
+    const c = CARDS[cur];
+    $("ox-claim").textContent = "“" + c.claim + "”";
+    const g = guess[cur];
+    $("ox-o").disabled = g !== null; $("ox-x").disabled = g !== null;
+    const res = $("ox-result");
+    if (g === null){ res.classList.remove("show"); }
+    else {
+      res.classList.add("show");
+      $("ox-chart").innerHTML = chart(c);
+      const v = $("ox-verdict");
+      v.className = "ox-verdict " + (c.ans ? "o" : "x");
+      v.textContent = (g === c.ans ? "🎉 예측 적중! " : "🤔 예측과 다릅니다. ") + "데이터 판정: " + (c.ans ? "O — " : "X — ") + c.verdict;
+      $("ox-note").textContent = "📎 " + c.note;
+    }
+    renderTabs();
+  }
+  $("ox-tabs").addEventListener("click", e => {
+    const b = e.target.closest(".ox-tab"); if (!b) return;
+    cur = +b.dataset.i; render();
+  });
+  $("ox-o").addEventListener("click", () => { guess[cur] = true; render(); });
+  $("ox-x").addEventListener("click", () => { guess[cur] = false; render(); });
+  render();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"다음 중 데이터로 검증하기 가장 좋은 ‘측정 가능한 질문’은?",
+    choices:["요즘 애들은 버릇이 없다","우리 동네는 살기 좋다","최근 5년 동안 우리 시의 연간 교통사고 건수는 줄었는가?","여름은 원래 덥다","급식이 맛이 없다"], answer:2,
+    explain:"대상(우리 시), 기간(최근 5년), 측정값(연간 교통사고 건수)이 분명해 데이터로 답할 수 있습니다. 나머지는 기준이 모호하거나 주관적입니다." },
+  { type:"mc", q:"어떤 데이터에서 1975~1984년 연평균기온의 평균이 12.3℃, 2016~2025년의 평균이 13.6℃였다. 두 기간의 차이는?",
+    choices:["0.3℃","1.0℃","1.3℃","2.3℃","13.6℃"], answer:2,
+    explain:"13.6 − 12.3 = 1.3℃입니다. 교재 climate.csv의 실제 계산 결과(12.28℃ → 13.58℃)와도 같은 결론입니다." },
+  { type:"ox", q:"연평균기온이 전년보다 내려간 해가 여러 번 있다면, 수십 년 동안 기온이 오르는 추세가 있다고 말할 수 없다.",
+    answer:false, explain:"해마다 오르내림(변동)이 있어도 긴 기간의 평균이 꾸준히 높아지면 상승 추세라고 할 수 있습니다. 한 해의 값과 추세를 구분해야 합니다." },
+  { type:"mc", q:"“시험 2주 전부터 매점의 컵라면 재고를 늘리자”는 데이터 분석의 네 가지 목적 중 무엇에 해당하는가?",
+    choices:["설명","진단","예측","처방","수집"], answer:3,
+    explain:"‘그래서 무엇을 해야 하는가’에 대한 행동 제안이므로 처방입니다. 설명(무슨 일), 진단(왜), 예측(앞으로)과 구분하세요." },
+  { type:"short", q:"교재 bike.csv에서 휴일의 평균 자전거 대여량이 평일보다 적게 나왔다. 이 결과를 근거로 “전국 어디서나 휴일에는 자전거를 덜 탄다”고 말할 수 없는 이유를 두 가지 쓰세요.",
+    model:"① 한 도시(그것도 수업용 가상 데이터)의 1년 치 자료이므로 다른 지역과 다른 해로 일반화할 수 없다. 관광지처럼 휴일 이용이 많은 곳도 있을 수 있다. ② 휴일 여부 말고도 날씨·계절 같은 다른 요인이 섞여 있을 수 있어서, 휴일 자체의 영향이라고 단정할 수 없다." },
+]);
+</script>
+</body>
+</html>

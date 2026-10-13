@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>보고서·발표 준비 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 포스터 레이아웃 빌더 */
+.pb-form { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:8px 14px; margin-bottom:12px; }
+.pb-form label { display:flex; flex-direction:column; gap:3px; font-size:.8rem; font-weight:700; color:var(--ink-soft); }
+.pb-form label.wide { grid-column:1 / -1; }
+.pb-form input, .pb-form textarea { width:100%; font-family:inherit; font-size:.88rem; padding:6px 9px; border:1.5px solid var(--line); border-radius:8px; }
+.pb-form textarea { min-height:58px; resize:vertical; }
+.pb-count { font-weight:500; color:var(--ink-faint); }
+.pb-count.over { color:var(--no); font-weight:800; }
+.poster { --pc:#7c3aed; --ps:#f1eafd; border:2px solid var(--pc); border-radius:12px; background:#fff; padding:18px; }
+.poster.t-green { --pc:#15803d; --ps:#e8f7ee; }
+.poster.t-blue { --pc:#1d4ed8; --ps:#e8effe; }
+.poster .p-title { background:var(--pc); color:#fff; border-radius:9px; padding:12px 16px; text-align:center; }
+.poster .p-title h3 { margin:0; font-size:1.35rem; line-height:1.35; }
+.poster .p-title h3::before { content:none; }
+.poster .p-title div { font-size:.85rem; opacity:.9; margin-top:4px; }
+.poster .p-grid { display:grid; gap:10px; margin-top:12px; grid-auto-flow:row dense; }
+.poster.l3 .p-box.lim { grid-column:span 2; }
+.poster.l2 .p-grid { grid-template-columns:1fr 1fr; }
+.poster.l3 .p-grid { grid-template-columns:1fr 1fr 1fr; }
+.poster.l3 .p-fig { grid-column:2 / 4; }
+.poster.l2 .p-fig { grid-column:1 / -1; }
+@media (max-width:640px){ .poster.l2 .p-grid, .poster.l3 .p-grid { grid-template-columns:1fr; } .poster .p-fig, .poster .p-box.lim { grid-column:auto !important; } }
+.poster .p-box { background:var(--ps); border-radius:9px; padding:10px 12px; font-size:.85rem; line-height:1.6; white-space:pre-wrap; word-break:keep-all; }
+.poster .p-box b.h { display:block; color:var(--pc); font-size:.9rem; margin-bottom:3px; white-space:normal; }
+.poster .p-box.key { background:#fff; border:2px solid var(--pc); font-size:.95rem; font-weight:700; }
+.poster .p-fig { border:2px dashed var(--pc); border-radius:9px; min-height:130px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--pc); font-size:.85rem; text-align:center; padding:10px; }
+.poster .p-fig svg { width:100%; max-width:420px; height:auto; }
+.pb-warn { font-size:.84rem; margin-top:8px; }
+@media print {
+  body.poster-print main > *:not(#poster-sim) { display:none !important; }
+  body.poster-print #poster-sim { border:none; box-shadow:none; margin:0; }
+  body.poster-print #poster-sim .sim-head, body.poster-print #poster-sim .no-print-poster { display:none !important; }
+  body.poster-print .poster { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+}
+.rep-outline { counter-reset:sec; list-style:none; padding-left:0; }
+.rep-outline li { counter-increment:sec; background:#fff; border:1px solid var(--line); border-radius:10px; padding:8px 12px 8px 44px; margin:6px 0; position:relative; font-size:.92rem; }
+.rep-outline li::before { content:counter(sec); position:absolute; left:12px; top:8px; width:22px; height:22px; border-radius:50%; background:var(--accent); color:#fff; font-size:.75rem; font-weight:800; display:flex; align-items:center; justify-content:center; }
+.rep-outline small { color:var(--ink-soft); }
+</style>
+</head>
+<body data-unit="4" data-lesson="L53">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>보고서·발표 준비</h1>
+  <span class="std-badge">성취기준 12데과04-05</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>데이터 과학 프로젝트 보고서의 구성 요소와 각 부분에 들어갈 내용을 설명할 수 있다.</li>
+      <li>핵심 메시지가 드러나도록 프로젝트 포스터를 설계할 수 있다.</li>
+      <li>발표 리허설 체크리스트로 발표를 점검하고 개선할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과04-05] 분석을 위한 목적부터 데이터 수집 및 분석에 이르는 전 과정을 성찰하고, 사회적 영향을 고려하여 분석 결과의 활용 방안을 탐색한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span>수집</span><span>전처리</span><span>탐색</span><span>모델링</span><span>평가·해석</span><span class="on">공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  다음 주는 프로젝트 발표회입니다. 우리 모둠의 공유 폴더에는 코드 파일 7개, 그래프 그림 15장, 회의 기록, 수정에 수정을 거친 분석 메모가 뒤섞여 있습니다.
+  이 모든 것을 <b>보고서 한 편</b>과 <b>포스터 한 장</b>, <b>발표 5분</b>으로 정리해야 합니다.
+  무엇을 넣고 무엇을 뺄까요? 처음 보는 사람도 우리 프로젝트를 이해하고, 똑같이 다시 해 볼 수 있게 만들려면 어떻게 해야 할까요?
+</div>
+
+<h2><span class="sec-no">1</span>보고서의 구조 <i class="pub-c">공통</i></h2>
+
+<p>데이터 과학 프로젝트 보고서는 <b>다른 사람이 읽고 결과를 믿을 수 있으며, 원하면 같은 분석을 다시 해 볼 수 있도록</b> 쓰는 글입니다.
+이처럼 같은 자료와 방법으로 같은 결과를 다시 얻을 수 있는 성질을 <span class="keyterm">재현 가능성(reproducibility)</span>이라고 합니다.
+보고서는 보통 다음 순서로 구성합니다.</p>
+
+<ol class="rep-outline">
+  <li><b>제목과 요약</b> — 핵심 메시지를 담은 제목, 3~4문장 요약(문제·방법·결과·제안). <small>바쁜 독자는 여기까지만 읽습니다.</small></li>
+  <li><b>문제 정의</b> — 왜 이 문제인가? 해결하려는 질문과 관련 SDGs, 기대 효과.</li>
+  <li><b>데이터</b> — 출처, 수집 기간·방법, 행·열 수, 주요 속성 설명(메타데이터), 전처리 내용과 이유.</li>
+  <li><b>분석 방법</b> — 사용한 두 가지 이상의 방법, 선택 이유, 평가 지표. <small>코드 전체는 부록이나 공유 노트북 링크로.</small></li>
+  <li><b>결과</b> — 핵심 그래프·표와 수치. 방법별 비교표.</li>
+  <li><b>해석과 제안</b> — 발견 → 의미 → 행동. 사회적 영향과 보완책.</li>
+  <li><b>한계와 성찰</b> — 일반화 범위, 오류 가능성, 다시 한다면 바꿀 점, 끝까지 해결하려 노력한 과정.</li>
+  <li><b>참고 자료·역할 분담</b> — 데이터 출처, 참고 문헌, 모둠원별 기여.</li>
+</ol>
+
+<div class="box box-tip">
+  <span class="box-label">과정을 기록해 두면 보고서가 쉬워진다</span>
+  공유 문서나 노트북에 날짜별로 “무엇을 했고, 왜 그렇게 결정했고, 결과가 어땠는지”를 적어 두면 보고서의 데이터·방법·성찰 부분을 그대로 가져올 수 있습니다.
+  특히 <b>실패한 시도</b>(예: 선형 회귀의 낮은 성능)와 그 뒤의 개선 과정은 좋은 성찰 자료입니다.
+</div>
+
+<h3>보고서에 넣을 결과 정리하기</h3>
+<p>결과 부분에는 흩어진 숫자를 모아 <b>한눈에 비교하는 표</b>를 넣는 것이 좋습니다. 예시 프로젝트의 핵심 수치를 코드로 모아 봅시다.
+보고서의 숫자를 코드에서 바로 뽑아 두면 복사 실수도 막고 재현 가능성도 높아집니다.</p>
+
+<div class="pycell" data-title="보고서용 핵심 수치 표 만들기"><textarea>
+import pandas as pd
+import numpy as np
+
+en = load_csv("energy.csv")
+school = en[en["수업일"] == 1]
+b1 = np.polyfit(school["냉난방시간"], school["전력사용량"], 1)[0]
+
+facts = pd.DataFrame([
+    ["자료 기간", f"{en['날짜'].min()} ~ {en['날짜'].max()} ({len(en)}일)"],
+    ["수업일 / 비수업일", f"{len(school)}일 / {len(en) - len(school)}일"],
+    ["수업일 하루 평균 전력", f"{school['전력사용량'].mean():,.0f} kWh"],
+    ["비수업일 하루 평균 전력", f"{en[en['수업일'] == 0]['전력사용량'].mean():,.0f} kWh"],
+    ["냉난방시간–전력 상관계수(수업일)", f"{school['냉난방시간'].corr(school['전력사용량']):.3f}"],
+    ["냉난방 1시간당 전력 증가", f"약 {b1:.1f} kWh"],
+], columns=["항목", "값"])
+print(facts.to_string(index=False))
+
+# ✏️ 우리 모둠 데이터로 바꾸어, 보고서 ‘데이터’와 ‘결과’ 부분에 들어갈 핵심 수치 표를 만들어 보세요.
+</textarea></div>
+
+<h2><span class="sec-no">2</span>포스터 한 장에 담기 <i class="pub">천재</i></h2>
+
+<p>포스터는 복도를 지나가는 사람이 <b>1분 안에</b> 프로젝트의 핵심을 알 수 있게 만드는 한 장짜리 요약입니다.
+보고서의 내용을 줄이는 것이 아니라 <b>골라내는</b> 작업입니다. 다음 원칙을 기억하세요.</p>
+<ul>
+  <li><b>제목이 곧 메시지</b> — 멀리서도 읽히게 가장 크게. “전력 분석”보다 “냉난방 30분이 우리 학교 전기를 바꾼다”.</li>
+  <li><b>그림이 주인공</b> — 면적의 절반 이상을 핵심 그래프 1~2개에. 글은 짧은 문장·글머리표로.</li>
+  <li><b>읽는 순서</b> — 왼쪽 위 → 오른쪽 아래로(문제 → 데이터·방법 → 결과 → 제안) 자연스럽게 흐르도록 배치.</li>
+  <li><b>핵심 결과 상자</b> — 가장 중요한 한 문장은 테두리나 색으로 눈에 띄게.</li>
+</ul>
+
+<div class="sim" id="poster-sim">
+  <div class="sim-head">포스터 레이아웃 빌더 — 입력하면 바로 포스터가 됩니다</div>
+  <div class="sim-body">
+    <div class="no-print-poster">
+      <div class="pb-form" id="pb-form">
+        <label class="wide">제목(메시지형) <span class="pb-count" data-for="title"></span><input type="text" data-k="title" data-max="40"></label>
+        <label class="wide">모둠·이름<input type="text" data-k="team" data-max="60"></label>
+        <label>① 문제 정의 <span class="pb-count" data-for="problem"></span><textarea data-k="problem" data-max="120"></textarea></label>
+        <label>② 데이터 <span class="pb-count" data-for="data"></span><textarea data-k="data" data-max="120"></textarea></label>
+        <label>③ 분석 방법 <span class="pb-count" data-for="method"></span><textarea data-k="method" data-max="120"></textarea></label>
+        <label>④ 핵심 결과(한 문장) <span class="pb-count" data-for="key"></span><textarea data-k="key" data-max="70"></textarea></label>
+        <label>⑤ 제안 <span class="pb-count" data-for="action"></span><textarea data-k="action" data-max="120"></textarea></label>
+        <label>⑥ 한계·성찰 <span class="pb-count" data-for="limit"></span><textarea data-k="limit" data-max="120"></textarea></label>
+        <label class="wide">그림 자리 설명 (넣을 그래프) <input type="text" data-k="fig" data-max="60"></label>
+      </div>
+      <div class="sim-controls">
+        <label>배치 <select id="pb-layout"><option value="l2">2단</option><option value="l3" selected>3단</option></select></label>
+        <label>색 <select id="pb-theme"><option value="">보라</option><option value="t-green">초록</option><option value="t-blue">파랑</option></select></label>
+        <button id="pb-sample" class="ghost">예시 채우기</button>
+        <button id="pb-clear" class="gray">모두 지우기</button>
+        <button id="pb-print">🖨️ 포스터만 인쇄</button>
+      </div>
+      <p class="pb-warn" id="pb-warn"></p>
+    </div>
+    <div class="poster l3" id="pb-poster"></div>
+    <p class="widget-hint no-print-poster">입력 내용은 이 브라우저에 임시 저장됩니다(저장이 막힌 환경에서는 새로 고침하면 사라져요). 글자 수 제한을 넘으면 빨간색으로 표시됩니다 — 포스터는 짧을수록 좋습니다.</p>
+  </div>
+</div>
+
+<h2><span class="sec-no">3</span>발표 준비와 리허설 <i class="pub-c">공통</i></h2>
+
+<p>발표는 L51에서 배운 스토리텔링 구조(문제 제기 → 핵심 메시지 → 근거 → 한계 → 행동 제안)를 그대로 따릅니다.
+5분 발표라면 시간을 대략 다음처럼 나눕니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th>부분</th><th style="width:90px">시간</th><th>담당</th><th>핵심 내용</th></tr></thead>
+  <tbody>
+    <tr><td>문제 제기·핵심 메시지</td><td>40초</td><td>발표자 A</td><td>공감을 부르는 질문 + 한 문장 결론</td></tr>
+    <tr><td>데이터와 방법</td><td>1분</td><td>발표자 B</td><td>출처·기간·전처리 요점, 두 방법과 선택 이유</td></tr>
+    <tr><td>결과(근거 그래프)</td><td>1분 30초</td><td>발표자 C</td><td>그래프 1~2개, 방법 비교표</td></tr>
+    <tr><td>해석·한계·사회적 영향</td><td>1분</td><td>발표자 D</td><td>일반화 범위, 부작용과 보완책</td></tr>
+    <tr><td>행동 제안·마무리</td><td>50초</td><td>발표자 A</td><td>구체적 제안과 예상 효과, 감사 인사</td></tr>
+  </tbody>
+</table></div>
+
+<p>리허설은 최소 두 번 합니다. 첫 번째는 시간을 재며 끝까지, 두 번째는 다른 모둠 앞에서 하고 피드백을 받습니다.
+예상 질문 목록을 만들어 두면 질의응답이 훨씬 편안해집니다. “표본은 몇 명인가요?”, “왜 그 모델을 골랐나요?”,
+“인과라고 할 수 있나요?”, “다른 학교에도 적용되나요?”는 거의 반드시 나오는 질문입니다.</p>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">모둠 활동</span>발표 리허설 체크리스트</div>
+  <div class="act-body">
+    <p>리허설을 본 다른 모둠이 체크하고, 우리 모둠은 개선 계획을 적습니다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th style="width:36px">✔</th><th>점검 항목</th><th style="width:220px">피드백</th></tr></thead>
+      <tbody>
+        <tr><td>☐</td><td>첫 30초 안에 문제와 핵심 메시지가 분명히 전달되었다.</td><td></td></tr>
+        <tr><td>☐</td><td>그래프마다 “이 그래프에서 보아야 할 것”을 말로 짚어 주었다.</td><td></td></tr>
+        <tr><td>☐</td><td>데이터 출처·기간·표본 크기를 밝혔다.</td><td></td></tr>
+        <tr><td>☐</td><td>두 가지 이상의 분석 방법을 비교하고 선택 이유를 설명했다.</td><td></td></tr>
+        <tr><td>☐</td><td>상관과 인과를 구분하고, 결과의 한계와 사회적 영향을 말했다.</td><td></td></tr>
+        <tr><td>☐</td><td>제한 시간(5분)을 지켰다. 실제 걸린 시간: ____분 ____초</td><td></td></tr>
+        <tr><td>☐</td><td>모둠원 모두가 발표 또는 질의응답에 참여했다.</td><td></td></tr>
+      </tbody>
+    </table></div>
+    <p><b>예상 질문과 답변 준비</b> (3개)</p>
+    <div class="write-lines"><div class="line"></div><div class="line"></div><div class="line"></div></div>
+    <p><b>리허설 후 고칠 점</b></p>
+    <div class="write-lines"><div class="line"></div><div class="line"></div></div>
+  </div>
+</div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  포스터는 위 빌더 외에 프레젠테이션 도구의 한 장짜리 슬라이드(A3 크기 설정)나 온라인 캔버스 도구로 만들어도 됩니다.
+  빌더에는 그래프 이미지를 넣을 수 없으므로 인쇄 후 그래프를 오려 붙이거나, 빌더로 구성을 먼저 잡은 뒤 다른 도구로 옮기게 하세요.
+  흔한 문제는 “보고서 내용을 포스터에 그대로 줄여 넣기”입니다. 글자 수 제한 표시를 활용해 <b>빼는 연습</b>을 시키세요.
+  확장 차시이므로 3학점 반은 보고서 구조(1절)와 리허설 체크리스트만 L54 발표 전에 짧게 안내해도 됩니다.
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>보고서는 제목·요약 → 문제 정의 → 데이터 → 분석 방법 → 결과 → 해석·제안 → 한계·성찰 → 참고 자료 순으로 쓰며, 재현 가능하게 쓴다.</li>
+    <li>포스터는 메시지형 제목, 그림 중심, 자연스러운 읽기 순서, 눈에 띄는 핵심 결과 상자로 1분 안에 이해되게 만든다.</li>
+    <li>발표는 스토리텔링 구조를 따르고, 시간을 재며 두 번 이상 리허설하고, 예상 질문에 대한 답을 준비한다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 포스터 레이아웃 빌더 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const KEY = "dsc-l53-poster";
+  const fields = [...document.querySelectorAll("#pb-form [data-k]")];
+  const SAMPLE = {
+    title: "냉난방 30분이 우리 학교 전기를 바꾼다",
+    team: "2학년 3반 에너지탐정 모둠 (가온·나래·다솜·라온)",
+    problem: "우리 학교 전력 사용량을 줄이려면 무엇을 바꿔야 할까? (SDG 7 에너지, SDG 13 기후 행동)",
+    data: "학교 전력 사용 기록 2025년 3~12월 306일 (날짜·수업일·평균기온·냉난방시간·전력사용량), 수업일 198일 분석",
+    method: "① 선형 회귀(기온 → 전력): 곡선 관계라 설명력이 낮음\n② 냉난방시간 회귀·트리 회귀 비교 → 냉난방시간이 핵심 변수",
+    key: "냉난방 1시간마다 전력이 약 96 kWh 늘어난다 (r = 0.97)",
+    action: "냉난방을 1시간 이상 한 날마다 30분 줄이면 약 3,878 kWh 절감 예상 → 빈 교실 냉난방 끄기 알림 캠페인",
+    limit: "한 학교·한 해 자료라 일반화에 한계. 폭염·한파 때는 건강을 위해 예외 필요. 다음에는 교실별 온도도 측정하고 싶다.",
+    fig: "월별 수업일 하루 평균 전력 막대그래프 (12월·7월 강조)",
+  };
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+  const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { return null; } };
+  const save = d => { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) {} };
+
+  function data(){ const d = {}; fields.forEach(f => d[f.dataset.k] = f.value); d.layout = $("pb-layout").value; d.theme = $("pb-theme").value; return d; }
+  function fill(d){ fields.forEach(f => f.value = (d && d[f.dataset.k]) || ""); if (d && d.layout) $("pb-layout").value = d.layout; if (d) $("pb-theme").value = d.theme || ""; }
+
+  const MINI = `<svg viewBox="0 0 300 110" aria-hidden="true">${[1411,1204,1226,1414,1623,1306,1194,1216,1462,1835].map((v, i) =>
+      `<rect x="${10 + i * 29}" y="${100 - v / 20}" width="20" height="${v / 20}" rx="2" fill="${i === 4 || i === 9 ? "currentColor" : "#c7ccd6"}"/>`).join("")}</svg>`;
+
+  function render(){
+    const d = data();
+    const P = $("pb-poster");
+    P.className = `poster ${d.layout} ${d.theme}`.trim();
+    const box = (h, k, ph) => `<div class="p-box${k === "limit" ? " lim" : ""}"><b class="h">${h}</b>${d[k] ? esc(d[k]) : `<span style="color:#9aa5b1">${ph}</span>`}</div>`;
+    P.innerHTML =
+      `<div class="p-title"><h3>${esc(d.title || "제목을 메시지로 써 보세요")}</h3><div>${esc(d.team || "모둠 이름")}</div></div>
+       <div class="p-grid">
+         ${box("① 문제 정의", "problem", "왜 이 문제인가?")}
+         ${box("② 데이터", "data", "출처·기간·규모")}
+         ${box("③ 분석 방법", "method", "두 가지 이상 방법과 비교")}
+         <div class="p-fig">${d.fig ? MINI + "<div>🖼️ " + esc(d.fig) + "</div>" : "🖼️ 핵심 그래프 자리"}</div>
+         <div class="p-box key"><b class="h">④ 핵심 결과</b>${d.key ? esc(d.key) : '<span style="color:#9aa5b1">가장 중요한 한 문장</span>'}</div>
+         ${box("⑤ 제안", "action", "무엇을, 얼마나?")}
+         ${box("⑥ 한계·성찰", "limit", "일반화 범위, 다시 한다면")}
+       </div>`;
+    let over = 0;
+    fields.forEach(f => {
+      const c = document.querySelector(`.pb-count[data-for="${f.dataset.k}"]`);
+      if (!c) return;
+      const n = f.value.length, m = +f.dataset.max;
+      c.textContent = `${n}/${m}자`;
+      c.classList.toggle("over", n > m);
+      if (n > m) over++;
+    });
+    const empty = fields.filter(f => !f.value.trim()).length;
+    $("pb-warn").textContent = over ? `✂️ 글자 수를 넘은 칸이 ${over}개 있어요. 포스터는 핵심만 남겨야 멀리서도 읽힙니다.`
+      : empty ? `빈 칸 ${empty}개 — 모두 채우면 포스터가 완성됩니다.` : "✅ 모든 칸이 채워졌습니다. 1분 안에 읽히는지 친구에게 보여 주세요.";
+    save(d);
+  }
+  fields.forEach(f => f.addEventListener("input", render));
+  $("pb-layout").addEventListener("change", render);
+  $("pb-theme").addEventListener("change", render);
+  $("pb-sample").addEventListener("click", () => { fill(Object.assign({ layout: $("pb-layout").value, theme: $("pb-theme").value }, SAMPLE)); render(); });
+  $("pb-clear").addEventListener("click", () => { if (confirm("입력한 내용을 모두 지울까요?")){ fill({ layout: $("pb-layout").value, theme: $("pb-theme").value }); render(); } });
+  $("pb-print").addEventListener("click", () => { document.body.classList.add("poster-print"); window.print(); });
+  window.addEventListener("afterprint", () => document.body.classList.remove("poster-print"));
+  fill(load());
+  render();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"보고서의 ‘데이터’ 부분에 들어갈 내용으로 가장 알맞지 <b>않은</b> 것은?",
+    choices:["데이터 출처와 수집 기간","행·열 수와 주요 속성 설명","결측치·이상치 처리 방법과 이유","학교에 제안하는 절약 캠페인 내용","수집 방법(설문·센서·공공 데이터 등)"], answer:3,
+    explain:"캠페인 제안은 ‘해석과 제안’ 부분에 들어갑니다. 데이터 부분은 다른 사람이 자료를 이해하고 다시 구할 수 있도록 출처·기간·규모·속성·전처리를 적습니다." },
+  { type:"ox", q:"재현 가능성이란 같은 자료와 같은 방법으로 분석하면 다른 사람도 같은 결과를 얻을 수 있는 성질이다.",
+    answer:true, explain:"보고서에 데이터 출처·전처리·분석 방법·코드를 기록해 두면 다른 사람이 결과를 검증할 수 있어 신뢰도가 높아집니다." },
+  { type:"mc", q:"포스터 제목으로 가장 좋은 것은?",
+    choices:["데이터 과학 프로젝트","전력 사용량 분석 보고서","냉난방 30분이 우리 학교 전기를 바꾼다","2학년 3반 2모둠","전력 데이터의 수집, 전처리, 탐색, 모델링, 해석에 관한 연구"], answer:2,
+    explain:"포스터 제목은 핵심 메시지를 담아 멀리서도 무엇을 발견했는지 알 수 있게 씁니다." },
+  { type:"mc", q:"5분 발표에서 시간 배분이 가장 적절한 것은?",
+    choices:["데이터 전처리 코드 설명 3분, 결과 1분, 나머지 1분","문제·메시지 약 40초, 데이터·방법 약 1분, 결과 약 1분 30초, 해석·한계 약 1분, 제안 약 50초","결과만 5분","모둠원 소개 2분, 나머지 3분","질의응답 없이 7분 동안 모든 그래프 설명"], answer:1,
+    explain:"청중이 알고 싶은 결론과 근거에 가장 많은 시간을 쓰고, 문제·방법·한계·제안을 균형 있게 배분합니다. 시간 제한을 지키는 것도 중요합니다." },
+  { type:"short", q:"발표 후 “이 결과를 다른 학교에도 적용할 수 있나요?”라는 질문을 받았다. 예시 프로젝트(한 학교 2025년 3~12월 자료)를 바탕으로 답변을 써 보세요.",
+    model:"우리 결과는 한 학교의 2025년 3~12월 자료에 근거하므로 다른 학교에 그대로 적용하기는 어렵습니다. 건물 구조와 냉난방 설비, 학생 수가 다르면 냉난방 1시간당 전력 증가량도 달라질 수 있습니다. 다만 ‘냉난방 시간이 전력 사용의 핵심 변수’라는 방향은 비슷할 가능성이 있으므로, 다른 학교의 자료로 같은 분석을 해서 확인해 보고 싶습니다." },
+]);
+</script>
+</body>
+</html>

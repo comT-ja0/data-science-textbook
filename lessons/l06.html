@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>데이터셋과 데이터베이스 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 테이블 분해 실험실 */
+.an-mode { display:inline-flex; border:1.5px solid var(--accent); border-radius:999px; overflow:hidden; }
+.an-mode button { border-radius:0; background:#fff; color:var(--accent); padding:6px 14px; font-size:.84rem; }
+.an-mode button.on { background:var(--accent); color:#fff; }
+.an-tables { display:grid; grid-template-columns:1fr; gap:12px; margin-top:10px; }
+.an-tables.split { grid-template-columns:1.1fr 1fr; }
+@media (max-width:760px){ .an-tables.split { grid-template-columns:1fr; } }
+.an-tables h5 { margin:0 0 4px; font-size:.84rem; }
+.an-tables table { margin:0; font-size:.78rem; }
+.an-tables th, .an-tables td { padding:4px 7px; }
+.an-tables td.pk { font-weight:800; }
+.an-tables th.pk::after { content:" 🔑"; }
+.an-tables th.fk::after { content:" 🔗"; }
+.an-tables td.edit { cursor:pointer; text-decoration:underline dotted; color:var(--accent); font-weight:700; }
+.an-tables td.edit:hover { background:var(--accent-soft); }
+.an-tables td.bad { background:#fdeeee; color:#b32424; font-weight:700; }
+.an-tables td.dup { background:#fef6e7; }
+.an-tables tr.ghost td { background:#fdeeee; color:#b32424; }
+.an-tables .del { background:none; color:var(--no); padding:0 4px; font-size:.85rem; }
+.an-tasks { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+.an-log { margin-top:10px; padding:10px 12px; border-radius:10px; font-size:.87rem; background:var(--paper); border:1px solid var(--line); line-height:1.55; min-height:44px; }
+.an-log.bad { background:#fdeeee; border-color:#f3b9b9; color:#8f1d1d; }
+.an-log.good { background:#eafaf0; border-color:#ace8c4; color:#127a3c; }
+/* 데이터 → 데이터셋 → DB */
+.lvl3 { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:16px 0; }
+@media (max-width:640px){ .lvl3 { grid-template-columns:1fr; } }
+.lvl3 div { border-radius:12px; padding:12px; border:1px solid var(--line); background:#fff; font-size:.86rem; }
+.lvl3 div b { display:block; color:var(--accent); font-size:1rem; margin-bottom:4px; }
+.lvl3 code { font-size:.76rem; }
+</style>
+</head>
+<body data-unit="1" data-lesson="L06">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>데이터셋과 데이터베이스</h1>
+  <span class="std-badge">성취기준 12데과01-03</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>데이터, 데이터셋, 데이터베이스의 관계를 설명할 수 있다.</li>
+      <li>파일로 따로 관리할 때의 문제점과 데이터베이스의 특징을 비교할 수 있다.</li>
+      <li>중복이 많은 표를 기본키·외래키로 연결된 테이블로 나누는 이유를 설명할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과01-03] 데이터셋의 집합인 데이터베이스를 이해하고, 서로 다른 데이터셋의 데이터를 분석이 가능한 형태로 통합하는 것의 의미를 파악한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span class="on">수집</span><span class="on">전처리</span><span>탐색</span><span>모델링</span><span>평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  동아리 담당 선생님, 담임 선생님, 행정실이 각자 엑셀 파일로 학생 명단을 관리하고 있습니다.
+  어느 날 한 학생이 전화번호를 바꾸었는데, 담임 선생님 파일만 고쳐졌습니다. 동아리 공지 문자는 옛 번호로 가고,
+  행정실 파일에는 또 다른 번호가 적혀 있습니다. 세 파일 중 어느 것이 맞는 걸까요? 이런 혼란을 막으려면 데이터를 어떻게 관리해야 할까요?
+</div>
+
+<h2><span class="sec-no">1</span>데이터 → 데이터셋 → 데이터베이스 <i class="pub">씨마스</i></h2>
+
+<p>옛날 고을의 관리들이 마을마다 인구와 곡식 기록을 모아 표로 정리하고, 그 표들을 다시 모아 나라 전체의 장부를 만들었던 것처럼,
+데이터는 모이고 정리되면서 점점 큰 단위가 됩니다.</p>
+
+<div class="lvl3">
+  <div><b>데이터</b>하나하나의 사실·값<br><code>20103, 박도윤, 1반, 로봇공학반</code></div>
+  <div><b>데이터셋</b>하나의 주제로 모아 정리한 데이터의 묶음(보통 표 하나)<br><code>학생 명단 표, 동아리 표, 독서 기록 표</code></div>
+  <div><b>데이터베이스</b>여러 데이터셋을 서로 연결해 통합·저장하고 함께 사용하도록 관리하는 데이터의 집합<br><code>학교 데이터베이스</code></div>
+</div>
+
+<p><span class="keyterm">데이터셋(dataset)</span>은 특정 목적을 위해 모은 데이터의 모음이고, <span class="keyterm">데이터베이스(database, DB)</span>는 여러 사람이 공유해 쓸 수 있도록
+<b>관련된 데이터셋들을 통합·저장</b>한 것입니다. 관계형 데이터베이스에서는 데이터셋 하나를 <span class="keyterm">테이블(table)</span>이라고 부르고,
+행을 레코드(튜플), 열을 속성(필드·칼럼)이라고 합니다.</p>
+
+<h2><span class="sec-no">2</span>파일로 따로 관리하면 생기는 문제 <i class="pub">YBM</i></h2>
+
+<p>생각 열기의 상황처럼 부서마다 파일을 따로 만들어 관리하는 방식을 <b>파일 시스템</b>이라고 합니다. 이 방식에는 다음과 같은 문제가 있습니다.</p>
+
+<div class="cards">
+  <div class="cardbox"><h4>① 데이터 중복</h4><p>같은 학생 정보가 여러 파일에 반복 저장되어 저장 공간이 낭비되고, 고칠 때 여러 곳을 고쳐야 합니다.</p></div>
+  <div class="cardbox"><h4>② 불일치</h4><p>한 파일만 고치면 파일마다 값이 달라져 어느 값이 맞는지 알 수 없게 됩니다. 데이터를 믿을 수 없게 됩니다.</p></div>
+  <div class="cardbox"><h4>③ 종속성</h4><p>파일의 형식이 그 파일을 쓰는 프로그램에 묶여 있어, 열 하나를 추가하면 관련 프로그램을 모두 고쳐야 합니다.</p></div>
+</div>
+
+<p>이 문제를 해결하기 위해 데이터를 한곳에 모아 통합 관리하는 것이 데이터베이스이고, 데이터베이스를 만들고 관리해 주는 소프트웨어를
+<span class="keyterm">데이터베이스 관리 시스템(DBMS)</span>이라고 합니다. 여러 사용자와 프로그램은 파일을 직접 만지지 않고 DBMS를 통해 데이터를 요청합니다.</p>
+
+<figure>
+<svg viewBox="0 0 600 190" role="img" aria-label="파일 시스템과 데이터베이스 시스템 비교">
+  <g font-size="12" text-anchor="middle">
+    <text x="140" y="18" font-weight="800" fill="#b32424">파일 시스템</text>
+    <text x="450" y="18" font-weight="800" fill="#0e7490">데이터베이스 시스템</text>
+    <!-- 파일 시스템 -->
+    <g fill="#fff" stroke="#b8c2cc"><rect x="20" y="35" width="70" height="30" rx="6"/><rect x="105" y="35" width="70" height="30" rx="6"/><rect x="190" y="35" width="70" height="30" rx="6"/></g>
+    <text x="55" y="55">담임</text><text x="140" y="55">동아리</text><text x="225" y="55">행정실</text>
+    <g fill="#fdeeee" stroke="#f3b9b9"><rect x="20" y="110" width="70" height="40" rx="6"/><rect x="105" y="110" width="70" height="40" rx="6"/><rect x="190" y="110" width="70" height="40" rx="6"/></g>
+    <text x="55" y="128" font-size="10">학생 파일①</text><text x="55" y="142" font-size="10">☎ 010-1…</text>
+    <text x="140" y="128" font-size="10">학생 파일②</text><text x="140" y="142" font-size="10">☎ 010-9…</text>
+    <text x="225" y="128" font-size="10">학생 파일③</text><text x="225" y="142" font-size="10">☎ 010-5…</text>
+    <g stroke="#b8c2cc" stroke-width="2"><line x1="55" y1="65" x2="55" y2="110"/><line x1="140" y1="65" x2="140" y2="110"/><line x1="225" y1="65" x2="225" y2="110"/></g>
+    <text x="140" y="178" font-size="11" fill="#b32424">같은 학생, 서로 다른 전화번호!</text>
+    <line x1="300" y1="30" x2="300" y2="180" stroke="#dde4ec" stroke-dasharray="4 4"/>
+    <!-- DB 시스템 -->
+    <g fill="#fff" stroke="#b8c2cc"><rect x="330" y="35" width="70" height="30" rx="6"/><rect x="415" y="35" width="70" height="30" rx="6"/><rect x="500" y="35" width="70" height="30" rx="6"/></g>
+    <text x="365" y="55">담임</text><text x="450" y="55">동아리</text><text x="535" y="55">행정실</text>
+    <rect x="385" y="85" width="130" height="26" rx="6" fill="#e2f4f8" stroke="#0e7490"/><text x="450" y="102" font-weight="700" fill="#0e7490">DBMS</text>
+    <g stroke="#0e7490" stroke-width="2"><line x1="365" y1="65" x2="420" y2="85"/><line x1="450" y1="65" x2="450" y2="85"/><line x1="535" y1="65" x2="480" y2="85"/><line x1="450" y1="111" x2="450" y2="128"/></g>
+    <path d="M405 130 h90 v36 c0 8 -90 8 -90 0 z" fill="#e2f4f8" stroke="#0e7490"/><ellipse cx="450" cy="130" rx="45" ry="7" fill="#fff" stroke="#0e7490"/>
+    <text x="450" y="155" font-size="11">통합 DB</text>
+    <text x="450" y="185" font-size="11" fill="#0e7490">한 번 고치면 모두에게 같은 값</text>
+  </g>
+</svg>
+<figcaption>파일 시스템은 부서마다 따로 저장해 중복·불일치가 생기고, 데이터베이스 시스템은 DBMS를 통해 하나의 통합 데이터를 함께 씁니다.</figcaption>
+</figure>
+
+<h2><span class="sec-no">3</span>데이터베이스의 특징 <i class="pub-c">공통</i></h2>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:130px">특징</th><th>설명</th><th style="width:34%">학교 DB의 예</th></tr></thead>
+  <tbody>
+    <tr><td><b>통합된 데이터</b></td><td>중복을 최소화하여 한곳에 모아 둔다.</td><td>학생 정보는 학생 테이블 한 곳에만 저장</td></tr>
+    <tr><td><b>실시간 접근</b></td><td>요청하면 즉시 원하는 데이터를 찾아 준다.</td><td>담임 선생님이 조회하는 순간 최신 연락처 확인</td></tr>
+    <tr><td><b>계속적인 변화</b></td><td>삽입·수정·삭제로 항상 최신 상태를 유지한다.</td><td>전학 온 학생 추가, 동아리 변경 반영</td></tr>
+    <tr><td><b>동시 공유</b></td><td>여러 사용자가 동시에 같은 데이터를 사용한다.</td><td>담임·동아리·행정실이 같은 데이터 사용</td></tr>
+    <tr><td><b>내용에 의한 참조</b></td><td>저장 위치가 아니라 값(조건)으로 데이터를 찾는다.</td><td>“2반 학생 중 로봇공학반”으로 검색</td></tr>
+  </tbody>
+</table></div>
+
+<p>이 밖에도 DBMS는 잘못된 값이 들어가지 않도록 막는 <b>무결성</b>, 허가된 사람만 볼 수 있게 하는 <b>보안</b>, 고장 났을 때 되살리는 <b>회복</b> 기능을 제공합니다.
+오늘날 은행·병원·쇼핑몰·학교의 거의 모든 정보 서비스가 데이터베이스 위에서 움직입니다.</p>
+
+<h2><span class="sec-no">4</span>표를 나누는 이유: 기본키와 외래키 <i class="pub">씨마스</i></h2>
+
+<p>데이터베이스를 설계할 때는 <b>한 가지 주제의 정보는 한 테이블에만</b> 저장하도록 표를 나눕니다. 나뉜 테이블은 공통 속성으로 연결합니다.</p>
+<ul>
+  <li><span class="keyterm">기본키(primary key)</span> — 테이블에서 각 레코드를 <b>유일하게 구별</b>하는 속성. 값이 중복되거나 비어 있으면 안 됩니다. 예: 학생 테이블의 <code>학번</code>, 동아리 테이블의 <code>동아리코드</code></li>
+  <li><span class="keyterm">외래키(foreign key)</span> — 다른 테이블의 기본키를 가리키는 속성. 두 테이블을 연결하는 다리입니다. 예: 학생 테이블의 <code>동아리코드</code> → 동아리 테이블의 <code>동아리코드</code></li>
+</ul>
+<p>외래키에는 상대 테이블에 <b>실제로 있는 값</b>(또는 빈 값)만 들어가야 합니다. 동아리 테이블에 없는 코드가 학생 테이블에 적혀 있다면 연결이 끊어진 잘못된 데이터입니다.
+이 규칙을 <b>참조 무결성</b>이라고 합니다.</p>
+
+<p>아래 실험실에서 한 표로 관리할 때와 두 표로 나눌 때를 직접 비교해 보세요.</p>
+
+<div class="sim">
+  <div class="sim-head">테이블 분해 실험실 — 한 표 vs 두 표</div>
+  <div class="sim-body">
+    <div class="sim-controls">
+      <div class="an-mode"><button id="m-one" class="on">한 표로 관리</button><button id="m-two">두 표로 나누어 관리</button></div>
+      <button id="an-reset" class="gray">↺ 초기화</button>
+      <span class="stat-chip">동아리 정보가 저장된 칸 <b id="an-cells">0</b>개</span>
+    </div>
+    <div class="an-tasks">
+      <button id="t1" class="ghost">과제 ① 로봇공학반이 ‘메이커실’로 이사</button>
+      <button id="t2" class="ghost">과제 ② 방송반 유일한 회원 최하윤 탈퇴</button>
+      <button id="t3" class="ghost">과제 ③ 새 동아리 ‘천문반’ 만들기(회원 0명)</button>
+    </div>
+    <div class="an-tables" id="an-tables"></div>
+    <div class="an-log" id="an-log">과제 버튼을 누르고, 안내에 따라 표를 고쳐 보세요. 모드를 바꿔 같은 과제를 다시 해 보면 차이가 보입니다.</div>
+    <p class="widget-hint">밑줄 친 칸은 클릭해서 고칠 수 있습니다. 🔑 기본키, 🔗 외래키</p>
+  </div>
+</div>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:120px">이상 현상</th><th>한 표로 관리할 때 생기는 문제</th></tr></thead>
+  <tbody>
+    <tr><td><b>수정 이상</b></td><td>같은 정보가 여러 행에 중복되어 일부만 고치면 값이 서로 달라진다(불일치).</td></tr>
+    <tr><td><b>삭제 이상</b></td><td>한 레코드를 지웠는데 함께 들어 있던 다른 정보(동아리 장소)까지 사라진다.</td></tr>
+    <tr><td><b>삽입 이상</b></td><td>회원이 없는 동아리처럼, 다른 정보(학번)가 없으면 새 정보를 넣을 수 없다.</td></tr>
+  </tbody>
+</table></div>
+
+<h3>파이썬으로 키 점검하기</h3>
+<p>교재 데이터 <code>school_students.csv</code>(학생 30명)와 <code>school_clubs.csv</code>(동아리 5개)는 학교 DB의 두 테이블이라고 생각할 수 있습니다. 키 규칙이 잘 지켜졌는지 점검해 봅시다.</p>
+
+<div class="pycell" data-title="기본키 점검: 중복·빈칸이 없는가?"><textarea>
+students = load_csv("school_students.csv")
+clubs = load_csv("school_clubs.csv")
+print(students.head(3))
+print(clubs)
+
+# 기본키 조건: 모든 값이 서로 다르고(유일), 비어 있지 않아야 한다
+print("학번이 유일한가?", students["학번"].is_unique, "/ 빈칸 수:", students["학번"].isna().sum())
+print("동아리코드가 유일한가?", clubs["동아리코드"].is_unique)
+
+# 이름은 기본키가 될 수 있을까?
+print("이름이 유일한가?", students["이름"].is_unique)
+
+# ✏️ students["반"].is_unique 도 확인해 보세요. 반은 기본키가 될 수 있나요?
+</textarea></div>
+
+<div class="pycell" data-title="외래키 점검: 연결이 끊어진 값은 없는가?"><textarea>
+# 학생 테이블의 동아리코드(외래키)가 동아리 테이블에 실제로 있는지 검사
+ok = students["동아리코드"].isin(clubs["동아리코드"])
+print("동아리 테이블에 없는(또는 빈) 동아리코드를 가진 학생:")
+print(students[~ok])
+
+print()
+print(students["동아리코드"].value_counts(dropna=False))   # dropna=False: 빈 값(NaN)도 센다
+
+# ✏️ 이 학생들의 데이터를 어떻게 처리해야 할지(수정·확인·빈 값 유지) 모둠에서 이야기해 보세요.
+</textarea></div>
+
+<p>점검 결과, 기본키인 학번과 동아리코드는 규칙을 잘 지키고 있습니다(이름은 이 데이터에서는 유일하지만, 동명이인이 생길 수 있어 기본키로 쓰지 않습니다).
+그런데 외래키를 검사하니 <b>세 명</b>이 걸립니다. 동아리코드가 <b>빈칸</b>인 학생 2명(20107 조주원, 20207 이다은)과,
+동아리 테이블에 없는 <b>C9</b>를 가진 학생 1명(20113 서건우)입니다. 빈칸은 “아직 동아리에 가입하지 않음”일 수 있지만,
+C9는 입력 실수일 가능성이 높아 담당 선생님께 확인해야 합니다. DBMS에 외래키 규칙을 설정해 두었다면 C9는 처음부터 입력이 거부되었을 것입니다.</p>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  실험실은 ‘한 표로 관리’에서 과제 ①~③을 먼저 해 보게 한 뒤 ‘두 표로 나누어 관리’로 바꿔 같은 과제를 반복하게 하면 이상 현상의 의미가 분명해집니다(약 12분).
+  ‘정규화’라는 용어는 데이터 전처리의 정규화(최소-최대 변환)와 혼동되기 쉬우므로, 이 차시에서는 ‘테이블 분해(나누기)’라고 부르는 것을 권합니다.
+  컴퓨터 없이 할 때는 스프레드시트 두 시트(학생·동아리)를 만들고 한 시트에서만 동아리 장소를 고쳐 보는 활동으로 대신할 수 있습니다.
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">모둠 활동</span>인터넷 쇼핑몰 데이터베이스 설계하기 <i class="pub">삼양</i></div>
+  <div class="act-body">
+    <p style="margin-top:0">학교 굿즈를 파는 작은 쇼핑몰을 만든다고 합시다. 회원, 상품, 주문 정보를 저장할 테이블 3개를 설계하세요.</p>
+    <ol>
+      <li>각 테이블의 속성을 정하고 자료형(문자·정수·실수·날짜)과 기본키(🔑)·외래키(🔗)를 표시하세요.
+        <div class="table-wrap"><table>
+          <thead><tr><th>테이블</th><th>속성 이름 (자료형, 키 표시)</th></tr></thead>
+          <tbody>
+            <tr><td><b>회원</b></td><td>예: 회원번호(정수, 🔑), &nbsp;</td></tr>
+            <tr><td><b>상품</b></td><td>&nbsp;</td></tr>
+            <tr><td><b>주문</b></td><td>&nbsp;</td></tr>
+          </tbody>
+        </table></div></li>
+      <li>주문 테이블에 회원 이름과 상품 가격을 직접 적지 않고 외래키만 두는 이유를 ‘수정 이상’과 연결하여 설명하세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+      <li>이 데이터베이스로 쇼핑몰 운영자가 알 수 있는 정보(질문)를 2가지 쓰세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+    </ol>
+  </div>
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>데이터가 주제별로 모이면 데이터셋(테이블), 관련 데이터셋을 연결해 통합·공유하면 데이터베이스가 된다. 이를 관리하는 소프트웨어가 DBMS이다.</li>
+    <li>파일 시스템은 중복·불일치·종속성 문제가 있고, 데이터베이스는 통합·실시간 접근·계속적 변화·동시 공유·내용에 의한 참조의 특징이 있다.</li>
+    <li>한 표에 여러 주제를 담으면 수정·삭제·삽입 이상이 생기므로 주제별로 테이블을 나눈다.</li>
+    <li>기본키는 레코드를 유일하게 구별하는 속성, 외래키는 다른 테이블의 기본키를 가리켜 테이블을 연결하는 속성이다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 테이블 분해 실험실 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const CLUBS0 = [
+    { code:"C1", name:"데이터탐구반", place:"정보실", teacher:"한교사" },
+    { code:"C2", name:"로봇공학반", place:"과학실", teacher:"오교사" },
+    { code:"C3", name:"방송반", place:"방송실", teacher:"윤교사" },
+  ];
+  const STU0 = [
+    { id:"20101", name:"김민준", code:"C2" }, { id:"20102", name:"이서연", code:"C1" },
+    { id:"20103", name:"박도윤", code:"C2" }, { id:"20104", name:"최하윤", code:"C3" },
+    { id:"20105", name:"정시우", code:"C1" }, { id:"20106", name:"강지유", code:"C2" },
+  ];
+  let mode = "one", rows, stu, clubs, task = 0, ghost = null;
+
+  function reset(){
+    clubs = CLUBS0.map(c => ({ ...c }));
+    stu = STU0.map(s => ({ ...s }));
+    rows = STU0.map(s => { const c = CLUBS0.find(k => k.code === s.code); return { id:s.id, name:s.name, code:s.code, cname:c.name, place:c.place, teacher:c.teacher }; });
+    task = 0; ghost = null;
+    log("과제 버튼을 누르고, 안내에 따라 표를 고쳐 보세요. 모드를 바꿔 같은 과제를 다시 해 보면 차이가 보입니다.", "");
+    render();
+  }
+  function log(msg, cls){ const l = $("an-log"); l.className = "an-log " + (cls || ""); l.innerHTML = msg; }
+
+  function render(){
+    const T = $("an-tables");
+    if (mode === "one") {
+      T.className = "an-tables";
+      const places = {};
+      rows.forEach(r => { (places[r.code] = places[r.code] || new Set()).add(r.place); });
+      const seen = {};
+      const body = rows.map((r, i) => {
+        const inconsistent = places[r.code].size > 1;
+        const dup = seen[r.code]; seen[r.code] = true;
+        const pc = (task === 1 && r.code === "C2" ? "edit " : "") + (inconsistent ? "bad" : dup ? "dup" : "");
+        return `<tr><td class="pk">${r.id}</td><td>${r.name}</td><td>${r.code}</td><td class="${dup ? "dup" : ""}">${r.cname}</td>` +
+          `<td class="${pc}" data-row="${i}">${r.place}</td><td class="${dup ? "dup" : ""}">${r.teacher}</td>` +
+          `<td>${task === 2 ? `<button class="del" data-del="${i}" title="이 행 삭제">🗑</button>` : ""}</td></tr>`;
+      }).join("");
+      const gh = ghost ? `<tr class="ghost"><td>(빈칸)</td><td>—</td><td>C4</td><td>천문반</td><td>옥상 관측대</td><td>서교사</td><td>✘</td></tr>` : "";
+      T.innerHTML = `<div><h5>동아리 신청 현황 (한 표)</h5><div class="table-wrap"><table class="data"><thead><tr><th class="pk">학번</th><th>이름</th><th>동아리코드</th><th>동아리명</th><th>활동장소</th><th>담당교사</th><th></th></tr></thead><tbody>${body}${gh}</tbody></table></div></div>`;
+      $("an-cells").textContent = rows.length * 3;
+    } else {
+      T.className = "an-tables split";
+      const sb = stu.map((s, i) => `<tr><td class="pk">${s.id}</td><td>${s.name}</td><td>${s.code}</td><td>${task === 2 ? `<button class="del" data-sdel="${i}" title="이 행 삭제">🗑</button>` : ""}</td></tr>`).join("");
+      const cb = clubs.map((c, i) => {
+        const n = stu.filter(s => s.code === c.code).length;
+        return `<tr><td class="pk">${c.code}</td><td>${c.name}</td><td class="${task === 1 && c.code === "C2" ? "edit" : ""}" data-club="${i}">${c.place}</td><td>${c.teacher}</td><td style="text-align:center">${n}</td></tr>`;
+      }).join("");
+      T.innerHTML = `<div><h5>학생 테이블</h5><div class="table-wrap"><table class="data"><thead><tr><th class="pk">학번</th><th>이름</th><th class="fk">동아리코드</th><th></th></tr></thead><tbody>${sb}</tbody></table></div></div>` +
+        `<div><h5>동아리 테이블</h5><div class="table-wrap"><table class="data"><thead><tr><th class="pk">동아리코드</th><th>동아리명</th><th>활동장소</th><th>담당교사</th><th>회원 수</th></tr></thead><tbody>${cb}</tbody></table></div></div>`;
+      $("an-cells").textContent = clubs.length * 3;
+    }
+    bind();
+  }
+
+  function bind(){
+    document.querySelectorAll("#an-tables td.edit").forEach(td => td.addEventListener("click", () => {
+      if (mode === "one") {
+        const r = rows[+td.dataset.row]; r.place = "메이커실";
+        const c2 = rows.filter(x => x.code === "C2"), fixed = c2.filter(x => x.place === "메이커실").length;
+        render();
+        if (fixed < c2.length) log(`C2 행 ${c2.length}개 중 <b>${fixed}개</b>만 고쳐졌습니다. 지금 표에는 로봇공학반의 활동장소가 ‘과학실’과 ‘메이커실’ 두 가지로 저장되어 있어요(빨간 칸). 어느 것이 맞을까요? 이것이 <b>수정 이상</b>입니다. 나머지도 모두 고쳐 보세요.`, "bad");
+        else log(`C2 행 ${c2.length}개를 모두 고쳤습니다. 같은 정보를 <b>${c2.length}번</b> 고쳐야 했죠. 회원이 300명이라면? 한 곳이라도 빠뜨리면 불일치가 생깁니다. 이제 ‘두 표로 나누어 관리’에서 같은 과제를 해 보세요.`, "");
+      } else {
+        clubs[+td.dataset.club].place = "메이커실";
+        render();
+        log(`동아리 테이블의 칸 <b>하나</b>만 고쳤는데, 로봇공학반 회원 ${stu.filter(s => s.code === "C2").length}명 모두의 활동장소가 ‘메이커실’로 바뀐 셈입니다. 학생 테이블은 동아리코드(외래키)로 이 한 칸을 참조하기 때문에 불일치가 생길 수 없습니다.`, "good");
+      }
+    }));
+    document.querySelectorAll("#an-tables [data-del]").forEach(b => b.addEventListener("click", () => {
+      const r = rows[+b.dataset.del];
+      rows.splice(+b.dataset.del, 1);
+      render();
+      const left = rows.some(x => x.code === r.code);
+      if (r.code === "C3" && !left) log(`${r.name} 학생의 행을 지웠더니 <b>방송반의 활동장소(방송실)와 담당교사(윤교사) 정보까지 표에서 사라졌습니다.</b> 이제 방송반이 어디서 활동하는지 알 수 없어요. 이것이 <b>삭제 이상</b>입니다.`, "bad");
+      else log(`${r.name} 학생의 행을 지웠습니다. 과제는 방송반(C3)의 유일한 회원을 지우는 것입니다.`, "");
+    }));
+    document.querySelectorAll("#an-tables [data-sdel]").forEach(b => b.addEventListener("click", () => {
+      const s = stu[+b.dataset.sdel];
+      stu.splice(+b.dataset.sdel, 1);
+      render();
+      if (s.code === "C3") log(`학생 테이블에서 ${s.name}을(를) 지웠지만, 동아리 테이블에는 <b>방송반 정보가 그대로 남아 있습니다</b>(회원 수 0). 학생 정보와 동아리 정보가 분리되어 있기 때문입니다.`, "good");
+      else log(`${s.name} 학생을 지웠습니다. 과제는 방송반(C3)의 유일한 회원을 지우는 것입니다.`, "");
+    }));
+  }
+
+  $("t1").addEventListener("click", () => {
+    task = 1; ghost = null; render();
+    log(mode === "one" ? "로봇공학반(C2)이 메이커실로 옮겼습니다. 표에서 <b>밑줄 친 활동장소 칸</b>을 클릭해 고치세요." : "로봇공학반(C2)이 메이커실로 옮겼습니다. <b>동아리 테이블</b>의 밑줄 친 칸을 클릭해 고치세요.", "");
+  });
+  $("t2").addEventListener("click", () => {
+    task = 2; ghost = null; render();
+    log("방송반(C3)의 유일한 회원인 <b>최하윤(20104)</b>이 동아리를 탈퇴합니다. 🗑 버튼으로 해당 학생의 행을 지워 보세요.", "");
+  });
+  $("t3").addEventListener("click", () => {
+    task = 3;
+    if (mode === "one") {
+      ghost = true; render();
+      log("천문반(C4, 옥상 관측대, 서교사)을 새로 만들었지만 아직 회원이 없습니다. 이 표의 기본키는 <b>학번</b>인데 넣을 학번이 없으니 행을 추가할 수 없습니다(빨간 줄). 회원이 생길 때까지 천문반 정보를 저장할 곳이 없어요. 이것이 <b>삽입 이상</b>입니다.", "bad");
+    } else {
+      if (!clubs.some(c => c.code === "C4")) clubs.push({ code:"C4", name:"천문반", place:"옥상 관측대", teacher:"서교사" });
+      render();
+      log("동아리 테이블에 천문반(C4)을 바로 추가했습니다. 회원이 0명이어도 동아리 정보를 저장할 수 있습니다.", "good");
+    }
+  });
+  $("m-one").addEventListener("click", () => { mode = "one"; $("m-one").classList.add("on"); $("m-two").classList.remove("on"); reset(); });
+  $("m-two").addEventListener("click", () => { mode = "two"; $("m-two").classList.add("on"); $("m-one").classList.remove("on"); reset(); });
+  $("an-reset").addEventListener("click", reset);
+  reset();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"데이터, 데이터셋, 데이터베이스의 관계를 바르게 설명한 것은?",
+    choices:["데이터베이스를 쪼개면 데이터가 되고, 데이터를 모으면 데이터셋이 된다","데이터셋은 하나의 값, 데이터는 값의 묶음이다","관련된 데이터셋들을 연결해 통합·저장한 것이 데이터베이스이다","데이터베이스는 표 하나만 가질 수 있다","데이터셋과 데이터베이스는 같은 뜻이다"], answer:2,
+    explain:"하나하나의 값(데이터)을 주제별로 모으면 데이터셋(테이블)이 되고, 관련된 여러 데이터셋을 연결해 통합·저장하고 함께 쓰도록 관리하는 것이 데이터베이스입니다." },
+  { type:"mc", q:"다음 중 기본키로 가장 알맞은 속성은?",
+    choices:["학생 테이블의 이름","학생 테이블의 반","도서 테이블의 출판사","회원 테이블의 회원번호","주문 테이블의 주문 수량"], answer:3,
+    explain:"기본키는 각 레코드를 유일하게 구별해야 하므로 중복·빈칸이 없어야 합니다. 이름은 동명이인, 반·출판사·수량은 같은 값이 여러 번 나올 수 있습니다." },
+  { type:"ox", q:"학생 테이블의 동아리코드(외래키)에 동아리 테이블에 없는 코드 ‘C9’가 들어 있으면 참조 무결성이 깨진 것이다.",
+    answer:true, explain:"외래키에는 참조하는 테이블의 기본키에 실제로 있는 값(또는 빈 값)만 들어가야 합니다. C9는 가리킬 대상이 없으므로 참조 무결성 위반입니다." },
+  { type:"mc", q:"학생 60명이 모두 한 표에 동아리명·활동장소·담당교사를 함께 적어 두었다. 동아리가 5개일 때, 표를 학생 테이블과 동아리 테이블로 나누면 동아리 정보(동아리명·활동장소·담당교사)를 저장하는 칸은 몇 개에서 몇 개로 줄어드는가?",
+    choices:["60개 → 5개","180개 → 15개","180개 → 60개","60개 → 15개","300개 → 15개"], answer:1,
+    explain:"한 표일 때는 학생마다 3칸씩 60 × 3 = 180칸, 나누면 동아리마다 3칸씩 5 × 3 = 15칸입니다. 대신 학생 테이블에는 연결용 외래키(동아리코드) 60칸이 남습니다." },
+  { type:"short", q:"한 표로 관리하던 ‘동아리 신청 현황’에서 방송반의 유일한 회원이 탈퇴하자 방송반의 활동장소 정보가 사라졌습니다. 이 문제의 이름과 원인, 해결 방법을 쓰세요.",
+    model:"삭제 이상이다. 학생 정보와 동아리 정보라는 서로 다른 주제가 한 표(한 레코드)에 섞여 있어서, 학생 레코드를 지우면 함께 저장된 동아리 정보도 지워지기 때문이다. 학생 테이블과 동아리 테이블로 나누고 동아리코드(외래키)로 연결하면, 학생을 지워도 동아리 정보는 동아리 테이블에 남는다." },
+]);
+</script>
+</body>
+</html>

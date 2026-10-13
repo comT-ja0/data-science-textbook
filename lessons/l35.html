@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>연관 분석: 지지도·신뢰도·향상도 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 장바구니 규칙 실험실 */
+.lab-grid { display:grid; grid-template-columns:minmax(240px,1fr) 1.2fr; gap:18px; }
+@media (max-width:760px){ .lab-grid { grid-template-columns:1fr; } }
+.basket-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:6px; }
+.bk { border:1.5px solid var(--line); border-radius:9px; padding:5px 8px; font-size:.76rem; background:#fff; line-height:1.45; }
+.bk .no { font-weight:800; color:var(--ink-faint); margin-right:4px; }
+.bk.hitA { border-color:#93c5fd; background:#eff6ff; }
+.bk.hitAB { border-color:var(--accent); background:var(--accent-soft); }
+.rule-pick { display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-weight:700; margin-bottom:12px; }
+.meter { margin:10px 0; }
+.meter .m-top { display:flex; justify-content:space-between; font-size:.86rem; font-weight:700; }
+.meter .m-bar { height:12px; background:var(--paper); border:1px solid var(--line); border-radius:999px; overflow:hidden; margin-top:3px; }
+.meter .m-bar i { display:block; height:100%; background:var(--accent); border-radius:999px; transition:width .35s; }
+.meter .m-calc { font-size:.78rem; color:var(--ink-faint); }
+.lift-verdict { margin-top:12px; padding:10px 14px; border-radius:10px; font-weight:700; font-size:.9rem; }
+.lift-verdict.pos { background:#eafaf0; border:1.5px solid #ace8c4; color:#127a3c; }
+.lift-verdict.neg { background:#fdeeee; border:1.5px solid #f3b9b9; color:#b32424; }
+.lift-verdict.zero { background:#eef7ff; border:1.5px solid #cbe4f7; color:#1d6fb8; }
+</style>
+</head>
+<body data-unit="3" data-lesson="L35">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>연관 분석: 지지도·신뢰도·향상도</h1>
+  <span class="std-badge">성취기준 12데과03-04</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>장바구니 분석의 사례로 연관 분석이 무엇을 찾는 방법인지 설명할 수 있다.</li>
+      <li>거래 데이터에서 지지도·신뢰도·향상도를 직접 계산할 수 있다.</li>
+      <li>향상도를 근거로 연관 규칙이 의미 있는지 판단하고 결과를 해석할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과03-04] 데이터 간의 관계를 분석하고 상호 연관성을 파악하여 결과의 의미를 해석한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span>수집</span><span>전처리</span><span>탐색</span><span class="on">모델링</span><span class="on">평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  학교 매점 점장님이 고민에 빠졌습니다. “컵라면 옆에 무엇을 진열해야 더 잘 팔릴까?”
+  점심시간 영수증 300장을 펼쳐 보니 컵라면을 산 학생 상당수가 삼각김밥도 함께 샀습니다.
+  그렇다면 <b>‘컵라면을 사면 삼각김밥도 산다’</b>는 규칙이 정말 의미가 있을까요?
+  혹시 삼각김밥은 원래 누구나 많이 사는 인기 상품이라 우연히 겹친 것은 아닐까요?
+  오늘은 이 질문에 숫자로 답하는 방법을 배웁니다.
+</div>
+
+<h2><span class="sec-no">1</span>연관 분석이란 <i class="pub-c">공통</i></h2>
+
+<p><span class="keyterm">연관 분석(association analysis)</span>은 데이터 안에서 <b>함께 일어나는 항목들의 관계</b>를 찾는 분석 방법입니다.
+대표적인 예가 마트의 <span class="keyterm">장바구니 분석(market basket analysis)</span>입니다.
+한 번의 거래(장바구니)에 어떤 상품들이 같이 담기는지 살펴서
+<code>{A} → {B}</code>(“A를 사면 B도 산다”) 형태의 <span class="keyterm">연관 규칙</span>을 만듭니다.
+화살표 왼쪽을 <b>조건(선행 항목)</b>, 오른쪽을 <b>결과(후행 항목)</b>라고 부릅니다.</p>
+
+<p>연관 분석은 정답(레이블)이 없는 데이터에서 패턴을 찾기 때문에 군집 분석처럼 <b>비지도 학습</b>에 속합니다.
+쇼핑몰의 “이 상품을 본 고객이 함께 본 상품” 추천, 온라인 서점의 묶음 할인, 병원의 증상·질병 동시 발생 분석,
+웹 페이지 이동 경로 분석 등에 쓰입니다.</p>
+
+<div class="box box-warn">
+  <span class="box-label">연관성 ≠ 인과성</span>
+  연관 규칙은 “함께 일어난다”는 사실만 알려 줍니다. “컵라면 때문에 삼각김밥을 산다”는 <b>원인과 결과</b>를 뜻하지 않습니다.
+  둘 다 ‘점심을 급하게 해결하려는 상황’이라는 제3의 이유로 함께 팔릴 수도 있습니다.
+</div>
+
+<h2><span class="sec-no">2</span>세 가지 지표 <i class="pub-c">공통</i></h2>
+
+<p>좋은 연관 규칙인지 판단하려면 세 가지 지표를 함께 봅니다. 전체 거래 수를 N이라고 할 때 다음과 같습니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:130px">지표</th><th>의미</th><th style="width:300px">계산</th></tr></thead>
+  <tbody>
+    <tr><td><b>지지도</b><br>(support)</td><td>A와 B가 <b>함께</b> 들어 있는 거래가 전체에서 차지하는 비율. 규칙이 얼마나 <b>자주</b> 나타나는가?</td><td><code>(A와 B를 모두 포함한 거래 수) ÷ N</code></td></tr>
+    <tr><td><b>신뢰도</b><br>(confidence)</td><td>A를 산 거래 중 B도 산 비율. A가 일어났을 때 B가 일어날 <b>조건부 확률</b></td><td><code>(A와 B를 모두 포함한 거래 수) ÷ (A를 포함한 거래 수)</code></td></tr>
+    <tr><td><b>향상도</b><br>(lift)</td><td>A를 샀다는 정보가 B를 살 가능성을 <b>몇 배</b> 높이는가? 우연히 겹친 것인지 가려 준다.</td><td><code>신뢰도(A→B) ÷ 지지도(B)</code></td></tr>
+  </tbody>
+</table></div>
+
+<span class="formula">향상도(A→B) = P(B | A) ÷ P(B) = 지지도(A∩B) ÷ (지지도(A) × 지지도(B))
+<small>P(B)는 전체 거래 중 B를 포함한 거래의 비율입니다.</small></span>
+
+<h3>향상도 읽는 법</h3>
+<div class="cards">
+  <div class="cardbox"><h4>향상도 &gt; 1 · 양의 연관</h4><p>A를 사면 B를 살 가능성이 평소보다 <b>높아진다</b>. 함께 진열·묶음 판매를 고려할 만하다.</p></div>
+  <div class="cardbox"><h4>향상도 = 1 · 독립</h4><p>A와 B는 서로 <b>관계가 없다</b>. 함께 나타나는 것은 우연이다.</p></div>
+  <div class="cardbox"><h4>향상도 &lt; 1 · 음의 연관</h4><p>A를 사면 B를 살 가능성이 오히려 <b>낮아진다</b>. 서로 대체하는 상품일 수 있다(예: 탄산음료와 생수).</p></div>
+</div>
+
+<h3>손으로 계산해 보기</h3>
+<p>거래 10건으로 연습해 봅시다. 🍜=컵라면, 🍙=삼각김밥, 🥛=우유, 💧=생수입니다.</p>
+
+<div class="table-wrap"><table class="data" style="max-width:520px">
+  <thead><tr><th>거래</th><th>담긴 상품</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td style="text-align:left">🍜 🍙 💧</td></tr>
+    <tr><td>2</td><td style="text-align:left">🍜 🍙</td></tr>
+    <tr><td>3</td><td style="text-align:left">🥛</td></tr>
+    <tr><td>4</td><td style="text-align:left">🍜 💧</td></tr>
+    <tr><td>5</td><td style="text-align:left">🍙 🥛</td></tr>
+    <tr><td>6</td><td style="text-align:left">🍜 🍙</td></tr>
+    <tr><td>7</td><td style="text-align:left">🥛 💧</td></tr>
+    <tr><td>8</td><td style="text-align:left">🍜 🍙 🥛</td></tr>
+    <tr><td>9</td><td style="text-align:left">🍙</td></tr>
+    <tr><td>10</td><td style="text-align:left">🥛</td></tr>
+  </tbody>
+</table></div>
+
+<p>규칙 <code>{컵라면} → {삼각김밥}</code>을 계산하면,
+컵라면이 든 거래는 1·2·4·6·8번 <b>5건</b>, 그중 삼각김밥도 든 거래는 1·2·6·8번 <b>4건</b>, 삼각김밥이 든 거래는 모두 <b>6건</b>입니다.</p>
+<ul>
+  <li>지지도 = 4 ÷ 10 = <b>0.4</b> — 전체 거래의 40%에서 둘이 함께 팔렸다.</li>
+  <li>신뢰도 = 4 ÷ 5 = <b>0.8</b> — 컵라면을 산 사람의 80%가 삼각김밥도 샀다.</li>
+  <li>향상도 = 0.8 ÷ (6 ÷ 10) = 0.8 ÷ 0.6 ≈ <b>1.33</b> — 컵라면을 사면 삼각김밥을 살 가능성이 평소보다 약 1.33배.</li>
+</ul>
+
+<details class="reveal"><summary>도전: {우유} → {삼각김밥}의 세 지표를 계산해 보세요 (정답 확인)</summary>
+<div class="reveal-body">
+우유가 든 거래는 3·5·7·8·10번 5건, 그중 삼각김밥도 든 거래는 5·8번 2건입니다.
+지지도 = 2/10 = 0.2, 신뢰도 = 2/5 = 0.4, 향상도 = 0.4 ÷ 0.6 ≈ <b>0.67</b>.
+향상도가 1보다 작으므로 <b>우유를 산 사람은 오히려 삼각김밥을 덜 산다</b>는 음의 연관입니다.
+신뢰도 0.4만 보면 ‘꽤 높네?’ 싶지만, 향상도가 착시를 바로잡아 줍니다.
+</div></details>
+
+<h2><span class="sec-no">3</span>장바구니 규칙 실험실 <i class="pub-c">공통</i></h2>
+
+<div class="sim">
+  <div class="sim-head">장바구니 규칙 실험실 — 학교 매점 영수증 40장</div>
+  <div class="sim-body">
+    <p style="margin-top:0;font-size:.92rem">조건(A)과 결과(B) 상품을 고르면 해당 거래가 색으로 표시되고 세 지표가 계산됩니다.
+    <span style="background:#eff6ff;border:1px solid #93c5fd;border-radius:5px;padding:0 5px">파란 칸</span>은 A만 포함,
+    <span style="background:var(--accent-soft);border:1px solid var(--accent);border-radius:5px;padding:0 5px">주황 칸</span>은 A와 B를 모두 포함한 거래입니다.</p>
+    <div class="rule-pick">
+      <select id="selA"></select> <span>→</span> <select id="selB"></select>
+      <button id="btn-swap" class="ghost">⇄ 방향 바꾸기</button>
+      <button id="btn-best" class="gray">🏆 향상도 1위 규칙 찾기</button>
+    </div>
+    <div class="lab-grid">
+      <div><div class="basket-list" id="baskets"></div></div>
+      <div>
+        <div class="meter"><div class="m-top"><span>지지도</span><span id="v-sup">—</span></div><div class="m-bar"><i id="b-sup"></i></div><div class="m-calc" id="c-sup"></div></div>
+        <div class="meter"><div class="m-top"><span>신뢰도</span><span id="v-conf">—</span></div><div class="m-bar"><i id="b-conf"></i></div><div class="m-calc" id="c-conf"></div></div>
+        <div class="meter"><div class="m-top"><span>향상도</span><span id="v-lift">—</span></div><div class="m-bar"><i id="b-lift"></i></div><div class="m-calc" id="c-lift"></div></div>
+        <div class="lift-verdict" id="verdict"></div>
+      </div>
+    </div>
+    <p class="widget-hint">관찰 포인트: 방향을 바꾸면(A→B ↔ B→A) 지지도·향상도는 그대로인데 신뢰도만 달라집니다. 왜 그럴까요?</p>
+  </div>
+</div>
+
+<div class="box box-tip">
+  <span class="box-label">최소 기준 정하기</span>
+  상품이 10개만 있어도 만들 수 있는 규칙은 수백 개입니다. 그래서 실제 분석에서는
+  <b>최소 지지도</b>(예: 0.05 이상)로 너무 드문 조합을 먼저 걸러 내고, <b>최소 신뢰도</b>(예: 0.3 이상)를 넘는 규칙만 남긴 뒤,
+  <b>향상도 &gt; 1</b>인 규칙을 향상도 순으로 살펴봅니다. 자주 나오는 조합만 효율적으로 찾아 주는 대표 알고리즘이
+  <span class="keyterm">아프리오리(Apriori)</span>입니다. — “드문 조합을 포함한 더 큰 조합은 더 드물다”는 원리로 계산량을 줄입니다.
+</div>
+
+<h2><span class="sec-no">4</span>파이썬으로 연관 분석하기 <i class="pub-c">공통</i></h2>
+
+<p>이번에는 매점 거래 300건 전체(<code>basket.csv</code>)로 계산합니다.
+먼저 ‘거래번호–품목’ 형태의 데이터를 거래마다 한 줄, 상품마다 한 칸인 <b>원-핫(0/1) 표</b>로 바꿉니다.</p>
+
+<div class="pycell" data-title="거래 데이터를 장바구니 표로 바꾸기"><textarea>
+import pandas as pd
+
+tx = load_csv("basket.csv")          # 거래번호, 품목
+print(tx.head(8))
+print("거래 수:", tx["거래번호"].nunique(), "/ 품목 수:", tx["품목"].nunique())
+
+# 거래번호 × 품목 교차표 → 담겼으면 1, 아니면 0
+basket = pd.crosstab(tx["거래번호"], tx["품목"]).clip(upper=1)
+print(basket.head())
+
+# 품목별 지지도 = 그 품목이 담긴 거래의 비율
+print(basket.mean().sort_values(ascending=False).round(3))
+</textarea></div>
+
+<div class="pycell" data-title="규칙 하나의 세 지표 계산"><textarea>
+def rule(A, B):
+    N = len(basket)
+    nA  = basket[A].sum()
+    nB  = basket[B].sum()
+    nAB = (basket[A] & basket[B]).sum()
+    sup  = nAB / N
+    conf = nAB / nA
+    lift = conf / (nB / N)
+    print(f"{{{A}}} → {{{B}}}  지지도 {sup:.3f}  신뢰도 {conf:.3f}  향상도 {lift:.2f}")
+
+rule("컵라면", "삼각김밥")
+rule("빵", "우유")
+rule("탄산음료", "생수")
+
+# ✏️ 직접 바꿔 보기: 향상도가 1보다 큰 규칙과 작은 규칙을 하나씩 더 찾아 보세요.
+</textarea></div>
+
+<div class="pycell" data-title="모든 2-품목 규칙을 찾아 향상도 순으로 정렬"><textarea>
+from itertools import permutations
+
+N = len(basket)
+rows = []
+for A, B in permutations(basket.columns, 2):
+    nAB = (basket[A] & basket[B]).sum()
+    sup = nAB / N
+    if sup < 0.05:            # 최소 지지도 기준
+        continue
+    conf = nAB / basket[A].sum()
+    lift = conf / basket[B].mean()
+    rows.append((A, B, round(sup, 3), round(conf, 3), round(lift, 2)))
+
+rules = pd.DataFrame(rows, columns=["조건", "결과", "지지도", "신뢰도", "향상도"])
+rules = rules[rules["신뢰도"] >= 0.3].sort_values("향상도", ascending=False)
+print(rules.head(10).to_string(index=False))
+
+# ✏️ 최소 지지도를 0.02로 낮추면 규칙이 몇 개로 늘어나나요? 새로 나타난 규칙은 믿을 만한가요?
+</textarea></div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  Orange를 쓰는 학급은 <b>Associate</b> 애드온의 Frequent Itemsets·Association Rules 위젯으로 같은 결과를 확인할 수 있습니다.
+  파이썬 반에서는 <code>mlxtend</code> 라이브러리의 <code>apriori</code>·<code>association_rules</code> 함수를 소개하되,
+  위처럼 직접 세어 계산하는 코드를 먼저 경험하게 하면 지표의 의미가 더 잘 남습니다.
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">모둠 활동</span>매점 진열 제안서 만들기 <i class="pub-c">공통</i></div>
+  <div class="act-body">
+    <ol>
+      <li>위 파이썬 결과에서 향상도 상위 규칙 3개를 골라 표로 정리하세요.
+        <div class="table-wrap"><table>
+          <thead><tr><th>규칙</th><th>지지도</th><th>신뢰도</th><th>향상도</th><th>해석 (한 문장)</th></tr></thead>
+          <tbody><tr><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr></tbody>
+        </table></div></li>
+      <li>규칙을 근거로 매점 진열 또는 묶음 할인 아이디어를 하나 제안하세요. 어떤 지표를 가장 중요한 근거로 삼았는지 밝히세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+      <li>향상도가 1보다 작은 규칙을 하나 찾아, 그 상품들이 왜 함께 잘 팔리지 않는지 가능한 이유를 추론해 보세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+      <li><b>비판적 사고</b> — 이 분석 결과만으로 “컵라면 가격을 올려도 삼각김밥이 더 팔린다”고 말할 수 있을까요? 연관성과 인과성의 차이로 설명하세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+    </ol>
+  </div>
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>연관 분석은 함께 일어나는 항목의 규칙 <code>{A}→{B}</code>를 찾는 비지도 분석이다.</li>
+    <li>지지도는 얼마나 자주, 신뢰도는 A일 때 B일 확률, 향상도는 A가 B의 가능성을 몇 배 높이는지를 뜻한다.</li>
+    <li>향상도 &gt; 1이면 양의 연관, = 1이면 독립, &lt; 1이면 음의 연관이다. 신뢰도만 보면 인기 상품에 속을 수 있다.</li>
+    <li>연관 규칙은 인과 관계를 보장하지 않는다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 장바구니 규칙 실험실 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const ITEMS = ["컵라면","삼각김밥","생수","빵","우유","과자","초콜릿","탄산음료"];
+  // 40건: 규칙이 드러나도록 설계한 교육용 거래
+  const T = [
+    "컵라면 삼각김밥 생수","컵라면 삼각김밥","빵 우유","과자 초콜릿 탄산음료","컵라면 삼각김밥",
+    "빵 우유","탄산음료","컵라면 생수","과자 탄산음료","빵 우유 초콜릿",
+    "삼각김밥 우유","컵라면 삼각김밥 탄산음료","생수","과자 초콜릿","컵라면 삼각김밥 생수",
+    "빵","우유","컵라면 삼각김밥","과자 탄산음료","빵 우유",
+    "삼각김밥 생수","컵라면","초콜릿 우유","컵라면 삼각김밥","과자 초콜릿 탄산음료",
+    "빵 우유","생수 빵","컵라면 삼각김밥 생수","탄산음료 과자","삼각김밥",
+    "빵 우유 삼각김밥","컵라면 생수","과자","컵라면 삼각김밥","우유",
+    "빵 초콜릿","탄산음료 삼각김밥","컵라면 삼각김밥","과자 초콜릿","생수 우유"
+  ].map(s => new Set(s.split(" ")));
+  const N = T.length;
+
+  const opt = sel => ITEMS.map(it => `<option${it===sel?" selected":""}>${it}</option>`).join("");
+  $("selA").innerHTML = opt("컵라면");
+  $("selB").innerHTML = opt("삼각김밥");
+
+  function stats(A, B){
+    const nA = T.filter(t => t.has(A)).length;
+    const nB = T.filter(t => t.has(B)).length;
+    const nAB = T.filter(t => t.has(A) && t.has(B)).length;
+    const sup = nAB / N, conf = nA ? nAB / nA : 0, lift = nB ? conf / (nB / N) : 0;
+    return { nA, nB, nAB, sup, conf, lift };
+  }
+
+  function render(){
+    const A = $("selA").value, B = $("selB").value;
+    $("baskets").innerHTML = T.map((t, i) => {
+      const cls = t.has(A) ? (t.has(B) && A !== B ? "hitAB" : "hitA") : "";
+      return `<div class="bk ${cls}"><span class="no">${i+1}</span>${[...t].join(", ")}</div>`;
+    }).join("");
+    if (A === B){
+      ["sup","conf","lift"].forEach(k => { $("v-"+k).textContent = "—"; $("b-"+k).style.width = "0"; $("c-"+k).textContent = ""; });
+      const v = $("verdict"); v.className = "lift-verdict zero"; v.textContent = "조건과 결과에 서로 다른 상품을 골라 주세요.";
+      return;
+    }
+    const s = stats(A, B);
+    $("v-sup").textContent = s.sup.toFixed(3);
+    $("v-conf").textContent = s.conf.toFixed(3);
+    $("v-lift").textContent = s.lift.toFixed(2);
+    $("b-sup").style.width = (s.sup * 100) + "%";
+    $("b-conf").style.width = (s.conf * 100) + "%";
+    $("b-lift").style.width = Math.min(s.lift / 3, 1) * 100 + "%";
+    $("c-sup").textContent = `A와 B가 함께 든 거래 ${s.nAB}건 ÷ 전체 ${N}건`;
+    $("c-conf").textContent = `A와 B가 함께 든 거래 ${s.nAB}건 ÷ A가 든 거래 ${s.nA}건`;
+    $("c-lift").textContent = `신뢰도 ${s.conf.toFixed(3)} ÷ B의 지지도 ${(s.nB/N).toFixed(3)} (B가 든 거래 ${s.nB}건) · 막대 끝 = 3.0`;
+    const v = $("verdict");
+    if (s.nAB === 0){ v.className = "lift-verdict neg"; v.textContent = `두 상품이 함께 팔린 적이 한 번도 없습니다. 향상도 0 — 규칙으로 쓸 수 없어요.`; }
+    else if (s.lift > 1.1){ v.className = "lift-verdict pos"; v.textContent = `양의 연관 ✔ ${A}을(를) 산 학생은 ${B}을(를) 평소보다 ${s.lift.toFixed(2)}배 더 잘 삽니다.`; }
+    else if (s.lift < 0.9){ v.className = "lift-verdict neg"; v.textContent = `음의 연관 ✘ ${A}을(를) 산 학생은 오히려 ${B}을(를) 덜 삽니다 (평소의 ${s.lift.toFixed(2)}배).`; }
+    else { v.className = "lift-verdict zero"; v.textContent = `거의 독립 — 두 상품은 서로 관계가 약합니다 (향상도 ≈ 1).`; }
+  }
+
+  $("selA").addEventListener("change", render);
+  $("selB").addEventListener("change", render);
+  $("btn-swap").addEventListener("click", () => {
+    const a = $("selA").value; $("selA").value = $("selB").value; $("selB").value = a; render();
+  });
+  $("btn-best").addEventListener("click", () => {
+    let best = null;
+    for (const A of ITEMS) for (const B of ITEMS) {
+      if (A === B) continue;
+      const s = stats(A, B);
+      if (s.sup < 0.1) continue;
+      if (!best || s.lift > best.s.lift) best = { A, B, s };
+    }
+    $("selA").value = best.A; $("selB").value = best.B; render();
+  });
+  render();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"거래 200건 중 A가 든 거래 50건, B가 든 거래 80건, A와 B가 함께 든 거래 40건이다. 규칙 {A}→{B}의 신뢰도는?",
+    choices:["0.20","0.25","0.40","0.50","0.80"], answer:4,
+    explain:"신뢰도 = (A와 B 함께) ÷ (A) = 40 ÷ 50 = 0.8입니다. 지지도는 40 ÷ 200 = 0.2입니다." },
+  { type:"mc", q:"위 문제의 규칙 {A}→{B}의 향상도는?",
+    choices:["0.5","1.0","1.6","2.0","2.5"], answer:3,
+    explain:"B의 지지도 = 80 ÷ 200 = 0.4이므로 향상도 = 0.8 ÷ 0.4 = 2.0. A를 산 고객은 B를 평소보다 2배 더 잘 삽니다." },
+  { type:"ox", q:"규칙 {A}→{B}와 {B}→{A}는 지지도와 향상도가 같지만 신뢰도는 다를 수 있다.",
+    answer:true, explain:"지지도(A∩B)와 향상도의 계산식은 A와 B에 대해 대칭이지만, 신뢰도는 분모가 각각 A의 거래 수, B의 거래 수로 달라집니다." },
+  { type:"mc", q:"어떤 규칙의 신뢰도가 0.9로 매우 높은데 향상도는 0.95였다. 가장 알맞은 해석은?",
+    choices:["매우 강한 양의 연관이다","결과 상품이 원래 거의 모든 거래에 포함되는 인기 상품이라, 조건 상품과는 사실상 관계가 없다","두 상품은 인과 관계가 있다","지지도가 반드시 높다","계산이 잘못되었다"], answer:1,
+    explain:"향상도 ≈ 1이면 독립에 가깝습니다. 결과 상품의 지지도가 0.95 정도로 높으면, 무엇을 샀든 그 상품을 살 확률이 원래 높아 신뢰도가 저절로 높게 나옵니다." },
+  { type:"short", q:"한 온라인 서점이 연관 분석으로 ‘수학 문제집 → 형광펜’ 규칙(향상도 2.4)을 찾았다. 이 결과를 어떻게 활용할 수 있을지 한 가지 제안하고, 이 결과를 해석할 때 주의할 점을 한 가지 쓰세요.",
+    model:"활용: 수학 문제집 상세 페이지에 형광펜을 ‘함께 구매하면 좋은 상품’으로 추천하거나 묶음 할인을 제공한다. 향상도 2.4는 문제집 구매자가 형광펜을 평소보다 2.4배 더 잘 산다는 뜻이므로 추천 효과를 기대할 수 있다. 주의: 연관 규칙은 인과 관계가 아니며, 지지도가 너무 낮으면 소수 거래에서 우연히 생긴 규칙일 수 있으므로 지지도와 거래 건수를 함께 확인해야 한다." },
+]);
+</script>
+</body>
+</html>

@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>데이터 모델의 개념 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 모델 유형 분류기 */
+.mc-card { border:2px solid var(--line); border-radius:14px; padding:16px 18px; background:#fff; min-height:88px; }
+.mc-card .mc-no { font-size:.78rem; font-weight:800; color:var(--ink-faint); }
+.mc-card .mc-text { font-size:1.02rem; font-weight:700; margin-top:4px; line-height:1.55; }
+.mc-btns { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:12px 0; }
+@media (max-width:560px){ .mc-btns { grid-template-columns:repeat(2,1fr); } }
+.mc-btns button { padding:12px 6px; font-size:.95rem; }
+.mc-btns button.right { background:#1f9d55; }
+.mc-btns button.wrong { background:#d94848; }
+.mc-feedback { min-height:48px; font-size:.9rem; padding:10px 14px; border-radius:10px; background:var(--paper); }
+.mc-feedback.ok { background:#eafaf0; border:1px solid #ace8c4; }
+.mc-feedback.no { background:#fdeeee; border:1px solid #f3b9b9; }
+.path { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:12px; }
+@media (max-width:560px){ .path { grid-template-columns:1fr; } }
+.path div { border:1.5px dashed var(--line); border-radius:10px; padding:8px 10px; font-size:.8rem; color:var(--ink-faint); }
+.path div.lit { border-style:solid; border-color:var(--accent); color:var(--ink); background:var(--accent-soft); }
+.path div b { display:block; font-size:.84rem; }
+.mc-foot { display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-top:12px; }
+</style>
+</head>
+<body data-unit="3" data-lesson="L26">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>데이터 모델의 개념</h1>
+  <span class="std-badge">성취기준 12데과03-01</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>데이터 모델이 현실을 단순화한 수식이나 규칙임을 예를 들어 설명할 수 있다.</li>
+      <li>회귀·분류·군집·연관 모델의 차이를 알고, 문제 상황에 알맞은 모델 유형을 고를 수 있다.</li>
+      <li>상관관계·인과관계·연관성을 구분하여 모델 결과를 올바르게 해석할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과03-01] 데이터 모델 개념을 이해하고 데이터 분석에 활용할 수 있는 도구를 탐색한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span>수집</span><span>전처리</span><span>탐색</span><span class="on">모델링</span><span>평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  지하철 노선도를 떠올려 보세요. 실제 선로는 구불구불하고 역 사이 거리도 제각각이지만, 노선도는 직선과 점 몇 개로 단순하게 그려져 있습니다.
+  그런데도 우리는 노선도만 보고 어디서 갈아타야 하는지 정확히 압니다. <b>필요한 정보만 남기고 나머지를 버렸기 때문</b>입니다.
+  데이터 과학의 ‘모델’도 이와 같습니다. 복잡한 현실 데이터에서 핵심 관계만 뽑아 수식이나 규칙으로 나타냅니다.
+  오늘은 모델이 무엇이고, 어떤 문제에 어떤 모델을 쓰는지 알아봅시다.
+</div>
+
+<h2><span class="sec-no">1</span>모델이란 무엇인가 <i class="pub-c">공통</i></h2>
+
+<p><span class="keyterm">데이터 모델</span>은 데이터 속에 있는 관계나 패턴을 <b>수식·규칙·구조</b>로 단순하게 표현한 것입니다.
+데이터를 이용해 모델을 만들고 다듬는 과정을 <span class="keyterm">데이터 모델링</span>이라고 합니다.
+모델을 만들면 ① 데이터의 특징을 <b>설명</b>하고, ② 아직 모르는 값을 <b>예측</b>하고, ③ 비슷한 것끼리 <b>묶거나</b>, ④ 함께 일어나는 <b>규칙</b>을 찾을 수 있습니다.</p>
+
+<div class="cards">
+  <div class="cardbox"><h4>수식 모델</h4><p><code>성적 = 7.7 × 공부시간 + 47.9</code><br>공부시간을 넣으면 성적 예측값이 나온다. 회귀 모델이 대표적이다.</p></div>
+  <div class="cardbox"><h4>규칙 모델</h4><p><code>만약 공부시간 ≥ 2시간이면 → ‘65점 이상’</code><br>조건에 따라 범주를 정한다. 분류 모델(의사결정트리 등)의 모습이다.</p></div>
+  <div class="cardbox"><h4>구조 모델</h4><p><code>{컵라면} → {삼각김밥}</code>, ‘집단 1·2·3’<br>함께 일어나는 규칙이나 비슷한 것끼리의 묶음을 나타낸다.</p></div>
+</div>
+
+<p>모델을 만들 때는 <b>무엇으로(입력)</b> <b>무엇을(출력)</b> 설명·예측하는지 정합니다.
+영향을 주는 쪽을 <span class="keyterm">독립 변수</span>(입력, 특성), 설명·예측하려는 대상을 <span class="keyterm">종속 변수</span>(출력, 목표값)라고 합니다.
+위 수식 모델에서 공부시간은 독립 변수, 성적은 종속 변수입니다.</p>
+
+<div class="box box-warn">
+  <span class="box-label">모든 모델은 틀린다, 그러나…</span>
+  모델은 현실을 <b>단순화</b>한 것이므로 실제 값과 딱 맞지는 않습니다. 공부시간이 같아도 학생마다 성적은 다릅니다.
+  중요한 것은 <b>“얼마나 틀리는가”를 재고, 그 정도의 오차를 감수하고도 쓸모가 있는가</b>를 판단하는 일입니다. 이 차시 마지막 파이썬 실습에서 오차를 직접 재 봅니다.
+</div>
+
+<h2><span class="sec-no">2</span>데이터 모델의 네 가지 유형 <i class="pub-c">공통</i></h2>
+
+<p>이 과목에서 다루는 모델은 크게 네 가지입니다. 앞의 둘은 <b>정답(레이블)이 있는 데이터</b>로 학습하는 <span class="keyterm">지도 학습</span>,
+뒤의 둘은 <b>정답이 없는 데이터</b>에서 구조를 찾는 <span class="keyterm">비지도 학습</span>에 속합니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:90px">유형</th><th>답하는 질문</th><th style="width:130px">결과의 형태</th><th>예시</th></tr></thead>
+  <tbody>
+    <tr><td><b>회귀</b></td><td>얼마일까? (수치 예측)</td><td>연속적인 수</td><td>기온으로 자전거 대여량 예측, 면적으로 집값 예측</td></tr>
+    <tr><td><b>분류</b></td><td>어느 쪽일까? (범주 예측)</td><td>정해진 범주 중 하나</td><td>스팸/정상 메일, 사진 속 과일 종류</td></tr>
+    <tr><td><b>군집</b></td><td>비슷한 것끼리 어떻게 묶일까?</td><td>집단 번호</td><td>소비 패턴이 비슷한 고객 묶기</td></tr>
+    <tr><td><b>연관</b></td><td>무엇과 무엇이 함께 일어날까?</td><td>A → B 규칙</td><td>함께 팔리는 상품, 함께 선택하는 과목</td></tr>
+  </tbody>
+</table></div>
+
+<figure>
+<svg viewBox="0 0 640 170" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard Variable, sans-serif" font-size="12">
+  <!-- 회귀 -->
+  <rect x="6" y="6" width="148" height="140" rx="10" fill="#fff" stroke="#dde4ec"/>
+  <text x="80" y="24" text-anchor="middle" font-weight="800">회귀</text>
+  <line x1="22" y1="128" x2="140" y2="46" stroke="#e8883a" stroke-width="2.5"/>
+  <g fill="#3a7bd5"><circle cx="30" cy="118" r="4"/><circle cx="48" cy="112" r="4"/><circle cx="62" cy="96" r="4"/><circle cx="80" cy="92" r="4"/><circle cx="96" cy="74" r="4"/><circle cx="114" cy="72" r="4"/><circle cx="130" cy="52" r="4"/></g>
+  <!-- 분류 -->
+  <rect x="166" y="6" width="148" height="140" rx="10" fill="#fff" stroke="#dde4ec"/>
+  <text x="240" y="24" text-anchor="middle" font-weight="800">분류</text>
+  <line x1="190" y1="40" x2="290" y2="136" stroke="#8595a6" stroke-dasharray="5 4" stroke-width="2"/>
+  <g fill="#d94848"><circle cx="190" cy="80" r="4"/><circle cx="200" cy="110" r="4"/><circle cx="215" cy="95" r="4"/><circle cx="225" cy="124" r="4"/></g>
+  <g fill="#1f9d55"><rect x="255" y="50" width="8" height="8"/><rect x="275" y="70" width="8" height="8"/><rect x="290" y="95" width="8" height="8"/><rect x="262" y="84" width="8" height="8"/></g>
+  <!-- 군집 -->
+  <rect x="326" y="6" width="148" height="140" rx="10" fill="#fff" stroke="#dde4ec"/>
+  <text x="400" y="24" text-anchor="middle" font-weight="800">군집</text>
+  <ellipse cx="365" cy="65" rx="26" ry="20" fill="none" stroke="#e8883a" stroke-dasharray="4 3"/>
+  <ellipse cx="438" cy="108" rx="26" ry="22" fill="none" stroke="#e8883a" stroke-dasharray="4 3"/>
+  <g fill="#8595a6"><circle cx="355" cy="60" r="4"/><circle cx="370" cy="70" r="4"/><circle cx="375" cy="56" r="4"/><circle cx="360" cy="74" r="4"/><circle cx="430" cy="100" r="4"/><circle cx="445" cy="112" r="4"/><circle cx="440" cy="98" r="4"/><circle cx="428" cy="116" r="4"/></g>
+  <!-- 연관 -->
+  <rect x="486" y="6" width="148" height="140" rx="10" fill="#fff" stroke="#dde4ec"/>
+  <text x="560" y="24" text-anchor="middle" font-weight="800">연관</text>
+  <text x="560" y="62" text-anchor="middle" font-size="22">🍜 → 🍙</text>
+  <text x="560" y="98" text-anchor="middle" font-size="22">🍞 → 🥛</text>
+  <text x="560" y="128" text-anchor="middle" fill="#8595a6" font-size="11">함께 담기는 규칙</text>
+  <text x="160" y="164" text-anchor="middle" fill="#4b5a6b">← 지도 학습(정답 있음) →</text>
+  <text x="480" y="164" text-anchor="middle" fill="#4b5a6b">← 비지도 학습(정답 없음) →</text>
+</svg>
+<figcaption>그림 1. 네 가지 데이터 모델의 모습</figcaption>
+</figure>
+
+<h2><span class="sec-no">3</span>어떤 모델을 쓸까? 두 가지 질문 <i class="pub">씨마스</i></h2>
+
+<p>문제 상황을 읽고 알맞은 모델을 고르려면 두 가지 질문을 차례로 던지면 됩니다.</p>
+<ol>
+  <li><b>맞혀야 할 정답(목표값)이 데이터에 있는가?</b> — 있으면 지도 학습(회귀·분류), 없으면 비지도 학습(군집·연관).</li>
+  <li>정답이 있다면 <b>그 값이 수치인가, 범주인가?</b> — 수치면 <b>회귀</b>, 범주면 <b>분류</b>.<br>
+      정답이 없다면 <b>대상을 묶고 싶은가, 함께 일어나는 항목을 찾고 싶은가?</b> — 묶기는 <b>군집</b>, 함께 일어남은 <b>연관</b>.</li>
+</ol>
+
+<div class="box box-tip">
+  <span class="box-label">숫자라고 모두 회귀는 아니다</span>
+  목표값이 1, 2, 3처럼 숫자로 적혀 있어도 그것이 ‘1반·2반·3반’이나 ‘좋음·보통·나쁨’ 같은 <b>범주를 나타내는 번호</b>라면 분류입니다.
+  반대로 미세먼지 <b>농도</b>(㎍/㎥)를 맞히면 회귀, 미세먼지 <b>등급</b>(좋음/나쁨)을 맞히면 분류입니다.
+</div>
+
+<div class="sim">
+  <div class="sim-head">모델 유형 분류기 — 문제 카드 12장</div>
+  <div class="sim-body">
+    <div class="mc-card"><div class="mc-no" id="mc-no"></div><div class="mc-text" id="mc-text"></div></div>
+    <div class="mc-btns" id="mc-btns">
+      <button data-t="회귀">📈 회귀</button><button data-t="분류">🏷️ 분류</button><button data-t="군집">🫧 군집</button><button data-t="연관">🔗 연관</button>
+    </div>
+    <div class="mc-feedback" id="mc-feedback">카드를 읽고 알맞은 모델 유형을 고르세요.</div>
+    <div class="path">
+      <div id="p1"><b>질문 1</b><span id="p1t">맞힐 정답(목표값)이 있는가?</span></div>
+      <div id="p2"><b>질문 2</b><span id="p2t">수치인가 범주인가? / 묶기인가 함께 일어남인가?</span></div>
+      <div id="p3"><b>결론</b><span id="p3t">모델 유형</span></div>
+    </div>
+    <div class="mc-foot">
+      <div class="sim-stats" style="margin:0"><div class="stat-chip">점수 <b id="mc-score">0 / 0</b></div></div>
+      <div><button class="gray" id="mc-restart">처음부터</button> <button id="mc-next" disabled>다음 카드 →</button></div>
+    </div>
+    <p class="widget-hint">답을 고르면 두 가지 질문에 따라 어떻게 결론이 나는지 아래 칸에 표시됩니다. 틀린 카드는 왜 틀렸는지 설명을 꼭 읽어 보세요.</p>
+  </div>
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">모둠 활동</span>우리 학교 문제에 맞는 모델 고르기 <i class="pub">씨마스</i></div>
+  <div class="act-body">
+    <p>학교 매점·도서관·급식실·보건실 중 한 곳을 골라, 데이터로 해결하고 싶은 문제를 모델 유형별로 하나씩 만들어 보세요.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th style="width:80px">유형</th><th>해결하고 싶은 문제</th><th style="width:150px">독립 변수(입력)</th><th style="width:150px">종속 변수 / 결과</th></tr></thead>
+      <tbody>
+        <tr><td>회귀</td><td>&nbsp;</td><td></td><td></td></tr>
+        <tr><td>분류</td><td>&nbsp;</td><td></td><td></td></tr>
+        <tr><td>군집</td><td>&nbsp;</td><td></td><td>(정답 없음)</td></tr>
+        <tr><td>연관</td><td>&nbsp;</td><td></td><td>(정답 없음)</td></tr>
+      </tbody>
+    </table></div>
+    <p>다른 모둠과 표를 바꾸어 보고, 모델 유형이 알맞게 짝지어졌는지 두 가지 질문으로 점검해 주세요.</p>
+    <div class="write-lines"><div class="line"></div><div class="line"></div></div>
+  </div>
+</div>
+
+<h2><span class="sec-no">4</span>상관관계·인과관계·연관성 구분하기 <i class="pub">천재</i></h2>
+
+<p>모델은 데이터 속 ‘관계’를 찾아 줍니다. 그런데 관계에도 종류가 있어서 결과를 해석할 때 헷갈리기 쉽습니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:110px">관계</th><th>뜻</th><th>예</th></tr></thead>
+  <tbody>
+    <tr><td><b>상관관계</b></td><td>두 <b>수치형 속성</b>이 함께 커지거나 작아지는 경향. 상관계수 r로 잰다.</td><td>공부시간이 길수록 성적이 높은 경향</td></tr>
+    <tr><td><b>인과관계</b></td><td>한 속성이 <b>원인</b>이 되어 다른 속성에 변화를 일으키는 관계. 실험이나 추가 근거가 필요하다.</td><td>기온이 영하로 내려가면 물이 언다</td></tr>
+    <tr><td><b>연관성</b></td><td>항목들이 <b>함께 나타나는</b> 경향. 주로 거래·선택 같은 범주형 데이터에서 찾는다.</td><td>컵라면을 산 거래에 삼각김밥도 자주 있다</td></tr>
+  </tbody>
+</table></div>
+
+<p>상관관계나 연관성이 강하다고 해서 인과관계가 있는 것은 아닙니다.
+여름에 아이스크림 판매량과 물놀이 사고가 함께 늘어나는 것은 아이스크림이 사고를 일으켜서가 아니라 <b>더운 날씨</b>라는 제3의 요인 때문입니다.
+회귀 모델이 “공부시간이 1시간 늘면 성적이 7.7점 높다”고 알려 줘도, 이것은 <b>데이터에서 관찰된 경향</b>이지 “1시간 더 공부하면 반드시 7.7점 오른다”는 보장이 아닙니다.</p>
+
+<h2><span class="sec-no">5</span>파이썬으로 가장 단순한 모델 만들기 <i class="pub-c">공통</i></h2>
+
+<p><code>study.csv</code>(학생 120명의 공부 습관과 성적, 교육용 가상 데이터)로 두 가지 ‘성적 예측 모델’을 만들고 어느 쪽이 덜 틀리는지 비교해 봅시다.</p>
+<ul>
+  <li><b>평균 모델</b>: 누구에게나 “반 평균 점수”를 예측값으로 말한다. (입력을 전혀 쓰지 않는 가장 단순한 모델)</li>
+  <li><b>직선 모델</b>: 공부시간을 넣으면 직선 위의 값을 예측값으로 말한다.</li>
+</ul>
+
+<div class="pycell" data-title="평균 모델 vs 직선 모델"><textarea>
+import numpy as np
+import pandas as pd
+
+df = load_csv("study.csv")
+x, y = df["공부시간"], df["성적"]
+
+# 모델 1: 평균 모델 — 모두에게 평균 점수를 예측
+pred_mean = np.full(len(y), y.mean())
+
+# 모델 2: 직선 모델 — 성적 = a × 공부시간 + b
+a, b = np.polyfit(x, y, 1)
+pred_line = a * x + b
+print(f"직선 모델: 성적 = {a:.2f} × 공부시간 + {b:.2f}")
+
+# 오차 = 실제값 - 예측값, 평균 절대 오차(MAE)로 비교
+mae_mean = np.mean(np.abs(y - pred_mean))
+mae_line = np.mean(np.abs(y - pred_line))
+print(f"평균 모델 MAE: {mae_mean:.2f}점")
+print(f"직선 모델 MAE: {mae_line:.2f}점")
+
+# ✏️ 공부시간 대신 "수면시간"이나 "스마트폰시간"으로 직선 모델을 만들면 MAE는 어떻게 되나요?
+</textarea></div>
+
+<div class="pycell" data-title="두 모델을 그래프로 비교하고 예측해 보기"><textarea>
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(7, 4))
+plt.scatter(x, y, s=14, alpha=0.6, label="실제 학생")
+plt.axhline(y.mean(), color="gray", linestyle="--", label="평균 모델")
+xs = np.linspace(0, 6, 50)
+plt.plot(xs, a * xs + b, color="#e8883a", linewidth=2.5, label="직선 모델")
+plt.xlabel("공부시간(시간)"); plt.ylabel("성적(점)")
+plt.title("평균 모델과 직선 모델"); plt.legend()
+plt.show()
+
+for h in [1, 3, 5]:
+    print(f"공부시간 {h}시간 → 직선 모델 예측 {a*h + b:.1f}점 / 평균 모델 예측 {y.mean():.1f}점")
+
+# ✏️ 공부시간 10시간인 학생의 예측값을 계산해 보세요. 이 데이터(최대 6시간) 밖의 예측을 믿어도 될까요?
+</textarea></div>
+
+<div class="pycell" data-title="규칙 모델(분류) 만들어 보기"><textarea>
+# 목표: 성적이 65점 이상인지(범주) 맞히기 → 분류 문제
+actual = df["성적"] >= 65
+
+for t in [1.5, 2.0, 2.5]:
+    rule = df["공부시간"] >= t          # 규칙: 공부시간이 t시간 이상이면 '65점 이상'
+    acc = (rule == actual).mean()
+    print(f"규칙 '공부시간 ≥ {t}시간 → 65점 이상'  맞힌 비율 {acc:.3f}")
+
+# ✏️ 기준 t를 여러 값으로 바꿔 보며 가장 잘 맞히는 규칙을 찾아보세요.
+</textarea></div>
+
+<p>평균 모델은 평균적으로 약 <b>8.48점</b> 틀리지만 직선 모델은 약 <b>6.06점</b> 틀립니다.
+공부시간이라는 정보를 쓴 덕분에 오차가 줄었습니다. 직선 모델의 식은 <code>성적 = 7.74 × 공부시간 + 47.87</code>로, 공부시간이 1시간 많은 학생은 성적이 평균적으로 약 7.7점 높은 경향이 있습니다.
+세 번째 셀의 규칙 모델은 “공부시간 ≥ 2시간” 기준일 때 학생 73.3%의 범주를 맞혔습니다. 같은 데이터라도 <b>목표값을 수치로 두면 회귀, 범주로 두면 분류</b> 문제가 되는 것입니다.</p>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  모델 유형 분류기는 먼저 개인별로 풀게 한 뒤 점수가 낮은 카드를 전체 토의로 다루면 좋습니다. 가장 많이 헷갈리는 쌍은 <b>분류–군집</b>(범주가 나온다는 점이 같음)입니다.
+  “정답 범주가 데이터에 미리 있나?”를 반복해서 묻게 하세요. 코딩 없이 진행할 때는 Orange의 위젯 이름(Linear Regression, kNN, k-Means, Association Rules)을 네 유형에 붙여 보는 활동으로 대체할 수 있으며,
+  파이썬 셀 1·2는 스프레드시트의 AVERAGE·추세선 기능으로도 같은 비교가 가능합니다.
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>데이터 모델은 데이터 속 관계·패턴을 수식·규칙·구조로 단순화한 것이며, 모든 모델에는 오차가 있다.</li>
+    <li>회귀는 수치, 분류는 범주를 예측하고(지도 학습), 군집은 비슷한 것끼리 묶고 연관은 함께 일어나는 규칙을 찾는다(비지도 학습).</li>
+    <li>모델 선택은 ‘정답이 있는가?’ → ‘수치인가 범주인가 / 묶기인가 함께 일어남인가?’ 두 질문으로 판단한다.</li>
+    <li>상관관계·연관성은 인과관계를 보장하지 않는다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 모델 유형 분류기 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  // label: 정답이 있나(yes/no), kind: 수치/범주 또는 묶기/함께
+  const CARDS = [
+    { t:"내일 최고 기온으로 학교 매점의 아이스크림 판매 개수를 예측한다.", a:"회귀", why:"맞힐 목표값(판매 개수)이 있고, 그 값이 연속적인 수치입니다." },
+    { t:"받은 이메일이 스팸인지 정상 메일인지 자동으로 가려낸다.", a:"분류", why:"과거 메일에 ‘스팸/정상’이라는 정답이 붙어 있고, 결과가 두 범주 중 하나입니다." },
+    { t:"음악 앱 사용자들의 청취 기록을 보고 취향이 비슷한 사람끼리 몇 개의 무리로 나눈다.", a:"군집", why:"미리 정해진 무리(정답)가 없고, 비슷한 사용자끼리 묶는 것이 목적입니다." },
+    { t:"도서관 대출 기록에서 ‘이 책을 빌린 학생이 함께 빌리는 책’을 찾아 추천한다.", a:"연관", why:"정답 없이 함께 일어나는(함께 빌리는) 항목의 규칙 A → B를 찾습니다." },
+    { t:"공부시간·수면시간·결석일수로 기말고사 점수를 예측한다.", a:"회귀", why:"목표값(점수)이 있고 연속적인 수치입니다. 입력이 여러 개여도 회귀입니다." },
+    { t:"과일 사진의 무게·색·지름을 보고 사과·배·귤 중 무엇인지 맞힌다.", a:"분류", why:"정답(과일 이름)이 있고, 결과가 정해진 세 범주 중 하나입니다." },
+    { t:"급식 잔반 기록에서 함께 남겨지는 반찬 조합을 찾는다.", a:"연관", why:"정답이 없고, 한 식판에서 함께 나타나는 항목의 규칙을 찾습니다." },
+    { t:"학생들의 등교 시각·운동량·수면 패턴으로 생활 유형을 몇 가지로 나눈다. 유형 이름은 아직 없다.", a:"군집", why:"유형(정답)이 미리 정해져 있지 않으므로 비슷한 학생끼리 묶는 군집입니다." },
+    { t:"아파트의 면적·층수·건축 연도로 매매 가격을 예측한다.", a:"회귀", why:"목표값(가격)이 있고 연속적인 수치입니다." },
+    { t:"지난 기상 기록으로 내일 미세먼지가 ‘좋음·보통·나쁨’ 중 어느 등급일지 예측한다.", a:"분류", why:"농도가 아니라 등급(범주)을 맞히므로 분류입니다. 농도(㎍/㎥)를 맞히면 회귀가 됩니다." },
+    { t:"온라인 서점 장바구니 기록으로 ‘수학 문제집을 사면 형광펜도 산다’ 같은 규칙을 찾는다.", a:"연관", why:"함께 구매되는 항목의 규칙을 찾는 장바구니 분석입니다." },
+    { t:"쇼핑몰 고객을 연소득과 소비 성향에 따라 비슷한 집단으로 나누어 마케팅 전략을 다르게 세운다.", a:"군집", why:"미리 정해진 고객 집단이 없고, 비슷한 고객끼리 묶는 것이 목적입니다." }
+  ];
+  const INFO = {
+    "회귀": { q1:"예 — 맞힐 목표값이 있다", q2:"목표값이 수치이다", res:"회귀 모델" },
+    "분류": { q1:"예 — 맞힐 목표값이 있다", q2:"목표값이 범주이다", res:"분류 모델" },
+    "군집": { q1:"아니요 — 정답이 없다", q2:"비슷한 대상끼리 묶고 싶다", res:"군집 모델" },
+    "연관": { q1:"아니요 — 정답이 없다", q2:"함께 일어나는 항목을 찾고 싶다", res:"연관 모델" }
+  };
+  let order = [], idx = 0, score = 0, tried = 0, done = false;
+  const btns = [...$("mc-btns").querySelectorAll("button")];
+
+  function shuffle(a){ for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  function resetPath(){
+    ["p1","p2","p3"].forEach(p => $(p).classList.remove("lit"));
+    $("p1t").textContent = "맞힐 정답(목표값)이 있는가?";
+    $("p2t").textContent = "수치인가 범주인가? / 묶기인가 함께 일어남인가?";
+    $("p3t").textContent = "모델 유형";
+  }
+  function show(){
+    const c = CARDS[order[idx]];
+    $("mc-no").textContent = `카드 ${idx + 1} / ${CARDS.length}`;
+    $("mc-text").textContent = c.t;
+    btns.forEach(b => { b.disabled = false; b.classList.remove("right", "wrong"); });
+    const fb = $("mc-feedback"); fb.className = "mc-feedback"; fb.textContent = "카드를 읽고 알맞은 모델 유형을 고르세요.";
+    $("mc-next").disabled = true; done = false; resetPath();
+  }
+  function start(){ order = shuffle(CARDS.map((_, i) => i)); idx = 0; score = 0; tried = 0; $("mc-score").textContent = "0 / 0"; show(); }
+
+  btns.forEach(b => b.addEventListener("click", () => {
+    if (done) return;
+    const c = CARDS[order[idx]], pick = b.dataset.t, ok = pick === c.a;
+    done = true; tried++; if (ok) score++;
+    $("mc-score").textContent = `${score} / ${tried}`;
+    btns.forEach(x => { x.disabled = true; if (x.dataset.t === c.a) x.classList.add("right"); });
+    if (!ok) b.classList.add("wrong");
+    const fb = $("mc-feedback");
+    fb.className = "mc-feedback " + (ok ? "ok" : "no");
+    fb.textContent = (ok ? "✔ 정답! " : `✘ 정답은 ‘${c.a}’입니다. `) + c.why;
+    const inf = INFO[c.a];
+    $("p1t").textContent = inf.q1; $("p2t").textContent = inf.q2; $("p3t").textContent = inf.res;
+    ["p1","p2","p3"].forEach(p => $(p).classList.add("lit"));
+    if (idx < CARDS.length - 1) $("mc-next").disabled = false;
+    else fb.textContent += ` — 모든 카드를 풀었습니다! 최종 점수 ${score} / ${CARDS.length}`;
+  }));
+  $("mc-next").addEventListener("click", () => { if (idx < CARDS.length - 1){ idx++; show(); } });
+  $("mc-restart").addEventListener("click", start);
+  start();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"고등학생의 하루 스마트폰 사용 시간과 수면 시간으로 ‘다음 날 수업 집중도 점수(0~100점)’를 예측하려고 한다. 알맞은 모델 유형은?",
+    choices:["회귀","분류","군집","연관","어떤 모델도 쓸 수 없다"], answer:0,
+    explain:"맞힐 목표값(집중도 점수)이 있고 그 값이 연속적인 수치이므로 회귀 모델입니다." },
+  { type:"mc", q:"다음 중 비지도 학습에 해당하는 문제끼리 짝지은 것은?",
+    choices:["집값 예측, 스팸 메일 판별","고객 집단 나누기, 함께 팔리는 상품 찾기","과일 종류 판별, 기온 예측","미세먼지 등급 예측, 고객 집단 나누기","성적 예측, 함께 팔리는 상품 찾기"], answer:1,
+    explain:"군집(고객 집단 나누기)과 연관(함께 팔리는 상품 찾기)은 정답(레이블) 없이 데이터의 구조를 찾으므로 비지도 학습입니다." },
+  { type:"ox", q:"목표값이 1, 2, 3 같은 숫자로 기록되어 있으면 반드시 회귀 모델을 사용해야 한다.",
+    answer:false, explain:"숫자가 ‘1반·2반·3반’이나 ‘등급’처럼 범주를 나타내는 번호라면 분류 문제입니다. 값의 크기 자체에 의미가 있는 연속적인 수치일 때 회귀입니다." },
+  { type:"mc", q:"학생 4명의 실제 점수가 60, 70, 80, 90점이다. 모든 학생에게 평균 점수를 예측하는 ‘평균 모델’의 평균 절대 오차(MAE)는?",
+    choices:["5점","10점","15점","20점","75점"], answer:1,
+    explain:"평균은 75점입니다. 오차의 절댓값은 15, 5, 5, 15이고 그 평균은 40 ÷ 4 = 10점입니다." },
+  { type:"short", q:"어떤 회귀 모델이 “하루 운동 시간이 30분 많은 학생은 체력 점수가 평균 5점 높다”는 결과를 냈다. 이 결과를 “운동을 30분 더 하면 체력 점수가 반드시 5점 오른다”고 해석하면 안 되는 이유를 쓰세요.",
+    model:"회귀 모델은 데이터에서 관찰된 경향(상관관계)을 요약한 것이지 인과관계를 증명한 것이 아니다. 운동을 많이 하는 학생은 식습관이나 수면 같은 다른 요인도 다를 수 있고, 모델에는 오차가 있어 개인마다 결과가 다를 수 있으므로 ‘반드시’라고 말할 수 없다." },
+]);
+</script>
+</body>
+</html>

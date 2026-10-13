@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>분석 방법 ② 적용과 비교 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 모델 비교 실험실 */
+#mc-cv { width:100%; height:auto; background:#fff; border:1px solid var(--line); }
+.mc-param { display:grid; grid-template-columns:auto 1fr auto; gap:6px 10px; align-items:center; font-size:.86rem; font-weight:700; margin:8px 0 10px; }
+.mc-param output { font-family:var(--font-mono); min-width:28px; text-align:right; }
+.mc-legend { font-size:.8rem; color:var(--ink-soft); margin:4px 0 0; }
+.mc-legend i { display:inline-block; width:10px; height:10px; border-radius:50%; margin:0 4px 0 10px; vertical-align:-1px; }
+#mc-table td, #mc-table th { text-align:center; padding:6px 8px; font-size:.84rem; }
+#mc-table td:first-child { text-align:left; }
+#mc-table tr.best td { background:#eafaf0; font-weight:700; }
+</style>
+</head>
+<body data-unit="4" data-lesson="L48">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>분석 방법 ② 적용과 비교</h1>
+  <span class="std-badge">성취기준 12데과04-03</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>곡선 관계를 표현할 수 있는 두 번째 분석 방법(다항 회귀·의사결정트리 회귀)을 프로젝트 데이터에 적용할 수 있다.</li>
+      <li>여러 방법의 결과를 같은 테스트 데이터와 같은 지표로 비교하여 표로 정리할 수 있다.</li>
+      <li>성능뿐 아니라 해석 가능성·학습 범위 밖 예측·과대적합을 고려하여 목적에 맞는 방법을 선택할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과04-03] 데이터 분석을 진행할 때, 2개 이상의 방법을 사용하여 분석하고 결과를 비교한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span>수집</span><span>전처리</span><span>탐색</span><span class="on">모델링</span><span class="on">평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  지난 차시에 직선은 U자 모양의 데이터를 따라가지 못했습니다. 테스트 R²는 −0.041, 평균으로 찍은 것과 다를 바 없었죠.
+  그렇다면 선을 <b>구부리면</b> 어떨까요? 또는 선을 긋는 대신 기온을 몇 개의 <b>구간으로 나누어</b> 구간마다 평균을 쓰면 어떨까요?
+  오늘은 이 두 아이디어를 각각 모델로 만들고, 지난 차시의 선형 회귀와 <b>같은 테스트 데이터 50일</b>로 겨루게 합니다.
+  과연 점수가 가장 높은 모델이 항상 가장 좋은 모델일까요?
+</div>
+
+<h2><span class="sec-no">1</span>곡선을 표현하는 두 가지 방법 <i class="pub-c">공통</i></h2>
+
+<figure>
+<svg viewBox="0 0 700 200" role="img" aria-label="다항 회귀와 의사결정트리 회귀의 모양 비교">
+  <g font-family="Pretendard Variable, sans-serif" font-size="13" text-anchor="middle">
+    <rect x="10" y="8" width="330" height="165" rx="10" fill="#fafafa" stroke="#ddd"/>
+    <rect x="360" y="8" width="330" height="165" rx="10" fill="#fafafa" stroke="#ddd"/>
+    <g fill="#a78bfa">
+      <circle cx="40" cy="40" r="4"/><circle cx="62" cy="62" r="4"/><circle cx="85" cy="85" r="4"/><circle cx="110" cy="112" r="4"/><circle cx="140" cy="128" r="4"/><circle cx="170" cy="134" r="4"/><circle cx="200" cy="130" r="4"/><circle cx="230" cy="118" r="4"/><circle cx="260" cy="95" r="4"/><circle cx="285" cy="70" r="4"/><circle cx="310" cy="45" r="4"/>
+      <circle cx="390" cy="40" r="4"/><circle cx="412" cy="62" r="4"/><circle cx="435" cy="85" r="4"/><circle cx="460" cy="112" r="4"/><circle cx="490" cy="128" r="4"/><circle cx="520" cy="134" r="4"/><circle cx="550" cy="130" r="4"/><circle cx="580" cy="118" r="4"/><circle cx="610" cy="95" r="4"/><circle cx="635" cy="70" r="4"/><circle cx="660" cy="45" r="4"/>
+    </g>
+    <path d="M30 28 Q175 240 320 30" fill="none" stroke="#7c3aed" stroke-width="3"/>
+    <path d="M380 45 H448 V110 H600 V85 H624 V52 H675" fill="none" stroke="#f97316" stroke-width="3"/>
+    <text x="175" y="192" font-weight="800">다항 회귀: 매끄러운 곡선 하나</text>
+    <text x="525" y="192" font-weight="800">의사결정트리 회귀: 구간별 계단</text>
+  </g>
+</svg>
+<figcaption>그림 1. 같은 U자 데이터를 두 방법이 표현하는 모습(개념도).</figcaption>
+</figure>
+
+<div class="cards">
+  <div class="cardbox"><h4>다항 회귀 (polynomial regression)</h4><p>입력 x에 <b>x²</b>(필요하면 x³ …)을 새 속성으로 추가한 뒤 선형 회귀를 적용합니다.
+    2차식 <code>y = a·x² + b·x + c</code>는 a &gt; 0이면 아래로 볼록한 U자 곡선이 됩니다. 식이 있어 <b>해석하기 쉽고</b>, 곡선이 학습 범위 밖으로도 이어집니다.</p></div>
+  <div class="cardbox"><h4>의사결정트리 회귀 (decision tree regression)</h4><p>“기온 ≤ 3.3℃인가?”처럼 질문을 반복해 데이터를 구간으로 나누고, 각 구간(잎)의 <b>평균</b>을 예측값으로 씁니다.
+    분류 트리와 같은 원리이지만 잎에 범주 대신 평균이 들어갑니다. 어떤 모양의 관계든 따라가지만, 학습 범위 밖에서는 <b>가장 끝 구간의 평균에 머뭅니다</b>.</p></div>
+</div>
+
+<h2><span class="sec-no">2</span>방법 ②-가: 2차 다항 회귀 <i class="pub">삼양</i></h2>
+
+<p>먼저 지난 차시와 <b>똑같은 설계</b>(수업일, 평균기온 → 전력사용량, 75:25 분할, <code>random_state=42</code>)를 다시 준비하고,
+모든 모델을 같은 방식으로 평가하는 함수 <code>report</code>를 만듭니다.</p>
+
+<div class="pycell" data-title="① 같은 분할 준비 + 평가 함수 + 방법 ① 다시 기록"><textarea>
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error, r2_score
+
+en = load_csv("energy.csv")
+school = en[en["수업일"] == 1].reset_index(drop=True)
+X, y = school[["평균기온"]], school["전력사용량"]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)  # L47과 같은 분할
+
+def report(name, model):
+    p_tr, p_te = model.predict(X_train), model.predict(X_test)
+    return {"방법": name,
+            "훈련 R²": round(r2_score(y_train, p_tr), 3),
+            "테스트 R²": round(r2_score(y_test, p_te), 3),
+            "테스트 MAE": round(mean_absolute_error(y_test, p_te), 1)}
+
+lin = LinearRegression().fit(X_train, y_train)
+results = [report("① 선형 회귀", lin)]
+print(results[0])
+
+# ✏️ report 함수에 "훈련 MAE"도 추가해 보세요.
+</textarea></div>
+
+<div class="pycell" data-title="② 2차 다항 회귀 적용"><textarea>
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.pipeline import make_pipeline
+
+poly = make_pipeline(PolynomialFeatures(degree=2), LinearRegression())   # 기온, 기온² 을 만든 뒤 선형 회귀
+poly.fit(X_train, y_train)
+
+c, c0 = poly[-1].coef_, poly[-1].intercept_
+print(f"전력사용량 = {c[2]:.3f}×기온² {c[1]:+.2f}×기온 {c0:+.1f}")
+print(f"사용량이 가장 적은 기온 ≈ {-c[1] / (2 * c[2]):.1f}℃")
+
+results.append(report("②-가 2차 다항 회귀", poly))
+print(results[-1])
+
+# ✏️ degree를 3, 4로 올려 보세요. 테스트 성능은? 곡선 모양은 믿을 만할까요? (아래 실험실에서도 확인)
+</textarea></div>
+
+<p>회귀식은 <b>전력사용량 ≈ 3.247×기온² − 99.30×기온 + 1881.4</b>입니다. 기온²의 계수가 양수이므로 아래로 볼록한 U자 곡선이고,
+꼭짓점의 기온 −(−99.30)÷(2×3.247) ≈ <b>15.3℃</b>에서 사용량이 가장 적습니다.
+테스트 R²는 <b>0.723</b>, MAE는 <b>82.5kWh</b>로, 선형 회귀(MAE 167.8kWh)보다 오차가 절반 이하로 줄었습니다.</p>
+
+<h2><span class="sec-no">3</span>방법 ②-나: 의사결정트리 회귀 <i class="pub">삼양</i> <i class="pub">천재</i></h2>
+
+<p>트리는 깊이(질문을 몇 번 거치는가)가 깊을수록 데이터를 잘게 나눕니다. 너무 깊으면 훈련 데이터의 잡음까지 외우는 과대적합이 일어나므로, 여기서는 <b>깊이 3</b>(잎 최대 8개)으로 제한합니다.</p>
+
+<div class="pycell" data-title="③ 의사결정트리 회귀(깊이 3) 적용과 규칙 읽기"><textarea>
+from sklearn.tree import DecisionTreeRegressor, export_text
+
+tree = DecisionTreeRegressor(max_depth=3, random_state=0)
+tree.fit(X_train, y_train)
+print(export_text(tree, feature_names=["평균기온"], decimals=1))
+
+results.append(report("②-나 의사결정트리(깊이 3)", tree))
+print(results[-1])
+
+# ✏️ max_depth를 1, 2, 5, 10으로 바꾸어 훈련 R²와 테스트 R²의 차이가 어떻게 변하는지 기록해 보세요.
+</textarea></div>
+
+<p>트리의 규칙을 읽으면 “기온 3.3℃ 이하”와 “26.5℃ 초과”에서 크게 갈라집니다. 그 사이(6.8~26.5℃)의 날은 모두 약 1218kWh로 예측합니다.
+EDA에서 본 ‘평평한 바닥 + 양쪽 오르막’ 모양을 트리가 스스로 찾아낸 것입니다.
+테스트 R²는 <b>0.720</b>, MAE는 <b>87.0kWh</b>입니다. 훈련 R²(0.932)가 다항 회귀(0.895)보다 높지만 테스트 성능은 비슷하거나 약간 낮습니다.</p>
+
+<h2><span class="sec-no">4</span>같은 테스트 데이터로 비교하기 <i class="pub">천재</i> <i class="pub">삼양</i></h2>
+
+<p>이제 세 방법을 한 표에 모으고, 같은 그래프에 그려 비교합니다. 또 학습 데이터에 없던 날씨(−8℃ 한파, 35℃ 폭염)를 각 모델이 어떻게 예측하는지도 확인합니다.</p>
+
+<div class="pycell" data-title="④ 비교표·비교 그래프·학습 범위 밖 예측"><textarea>
+import matplotlib.pyplot as plt
+
+table = pd.DataFrame(results)
+print(table.to_string(index=False), "\n")
+
+new = pd.DataFrame({"평균기온": [-8, 35]})
+print("학습 기온 범위:", X_train["평균기온"].min(), "~", X_train["평균기온"].max(), "℃")
+for name, m in [("선형", lin), ("2차 다항", poly), ("트리", tree)]:
+    p = m.predict(new)
+    print(f"{name:6s} −8℃ → {p[0]:6.0f} kWh,  35℃ → {p[1]:6.0f} kWh")
+
+xs = pd.DataFrame({"평균기온": np.linspace(-9, 36, 300)})
+plt.figure(figsize=(8, 4.2))
+plt.scatter(X_train["평균기온"], y_train, s=12, color="#c4b5fd", label="훈련")
+plt.scatter(X_test["평균기온"], y_test, s=18, color="#f97316", label="테스트")
+plt.plot(xs["평균기온"], lin.predict(xs), color="#94a3b8", label="선형")
+plt.plot(xs["평균기온"], poly.predict(xs), color="#7c3aed", lw=2, label="2차 다항")
+plt.plot(xs["평균기온"], tree.predict(xs), color="#0f766e", lw=2, label="트리(깊이 3)")
+plt.axvspan(-9, X_train["평균기온"].min(), color="#eee"); plt.axvspan(X_train["평균기온"].max(), 36, color="#eee")
+plt.title("세 방법의 예측 곡선 (회색 = 학습 범위 밖)")
+plt.xlabel("평균기온(℃)"); plt.ylabel("kWh"); plt.legend(fontsize=8)
+plt.show()
+
+# ✏️ 5-겹 교차 검증(cross_val_score)으로 세 방법을 다시 비교하면 순위가 같을까요? (L49에서 이어집니다)
+</textarea></div>
+
+<div class="table-wrap"><table>
+  <thead><tr><th>기준</th><th>① 선형 회귀</th><th>②-가 2차 다항 회귀</th><th>②-나 트리(깊이 3)</th></tr></thead>
+  <tbody>
+    <tr><td><b>테스트 R²</b></td><td>−0.041</td><td><b>0.723</b></td><td>0.720</td></tr>
+    <tr><td><b>테스트 MAE</b></td><td>167.8kWh</td><td><b>82.5kWh</b></td><td>87.0kWh</td></tr>
+    <tr><td><b>훈련–테스트 R² 차이</b><br><small>(클수록 과대적합 의심)</small></td><td>0.139</td><td>0.172</td><td>0.212</td></tr>
+    <tr><td><b>해석 가능성</b></td><td>식 1개, 그러나 관계를 잘못 설명</td><td>식 1개, “약 15℃에서 최소”처럼 해석 쉬움</td><td>“3.3℃ 이하·26.5℃ 초과면 급증” 같은 규칙으로 해석 쉬움</td></tr>
+    <tr><td><b>학습 범위 밖 예측</b><br>(−8℃ / 35℃)</td><td>1625 / 1205 — 폭염에 오히려 감소(비현실적)</td><td>2884 / 2383 — 계속 증가(방향은 합리적, 양은 불확실)</td><td>2190 / 1919 — 끝 구간 평균에 머묾(폭염 과소 예측 위험)</td></tr>
+  </tbody>
+</table></div>
+
+<p>테스트 점수만 보면 2차 다항 회귀와 트리는 거의 비슷합니다. 이럴 때는 <b>목적</b>이 선택을 결정합니다.
+“내일 사용량이 많을지 미리 알리기”가 목적이라면, 폭염이 심해질수록 사용량이 늘어나는 방향을 유지하는 <b>2차 다항 회귀</b>가 더 안전합니다.
+트리는 학습 데이터에서 가장 더웠던 구간의 평균(1919kWh)보다 큰 값을 절대 예측하지 못하므로, 기록적인 폭염일을 과소 예측할 위험이 있습니다.
+반대로 “몇 도부터 냉난방을 조절해야 하는가”처럼 <b>기준 온도</b>를 찾는 것이 목적이라면 트리의 규칙이 더 직접적인 답을 줍니다.</p>
+
+<div class="sim">
+  <div class="sim-head">모델 비교 실험실 — 같은 테스트 데이터 50일</div>
+  <div class="sim-body">
+    <p style="margin-top:0;font-size:.92rem">모델과 설정값을 바꾸면 훈련 데이터(보라)로 학습한 곡선이 그려지고, 테스트 데이터(주황)로 평가됩니다.
+    마음에 드는 설정은 <b>비교표에 추가</b>해 한눈에 비교하세요. 회색 영역은 학습 데이터에 없던 기온입니다.</p>
+    <div class="sim-controls">
+      <label for="mc-type">모델</label>
+      <select id="mc-type">
+        <option value="poly">다항 회귀</option>
+        <option value="tree">의사결정트리 회귀</option>
+        <option value="knn">k-NN 회귀 (심화)</option>
+      </select>
+      <button type="button" id="mc-add">＋ 비교표에 추가</button>
+      <button type="button" id="mc-clear" class="gray">표 비우기</button>
+    </div>
+    <div class="mc-param"><span id="mc-plab">차수</span><input type="range" id="mc-p" min="1" max="6" value="2"><output id="mc-pv">2</output></div>
+    <canvas id="mc-cv" width="680" height="340"></canvas>
+    <div class="mc-legend"><i style="background:#c4b5fd"></i>훈련 <i style="background:#f97316"></i>테스트 <i style="background:#7c3aed"></i>모델 곡선</div>
+    <div class="sim-stats">
+      <span class="stat-chip">훈련 R² <b id="mc-tr">-</b></span>
+      <span class="stat-chip">테스트 R² <b id="mc-te">-</b></span>
+      <span class="stat-chip">테스트 MAE <b id="mc-mae">-</b></span>
+      <span class="stat-chip">35℃ 예측 <b id="mc-hot">-</b></span>
+      <span class="stat-chip">−8℃ 예측 <b id="mc-cold">-</b></span>
+    </div>
+    <div class="table-wrap"><table id="mc-table"></table></div>
+    <p class="widget-hint">관찰 포인트: 다항 회귀의 차수를 6까지 올리면 테스트 R²는 좋아지지만 회색 영역에서 곡선이 어떻게 되나요? 트리 깊이를 8까지 올리면 훈련 R²와 테스트 R²의 차이는? (k-NN과 깊은 트리는 같은 거리·같은 값 처리 방식 차이로 파이썬 결과와 소수 셋째 자리가 조금 다를 수 있습니다.)</p>
+  </div>
+</div>
+
+<div class="box box-warn">
+  <span class="box-label">테스트 점수로 계속 고르면?</span>
+  실험실에서 테스트 R²가 가장 높은 설정을 찾아 고르는 것은 사실 테스트 데이터를 <b>학습에 쓴 것</b>과 비슷합니다(테스트 데이터에 맞춘 선택).
+  그렇게 고른 모델의 테스트 점수는 실제보다 좋게 부풀려집니다. 설정값은 훈련 데이터 안에서 교차 검증으로 고르고, 테스트 데이터는 마지막에 한 번만 쓰는 것이 원칙입니다(L49).
+</div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  Orange에서는 <b>Polynomial Regression</b>(Educational 애드온) 또는 <b>Feature Constructor</b>로 기온²를 만든 뒤 Linear Regression을, 그리고 <b>Tree</b>(회귀)를 같은 <b>Test and Score</b>에 연결하면 한 표로 비교됩니다.
+  12데과04-03의 핵심은 ‘두 방법을 썼다’가 아니라 ‘<b>같은 조건</b>에서 비교하고 <b>목적에 따라</b> 선택했다’입니다. 모둠 보고서에 비교표와 선택 이유가 반드시 들어가도록 지도하세요.
+  군집을 쓰는 모둠은 k-평균과 병합 군집을, 분류를 쓰는 모둠은 k-NN과 트리를 같은 테스트 데이터로 비교하게 안내합니다.
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">모둠 활동</span>방법 비교표와 최종 선택 <i class="pub">천재</i></div>
+  <div class="act-body">
+    <ol>
+      <li>모둠 데이터에 방법 ②를 적용하고, 방법 ①과 같은 테스트 데이터로 비교표를 완성하세요.
+        <div class="table-wrap"><table>
+          <thead><tr><th>기준</th><th>방법 ①</th><th>방법 ②</th><th>(선택) 방법 ③</th></tr></thead>
+          <tbody>
+            <tr><td>방법 이름·설정</td><td>&nbsp;</td><td></td><td></td></tr>
+            <tr><td>훈련 성능</td><td>&nbsp;</td><td></td><td></td></tr>
+            <tr><td>테스트 성능</td><td>&nbsp;</td><td></td><td></td></tr>
+            <tr><td>해석 가능성</td><td>&nbsp;</td><td></td><td></td></tr>
+            <tr><td>학습 범위 밖·특수 사례에서의 행동</td><td>&nbsp;</td><td></td><td></td></tr>
+          </tbody>
+        </table></div></li>
+      <li>우리 프로젝트의 <b>목적</b>을 한 문장으로 다시 쓰고, 그 목적에 가장 알맞은 방법과 이유를 두 가지 이상 적으세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div><div class="line"></div></div></li>
+      <li>두 방법의 결과가 서로 다르게 말하는 부분이 있나요? 있다면 무엇이고, 왜 그런지 추측해 보세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+    </ol>
+  </div>
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>곡선 관계는 다항 회귀(x² 추가 후 선형 회귀)나 의사결정트리 회귀(구간별 평균)로 표현할 수 있다.</li>
+    <li>같은 테스트 데이터에서 2차 다항 회귀(R² 0.723, MAE 82.5)와 트리(R² 0.720, MAE 87.0)는 선형 회귀(MAE 167.8)보다 크게 나았다.</li>
+    <li>점수가 비슷하면 목적이 선택을 결정한다: 해석 가능성, 학습 범위 밖 예측, 과대적합 위험을 함께 비교한다.</li>
+    <li>테스트 데이터를 보며 설정을 계속 고르면 성능이 부풀려진다. 설정 선택은 교차 검증으로 한다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 모델 비교 실험실 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  // [평균기온, 전력사용량, 테스트여부(파이썬과 같은 random_state=42 분할), 요일, 월, 냉난방시간, 날짜]
+  const D=[[3.4,1682,0,0,3,4.5,"03-03"],[2.9,1737,0,1,3,5.0,"03-04"],[8.1,1266,0,2,3,0.0,"03-05"],[5.4,1434,0,3,3,2.3,"03-06"],[3.6,1634,0,4,3,3.4,"03-07"],[7.4,1174,1,0,3,0.6,"03-10"],[0.7,1804,0,1,3,6.6,"03-11"],[7.1,1244,0,2,3,0.7,"03-12"],[5.0,1344,0,3,3,2.9,"03-13"],[9.5,1311,1,4,3,0.0,"03-14"],[3.2,1621,0,0,3,4.3,"03-17"],[5.0,1491,0,1,3,2.8,"03-18"],[8.0,1294,1,2,3,0.0,"03-19"],[6.1,1480,0,3,3,2.0,"03-20"],[7.2,1213,0,4,3,0.3,"03-21"],[5.5,1414,1,0,3,1.9,"03-24"],[6.6,1339,1,1,3,1.5,"03-25"],[7.2,1323,0,2,3,1.1,"03-26"],[9.0,1315,1,3,3,0.7,"03-27"],[7.4,1306,1,4,3,0.5,"03-28"],[8.9,1196,0,0,3,0.0,"03-31"],[12.2,1216,0,1,4,0.1,"04-01"],[9.0,1248,0,2,4,0.1,"04-02"],[7.9,1208,0,3,4,0.0,"04-03"],[12.6,1274,1,4,4,0.0,"04-04"],[10.8,1250,0,0,4,0.1,"04-07"],[11.9,1116,0,1,4,0.1,"04-08"],[10.9,1247,0,2,4,0.0,"04-09"],[11.7,1207,0,3,4,0.1,"04-10"],[12.7,1170,0,4,4,0.0,"04-11"],[10.7,1090,1,0,4,0.0,"04-14"],[14.8,1222,0,1,4,0.5,"04-15"],[13.9,1231,0,2,4,0.0,"04-16"],[12.9,1150,0,3,4,0.0,"04-17"],[13.3,1253,0,4,4,0.0,"04-18"],[11.1,1227,1,0,4,0.4,"04-21"],[20.6,1156,0,1,4,0.0,"04-22"],[16.4,1129,0,2,4,0.0,"04-23"],[13.1,1260,0,3,4,0.0,"04-24"],[19.0,1189,0,4,4,0.0,"04-25"],[22.2,1139,0,0,4,0.1,"04-28"],[16.3,1196,0,1,4,0.2,"04-29"],[18.9,1311,0,2,4,0.4,"04-30"],[16.1,1246,0,3,5,0.0,"05-01"],[15.0,1225,0,4,5,0.0,"05-02"],[24.7,1338,1,0,5,1.0,"05-05"],[22.1,1253,0,1,5,0.0,"05-06"],[19.6,1159,0,2,5,0.3,"05-07"],[21.1,1256,0,3,5,0.4,"05-08"],[22.2,1266,0,4,5,0.0,"05-09"],[17.0,1170,0,0,5,0.0,"05-12"],[18.8,1166,0,1,5,0.0,"05-13"],[18.6,1174,0,2,5,0.0,"05-14"],[21.8,1161,0,3,5,0.0,"05-15"],[17.9,1158,0,4,5,0.0,"05-16"],[24.9,1283,1,0,5,1.2,"05-19"],[19.5,1202,1,1,5,0.0,"05-20"],[21.0,1118,0,2,5,0.3,"05-21"],[22.9,1260,0,3,5,0.0,"05-22"],[21.9,1195,0,4,5,0.0,"05-23"],[19.0,1267,1,0,5,0.4,"05-26"],[19.1,1137,0,1,5,0.0,"05-27"],[24.0,1285,0,2,5,0.3,"05-28"],[27.4,1566,0,3,5,4.5,"05-29"],[23.9,1092,0,4,5,0.1,"05-30"],[23.7,1058,1,0,6,0.0,"06-02"],[24.6,1379,1,1,6,0.8,"06-03"],[24.3,1180,0,2,6,0.4,"06-04"],[26.9,1386,1,3,6,3.7,"06-05"],[24.4,1417,1,4,6,1.0,"06-06"],[19.2,1215,0,0,6,0.2,"06-09"],[21.4,1207,0,1,6,0.0,"06-10"],[20.6,1159,0,2,6,0.1,"06-11"],[21.0,1237,1,3,6,0.0,"06-12"],[31.7,2154,0,4,6,10.0,"06-13"],[28.1,1756,0,0,6,6.3,"06-16"],[25.0,1337,1,1,6,1.0,"06-17"],[25.8,1456,0,2,6,2.6,"06-18"],[28.7,1859,0,3,6,6.9,"06-19"],[23.6,1183,0,4,6,0.0,"06-20"],[25.7,1458,0,0,6,2.7,"06-23"],[27.2,1622,0,1,6,4.4,"06-24"],[25.9,1382,1,2,6,2.5,"06-25"],[25.9,1371,0,3,6,2.6,"06-26"],[25.9,1440,0,4,6,3.1,"06-27"],[26.1,1431,1,0,6,2.5,"06-30"],[25.3,1444,0,1,7,1.7,"07-01"],[25.8,1270,0,2,7,2.4,"07-02"],[25.6,1322,0,3,7,1.9,"07-03"],[28.9,1837,0,4,7,7.0,"07-04"],[29.0,1862,0,0,7,6.8,"07-07"],[29.3,1906,0,1,7,7.3,"07-08"],[27.1,1593,0,2,7,4.3,"07-09"],[28.6,1919,0,3,7,6.4,"07-10"],[24.1,1140,0,4,7,0.1,"07-11"],[29.2,1894,0,0,7,7.4,"07-14"],[30.5,2012,1,1,7,9.1,"07-15"],[28.1,1773,0,2,7,6.0,"07-16"],[25.3,1394,1,3,7,2.1,"07-17"],[23.7,1184,0,4,7,0.5,"07-18"],[28.2,1718,0,0,7,5.8,"07-21"],[27.3,1700,0,1,7,4.2,"07-22"],[21.0,1098,0,2,8,0.0,"08-20"],[27.4,1672,0,3,8,5.2,"08-21"],[24.2,1158,1,4,8,0.0,"08-22"],[21.4,1119,0,0,8,0.0,"08-25"],[23.9,1230,0,1,8,0.0,"08-26"],[20.5,1359,0,2,8,0.2,"08-27"],[27.1,1577,0,3,8,4.2,"08-28"],[21.0,1232,0,4,8,0.0,"08-29"],[20.9,1113,0,0,9,0.0,"09-01"],[18.4,1216,1,1,9,0.4,"09-02"],[23.2,1085,0,2,9,0.0,"09-03"],[22.8,1217,1,3,9,0.0,"09-04"],[23.5,1184,1,4,9,0.3,"09-05"],[16.1,1188,1,0,9,0.0,"09-08"],[20.3,1209,0,1,9,0.2,"09-09"],[22.7,1176,1,2,9,0.3,"09-10"],[24.7,1250,0,3,9,0.9,"09-11"],[22.4,1135,1,4,9,0.3,"09-12"],[18.7,1271,0,0,9,0.0,"09-15"],[12.4,1138,0,1,9,0.1,"09-16"],[21.5,1203,0,2,9,0.1,"09-17"],[20.7,1246,0,3,9,0.0,"09-18"],[19.6,1188,1,4,9,0.0,"09-19"],[19.0,1208,1,0,9,0.0,"09-22"],[16.5,1180,1,1,9,0.0,"09-23"],[16.9,1261,0,2,9,0.2,"09-24"],[17.5,1171,0,3,9,0.0,"09-25"],[17.1,1156,0,4,9,0.0,"09-26"],[15.5,1198,0,0,9,0.5,"09-29"],[18.8,1265,0,1,9,0.1,"09-30"],[21.8,1081,0,2,10,0.0,"10-01"],[10.0,1247,0,3,10,0.0,"10-02"],[18.3,1250,0,4,10,0.0,"10-03"],[13.0,1199,0,0,10,0.0,"10-06"],[15.3,1156,0,1,10,0.0,"10-07"],[15.7,1354,1,2,10,0.0,"10-08"],[20.6,1314,1,3,10,0.1,"10-09"],[12.6,1215,0,4,10,0.2,"10-10"],[11.2,1204,1,0,10,0.0,"10-13"],[13.4,1347,1,1,10,0.1,"10-14"],[7.3,1316,0,2,10,0.8,"10-15"],[9.8,1152,0,3,10,0.0,"10-16"],[11.9,1192,0,4,10,0.2,"10-17"],[11.3,1170,0,0,10,0.0,"10-20"],[11.4,1222,0,1,10,0.1,"10-21"],[9.6,1164,1,2,10,0.0,"10-22"],[8.8,1093,0,3,10,0.0,"10-23"],[14.3,1285,0,4,10,0.0,"10-24"],[9.4,1143,1,0,10,0.0,"10-27"],[10.7,1245,0,1,10,0.0,"10-28"],[12.7,1211,0,2,10,0.2,"10-29"],[12.5,1175,0,3,10,0.0,"10-30"],[11.4,1229,0,4,10,0.1,"10-31"],[6.5,1420,0,0,11,1.4,"11-03"],[12.4,1168,1,1,11,0.0,"11-04"],[7.4,1181,0,2,11,0.3,"11-05"],[9.8,1247,1,3,11,0.0,"11-06"],[9.9,1286,0,4,11,0.0,"11-07"],[5.1,1475,0,0,11,2.2,"11-10"],[3.1,1580,1,1,11,4.6,"11-11"],[4.3,1431,0,2,11,3.3,"11-12"],[6.7,1367,1,3,11,1.4,"11-13"],[9.8,1285,0,4,11,0.0,"11-14"],[4.9,1477,0,0,11,3.0,"11-17"],[4.4,1584,0,1,11,3.7,"11-18"],[2.2,1769,1,2,11,5.2,"11-19"],[2.1,1655,0,3,11,5.0,"11-20"],[3.4,1479,0,4,11,4.1,"11-21"],[1.8,1801,1,0,11,5.9,"11-24"],[0.9,1730,1,1,11,6.0,"11-25"],[7.1,1218,0,2,11,0.8,"11-26"],[2.8,1639,0,3,11,4.9,"11-27"],[6.1,1451,0,4,11,2.0,"11-28"],[4.9,1350,1,0,12,2.4,"12-01"],[-3.3,2289,0,1,12,9.8,"12-02"],[3.6,1462,0,2,12,4.1,"12-03"],[2.7,1684,0,3,12,4.8,"12-04"],[5.1,1469,0,4,12,2.6,"12-05"],[-1.5,2039,0,0,12,8.9,"12-08"],[-2.4,2091,0,1,12,9.5,"12-09"],[0.2,1881,0,2,12,7.5,"12-10"],[-0.2,1865,0,3,12,7.1,"12-11"],[1.3,1650,0,4,12,6.1,"12-12"],[0.6,1886,0,0,12,6.4,"12-15"],[-3.4,2088,0,1,12,9.8,"12-16"],[3.0,1604,1,2,12,4.6,"12-17"],[0.7,1806,0,3,12,6.5,"12-18"],[0.3,1824,0,4,12,6.7,"12-19"],[2.4,1690,0,0,12,5.4,"12-22"],[0.2,1838,1,1,12,6.8,"12-23"],[3.5,1592,0,2,12,4.0,"12-24"],[-2.6,2192,0,3,12,9.7,"12-25"],[1.4,1782,0,4,12,6.2,"12-26"],[-1.9,1994,0,0,12,8.4,"12-29"],[-0.8,2061,0,1,12,8.0,"12-30"],[-1.8,2074,0,2,12,8.7,"12-31"]];
+  const TR = D.filter(d => !d[2]).map(d => [d[0], d[1]]);
+  const TE = D.filter(d => d[2]).map(d => [d[0], d[1]]);
+  const XMIN = Math.min(...TR.map(p => p[0])), XMAX = Math.max(...TR.map(p => p[0]));
+  function fitPoly(tr, deg){
+    const z = x => (x - 15) / 10, m = deg + 1;
+    const A = Array.from({length:m}, () => new Array(m + 1).fill(0));
+    tr.forEach(([x, y]) => {
+      const f = []; for (let j = 0; j < m; j++) f.push(Math.pow(z(x), j));
+      for (let r = 0; r < m; r++){ for (let c = 0; c < m; c++) A[r][c] += f[r] * f[c]; A[r][m] += f[r] * y; }
+    });
+    for (let c = 0; c < m; c++){
+      let p = c; for (let r = c + 1; r < m; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;
+      [A[c], A[p]] = [A[p], A[c]];
+      for (let r = 0; r < m; r++){ if (r === c) continue; const k = A[r][c] / A[c][c]; for (let q = c; q <= m; q++) A[r][q] -= k * A[c][q]; }
+    }
+    const w = A.map((row, i) => row[m] / row[i]);
+    return x => { let s = 0, zz = 1; const v = z(x); for (let j = 0; j < m; j++){ s += w[j] * zz; zz *= v; } return s; };
+  }
+  function fitTree(tr, maxD){
+    function build(pts, d){
+      const n = pts.length, mean = pts.reduce((s, p) => s + p[1], 0) / n;
+      const sse0 = pts.reduce((s, p) => s + (p[1] - mean) ** 2, 0);
+      if (d >= maxD || n < 2 || sse0 < 1e-9) return { v: mean };
+      let best = null, sl = 0, sl2 = 0;
+      const tot = pts.reduce((s, p) => s + p[1], 0), tot2 = pts.reduce((s, p) => s + p[1] * p[1], 0);
+      for (let i = 1; i < n; i++){
+        sl += pts[i - 1][1]; sl2 += pts[i - 1][1] ** 2;
+        if (pts[i][0] === pts[i - 1][0]) continue;
+        const nr = n - i, sr = tot - sl, sr2 = tot2 - sl2;
+        const sse = (sl2 - sl * sl / i) + (sr2 - sr * sr / nr);
+        if (!best || sse < best.sse - 1e-9) best = { sse, i, t: (pts[i - 1][0] + pts[i][0]) / 2 };
+      }
+      if (!best) return { v: mean };
+      return { t: best.t, L: build(pts.slice(0, best.i), d + 1), R: build(pts.slice(best.i), d + 1) };
+    }
+    const root = build(tr.slice().sort((a, b) => a[0] - b[0]), 0);
+    return x => { let nd = root; while (nd.t !== undefined) nd = x <= nd.t ? nd.L : nd.R; return nd.v; };
+  }
+  function fitKnn(tr, k){
+    return x => { const s = tr.map(p => [Math.abs(p[0] - x), p[1]]).sort((a, b) => a[0] - b[0]); let t = 0; for (let i = 0; i < k; i++) t += s[i][1]; return t / k; };
+  }
+  function evalM(f, pts){
+    const n = pts.length, my = pts.reduce((s, p) => s + p[1], 0) / n;
+    let sse = 0, sst = 0, ae = 0;
+    pts.forEach(p => { const e = p[1] - f(p[0]); sse += e * e; ae += Math.abs(e); sst += (p[1] - my) ** 2; });
+    return { r2: 1 - sse / sst, mae: ae / n };
+  }
+  const CFG = {
+    poly: { lab:"차수", min:1, max:6, def:2, name:v => `다항 회귀 (${v}차)`, fit:fitPoly },
+    tree: { lab:"최대 깊이", min:1, max:8, def:3, name:v => `트리 (깊이 ${v})`, fit:fitTree },
+    knn:  { lab:"이웃 수 k", min:1, max:30, def:10, name:v => `k-NN (k=${v})`, fit:fitKnn }
+  };
+  const cv = $("mc-cv"), ctx = cv.getContext("2d");
+  const W = cv.width, H = cv.height, PL = 58, PR = 14, PT = 12, PB = 38;
+  const X0 = -9, X1 = 36, Y0 = 800, Y1 = 3000;
+  const sx = x => PL + (x - X0) / (X1 - X0) * (W - PL - PR);
+  const sy = y => H - PB - (y - Y0) / (Y1 - Y0) * (H - PT - PB);
+  let rows = [], cur = null;
+
+  function setType(){
+    const c = CFG[$("mc-type").value];
+    $("mc-plab").textContent = c.lab; $("mc-p").min = c.min; $("mc-p").max = c.max; $("mc-p").value = c.def;
+    update();
+  }
+  function update(){
+    const t = $("mc-type").value, c = CFG[t], v = +$("mc-p").value;
+    $("mc-pv").textContent = v;
+    const f = c.fit(TR, v), a = evalM(f, TR), b = evalM(f, TE);
+    cur = { name:c.name(v), tr:a.r2, te:b.r2, mae:b.mae, hot:f(35), cold:f(-8) };
+    $("mc-tr").textContent = a.r2.toFixed(3);
+    $("mc-te").textContent = b.r2.toFixed(3);
+    $("mc-mae").textContent = b.mae.toFixed(1);
+    $("mc-hot").textContent = Math.round(cur.hot);
+    $("mc-cold").textContent = Math.round(cur.cold);
+    draw(f);
+  }
+  function draw(f){
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = "#f1f1f4";
+    ctx.fillRect(sx(X0), PT, sx(XMIN) - sx(X0), H - PT - PB);
+    ctx.fillRect(sx(XMAX), PT, sx(X1) - sx(XMAX), H - PT - PB);
+    ctx.strokeStyle = "#eef1f5"; ctx.fillStyle = "#667"; ctx.font = "12px sans-serif"; ctx.lineWidth = 1;
+    for (let t = -5; t <= 35; t += 5){ ctx.beginPath(); ctx.moveTo(sx(t), PT); ctx.lineTo(sx(t), H - PB); ctx.stroke(); ctx.textAlign = "center"; ctx.fillText(t + "℃", sx(t), H - PB + 16); }
+    for (let v = 1000; v <= 3000; v += 500){ ctx.beginPath(); ctx.moveTo(PL, sy(v)); ctx.lineTo(W - PR, sy(v)); ctx.stroke(); ctx.textAlign = "right"; ctx.fillText(v, PL - 6, sy(v) + 4); }
+    ctx.textAlign = "center"; ctx.fillText("평균기온", (PL + W - PR) / 2, H - 4);
+    TR.forEach(p => { ctx.fillStyle = "rgba(167,139,250,.7)"; ctx.beginPath(); ctx.arc(sx(p[0]), sy(p[1]), 3, 0, 7); ctx.fill(); });
+    TE.forEach(p => { ctx.fillStyle = "#f97316"; ctx.beginPath(); ctx.arc(sx(p[0]), sy(p[1]), 3.6, 0, 7); ctx.fill(); });
+    ctx.save(); ctx.beginPath(); ctx.rect(PL, PT, W - PL - PR, H - PT - PB); ctx.clip();
+    ctx.strokeStyle = "#7c3aed"; ctx.lineWidth = 2.6; ctx.beginPath();
+    for (let i = 0; i <= 450; i++){ const x = X0 + (X1 - X0) * i / 450, y = f(x); i ? ctx.lineTo(sx(x), sy(y)) : ctx.moveTo(sx(x), sy(y)); }
+    ctx.stroke(); ctx.restore();
+  }
+  function renderTable(){
+    if (!rows.length){ $("mc-table").innerHTML = ""; return; }
+    const best = rows.reduce((m, r, i) => r.mae < rows[m].mae ? i : m, 0);
+    $("mc-table").innerHTML = `<thead><tr><th>모델</th><th>훈련 R²</th><th>테스트 R²</th><th>테스트 MAE</th><th>−8℃</th><th>35℃</th></tr></thead><tbody>` +
+      rows.map((r, i) => `<tr class="${i === best ? "best" : ""}"><td>${r.name}</td><td>${r.tr.toFixed(3)}</td><td>${r.te.toFixed(3)}</td><td>${r.mae.toFixed(1)}</td><td>${Math.round(r.cold)}</td><td>${Math.round(r.hot)}</td></tr>`).join("") + `</tbody>`;
+  }
+  $("mc-type").addEventListener("change", setType);
+  $("mc-p").addEventListener("input", update);
+  $("mc-add").addEventListener("click", () => { if (cur && !rows.some(r => r.name === cur.name)) { rows.push(cur); renderTable(); } });
+  $("mc-clear").addEventListener("click", () => { rows = []; renderTable(); });
+  // 시작: 선형(1차)을 표에 먼저 넣어 기준으로 삼는다
+  const lin = fitPoly(TR, 1), la = evalM(lin, TR), lb = evalM(lin, TE);
+  rows.push({ name:"선형 회귀 (기준)", tr:la.r2, te:lb.r2, mae:lb.mae, hot:lin(35), cold:lin(-8) });
+  setType(); renderTable();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"전력 사용량을 y = 3x² − 90x + 1900 (x: 평균기온)으로 예측하는 2차 다항 회귀 모델에서, 예측 사용량이 가장 적은 기온은?",
+    choices:["3℃","9℃","15℃","30℃","45℃"], answer:2,
+    explain:"아래로 볼록한 2차식 ax² + bx + c의 꼭짓점은 x = −b ÷ (2a) = 90 ÷ 6 = 15℃입니다." },
+  { type:"ox", q:"다항 회귀는 입력 속성에 x², x³ 등을 새 속성으로 추가한 뒤 선형 회귀를 적용하는 방법이다.",
+    answer:true, explain:"계수에 대해서는 여전히 선형 모델이므로 LinearRegression으로 최소제곱 해를 구할 수 있습니다. 곡선은 x²라는 새 속성 덕분에 표현됩니다." },
+  { type:"mc", q:"학습 데이터의 기온이 −3.4~31.7℃였다. 의사결정트리 회귀 모델에 35℃를 넣었을 때 일어나는 일로 옳은 것은?",
+    choices:["오류가 나서 예측할 수 없다","가장 더운 구간(잎)의 평균값을 그대로 예측한다","기온이 오를수록 예측값이 계속 커진다","0을 예측한다","훈련 데이터 전체의 평균을 예측한다"], answer:1,
+    explain:"트리는 ‘기온 > 28.4℃’ 같은 규칙으로 구간을 나누므로 35℃도 가장 오른쪽 잎에 들어가 그 잎의 평균을 예측합니다. 그래서 학습 범위를 넘는 폭염의 사용량을 과소 예측할 수 있습니다." },
+  { type:"mc", q:"다음 중 두 분석 방법을 비교·선택하는 태도로 가장 적절한 것은?",
+    choices:["훈련 R²가 가장 높은 모델을 고른다","테스트 데이터로 설정값을 수십 번 바꿔 가며 가장 높은 점수를 찾는다","같은 테스트 데이터·같은 지표로 비교하고, 점수가 비슷하면 해석 가능성과 목적(예: 폭염 대비)을 함께 고려한다","가장 복잡한 모델이 항상 가장 좋다","두 방법 중 결과가 기대와 맞는 것을 고른다"], answer:2,
+    explain:"훈련 점수는 과대적합을 반영하지 못하고, 테스트 데이터로 반복 선택하면 점수가 부풀려집니다. 공정한 조건에서 비교한 뒤 목적·해석·학습 범위 밖 행동까지 따지는 것이 올바른 선택 방법입니다." },
+  { type:"short", q:"예시 프로젝트에서 2차 다항 회귀(테스트 R² 0.723)와 트리(0.720)의 성능이 거의 같았습니다. ‘내일 사용량이 많을 날을 미리 알려 절전을 안내한다’는 목적이라면 어느 모델을 고르겠습니까? 이유를 쓰세요.",
+    model:"2차 다항 회귀를 고른다. 두 모델의 테스트 성능은 비슷하지만, 절전 안내가 가장 필요한 날은 기록적인 폭염·한파일인데 트리는 학습 범위 밖 기온에서도 끝 구간의 평균(35℃에서 1919kWh)에 머물러 사용량을 과소 예측할 위험이 있다. 다항 회귀는 기온이 극단으로 갈수록 사용량이 늘어나는 방향을 유지한다(35℃에서 약 2383kWh). 또 식 하나로 ‘약 15℃에서 최소’처럼 해석하기도 쉽다. (단, 학습 범위 밖의 예측량 자체는 두 모델 모두 불확실하다는 점을 함께 밝힌다.)" },
+]);
+</script>
+</body>
+</html>

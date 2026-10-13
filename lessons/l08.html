@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SQL로 데이터베이스 질의하기 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* SQL 문 조립기 */
+.sq-grid { display:grid; grid-template-columns:minmax(260px,1fr) 1.2fr; gap:16px; align-items:start; }
+@media (max-width:800px){ .sq-grid { grid-template-columns:1fr; } }
+.sq-row { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:8px 0; font-size:.85rem; }
+.sq-row > b { min-width:78px; font-family:var(--font-mono); color:#7c3aed; font-size:.82rem; }
+.sq-row label { font-size:.8rem; display:inline-flex; align-items:center; gap:3px; background:var(--paper); border:1px solid var(--line); border-radius:999px; padding:2px 9px; }
+.sq-row select, .sq-row input { font-size:.8rem; padding:3px 6px; }
+.sq-row input[type="number"] { width:70px; }
+.sq-code { font-family:var(--font-mono); background:#1e2733; color:#e6edf3; border-radius:10px; padding:10px 14px; font-size:.84rem; line-height:1.6; white-space:pre-wrap; margin-bottom:10px; }
+.sq-code .kw { color:#c4a7ff; font-weight:700; }
+.sq-code .str { color:#9fe0a8; }
+.sq-out table { margin:0; font-size:.8rem; }
+.sq-out th, .sq-out td { padding:4px 8px; }
+.sq-order { font-size:.76rem; color:var(--ink-soft); margin-top:8px; }
+.sq-order span { display:inline-block; background:var(--paper); border:1px solid var(--line); border-radius:6px; padding:1px 6px; margin:2px 1px; }
+.sq-order span.on { background:var(--accent-soft); border-color:var(--accent); color:var(--accent); font-weight:700; }
+.sql-cat { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:10px; margin:14px 0; }
+.sql-cat div { background:#fff; border:1px solid var(--line); border-radius:12px; padding:10px 12px; font-size:.85rem; }
+.sql-cat b { display:block; color:var(--accent); }
+.sql-cat code { font-size:.78rem; }
+</style>
+</head>
+<body data-unit="1" data-lesson="L08">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>SQL로 데이터베이스 질의하기</h1>
+  <span class="std-badge">성취기준 12데과01-03</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>SQL 명령어를 정의·조작·제어 언어로 구분하고 그 역할을 설명할 수 있다.</li>
+      <li>CREATE·INSERT·SELECT·UPDATE·DELETE 문으로 테이블을 만들고 데이터를 조회·수정할 수 있다.</li>
+      <li>WHERE·GROUP BY·JOIN을 사용해 여러 테이블의 데이터를 분석 가능한 형태로 꺼낼 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과01-03] 데이터셋의 집합인 데이터베이스를 이해하고, 서로 다른 데이터셋의 데이터를 분석이 가능한 형태로 통합하는 것의 의미를 파악한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span class="on">수집</span><span class="on">전처리</span><span class="on">탐색</span><span>모델링</span><span>평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  학교 데이터베이스에 학생 수천 명의 기록이 저장되어 있습니다. 담임 선생님은 “우리 반 학생 중 로봇공학반인 학생 명단”을,
+  도서부는 “동아리별 평균 독서 권수”를 원합니다. 매번 엑셀 파일을 열어 손으로 걸러 낼 수는 없겠죠.
+  데이터베이스에게 “이런 조건의 데이터를 보여 줘”라고 정확하게 부탁하는 말이 있다면 얼마나 편할까요? 그 말이 바로 <b>SQL</b>입니다.
+</div>
+
+<h2><span class="sec-no">1</span>데이터베이스와 대화하는 언어, SQL <i class="pub">씨마스</i></h2>
+
+<p><span class="keyterm">SQL(Structured Query Language)</span>은 관계형 데이터베이스에 데이터를 만들고, 넣고, 찾고, 고치고, 지우도록 요청하는 표준 언어입니다.
+‘질의(query)’란 데이터베이스에 던지는 질문이라는 뜻입니다. SQL은 영어 문장과 비슷해서 읽기 쉽습니다.</p>
+
+<p>잠깐 복습: 관계형 데이터베이스는 데이터를 <b>테이블</b>(행 = 레코드, 열 = 속성)에 저장하고, 각 행을 구별하는 <b>기본키</b>와 다른 테이블의 기본키를 가리키는 <b>외래키</b>로 테이블을 연결합니다.</p>
+
+<div class="sql-cat">
+  <div><b>데이터 정의어 (DDL)</b>테이블의 구조를 만들고 바꾸고 없앤다.<br><code>CREATE</code> · <code>ALTER</code> · <code>DROP</code></div>
+  <div><b>데이터 조작어 (DML)</b>테이블 안의 데이터를 넣고 찾고 고치고 지운다.<br><code>INSERT</code> · <code>SELECT</code> · <code>UPDATE</code> · <code>DELETE</code></div>
+  <div><b>데이터 제어어 (DCL)</b>누가 데이터를 쓸 수 있는지 권한을 준다·빼앗는다.<br><code>GRANT</code> · <code>REVOKE</code></div>
+</div>
+
+<p>데이터를 다루는 네 가지 기본 동작을 <b>CRUD</b>(Create 생성, Read 읽기, Update 수정, Delete 삭제)라고 부르며, 각각 <code>INSERT</code>, <code>SELECT</code>, <code>UPDATE</code>, <code>DELETE</code>에 대응합니다.
+이 차시에서는 파이썬에 들어 있는 작은 데이터베이스 <b>SQLite</b>(<code>sqlite3</code> 모듈)로 직접 실습합니다.</p>
+
+<h2><span class="sec-no">2</span>테이블 만들고 데이터 넣기: CREATE · INSERT <i class="pub">씨마스</i></h2>
+
+<pre class="codeblock">CREATE TABLE 동아리 (
+    동아리코드 TEXT PRIMARY KEY,     -- 기본키
+    동아리명   TEXT NOT NULL,         -- 비어 있으면 안 됨
+    활동장소   TEXT
+);
+INSERT INTO 동아리 VALUES ('C1', '데이터탐구반', '정보실');</pre>
+
+<p><code>CREATE TABLE</code>로 속성 이름과 자료형(TEXT 문자, INTEGER 정수, REAL 실수)을 정하고, <code>PRIMARY KEY</code>로 기본키를,
+<code>REFERENCES</code>로 외래키를 지정합니다. 아래 셀은 교재 데이터(<code>school_clubs.csv</code>, <code>school_students.csv</code>)를 SQLite 데이터베이스에 옮겨 담습니다.
+외래키 규칙을 켜 두었기 때문에 <b>동아리 테이블에 없는 코드는 데이터베이스가 거부</b>합니다.</p>
+
+<div class="pycell" data-title="CREATE와 INSERT로 학교 DB 만들기"><textarea>
+import sqlite3
+import pandas as pd
+
+con = sqlite3.connect(":memory:")           # 메모리 안에 새 데이터베이스 만들기
+cur = con.cursor()
+cur.execute("PRAGMA foreign_keys = ON")      # 외래키 규칙 검사 켜기
+
+cur.execute("""CREATE TABLE 동아리 (
+    동아리코드 TEXT PRIMARY KEY,
+    동아리명   TEXT NOT NULL,
+    활동장소   TEXT)""")
+cur.execute("""CREATE TABLE 학생 (
+    학번       INTEGER PRIMARY KEY,
+    이름       TEXT NOT NULL,
+    반         INTEGER,
+    동아리코드 TEXT REFERENCES 동아리(동아리코드))""")
+
+for r in load_csv("school_clubs.csv").itertuples(index=False):
+    cur.execute("INSERT INTO 동아리 VALUES (?, ?, ?)", tuple(r))
+
+for r in load_csv("school_students.csv").itertuples(index=False):
+    code = None if pd.isna(r.동아리코드) else r.동아리코드      # 빈칸은 NULL로
+    try:
+        cur.execute("INSERT INTO 학생 VALUES (?, ?, ?, ?)", (int(r.학번), r.이름, int(r.반), code))
+    except sqlite3.IntegrityError as e:
+        print("거부됨:", r.학번, r.이름, code, "→", e)
+con.commit()
+
+def q(sql):                                   # SQL 결과를 표로 보여 주는 도우미 함수
+    return pd.read_sql_query(sql, con)
+
+print(q("SELECT COUNT(*) AS 학생수 FROM 학생"))
+
+# ✏️ INSERT INTO 학생 VALUES (20101, '홍길동', 1, 'C1') 을 실행해 보세요. 왜 거부될까요?
+</textarea></div>
+
+<p>30명 중 <b>서건우(20113, 코드 C9)</b>의 입력이 <code>FOREIGN KEY constraint failed</code>로 거부되어 학생 테이블에는 29명이 들어갔습니다.
+동아리코드가 비어 있는(NULL) 두 학생은 “아직 가입하지 않음”으로 허용됩니다. 이처럼 DBMS는 규칙을 어기는 데이터가 들어오는 것을 입구에서 막아 <b>무결성</b>을 지킵니다.</p>
+
+<h2><span class="sec-no">3</span>원하는 데이터 꺼내기: SELECT <i class="pub-c">공통</i></h2>
+
+<pre class="codeblock">SELECT 열 이름들          -- ③ 어떤 열을 보여 줄까?
+FROM 테이블               -- ① 어느 테이블에서?
+WHERE 조건                -- ② 어떤 행만?
+GROUP BY 열               --    무엇을 기준으로 묶어 집계할까?
+ORDER BY 열 ASC|DESC      -- ④ 어떤 순서로? (ASC 오름차순, DESC 내림차순)
+LIMIT 개수;               -- ⑤ 몇 개까지?</pre>
+
+<p>SQL은 적는 순서와 실제 처리 순서가 다릅니다. 데이터베이스는 FROM → WHERE → GROUP BY → SELECT → ORDER BY → LIMIT 순으로 처리합니다.
+아래 조립기에서 절을 하나씩 바꾸며 SQL 문과 결과가 어떻게 달라지는지 확인해 보세요.</p>
+
+<div class="sim">
+  <div class="sim-head">SQL 문 조립기 — 학생 테이블(12행)에 질의하기</div>
+  <div class="sim-body">
+    <div class="sq-grid">
+      <div>
+        <div class="sq-row"><b>GROUP BY</b>
+          <select id="sq-group"><option value="">(묶지 않음)</option><option>반</option><option>동아리</option></select>
+          <select id="sq-agg" disabled><option value="COUNT">COUNT(*)</option><option value="AVG">AVG(독서권수)</option><option value="SUM">SUM(독서권수)</option><option value="MAX">MAX(독서권수)</option></select>
+        </div>
+        <div class="sq-row" id="sq-cols-row"><b>SELECT</b><span id="sq-cols"></span></div>
+        <div class="sq-row"><b>WHERE</b>
+          <select id="sq-wcol"><option value="">(조건 없음)</option><option>반</option><option>동아리</option><option>독서권수</option></select>
+          <select id="sq-wop"></select>
+          <span id="sq-wval"></span>
+        </div>
+        <div class="sq-row"><b>ORDER BY</b>
+          <select id="sq-ocol"></select>
+          <select id="sq-odir"><option>ASC</option><option>DESC</option></select>
+        </div>
+        <div class="sq-row"><b>LIMIT</b>
+          <select id="sq-limit"><option value="">(제한 없음)</option><option>3</option><option>5</option></select>
+        </div>
+        <div class="sq-order" id="sq-order"></div>
+      </div>
+      <div>
+        <div class="sq-code" id="sq-code"></div>
+        <div class="sq-out"><div class="table-wrap"><table class="data" id="sq-out"></table></div></div>
+        <div class="sim-stats"><span class="stat-chip">결과 <b id="sq-n">0</b>행</span></div>
+      </div>
+    </div>
+    <p class="widget-hint">도전 과제: ① 2반 학생 중 독서권수가 가장 많은 학생 1명 찾기 ② 동아리별 평균 독서권수를 높은 순으로 보기 ③ 독서권수가 10권 이상인 학생 수를 반별로 세기</p>
+  </div>
+</div>
+
+<p>이제 교재 데이터베이스에 직접 SQL을 보내 봅시다. 문자 값은 작은따옴표(<code>'C2'</code>)로 감쌉니다.</p>
+
+<div class="pycell" data-title="SELECT · WHERE · ORDER BY · GROUP BY"><textarea>
+# 1반 학생 중 로봇공학반(C2)인 학생
+print(q("SELECT 학번, 이름 FROM 학생 WHERE 반 = 1 AND 동아리코드 = 'C2' ORDER BY 이름"))
+
+# 동아리코드가 비어 있는 학생 (NULL은 = 가 아니라 IS NULL로 찾는다)
+print(q("SELECT 학번, 이름 FROM 학생 WHERE 동아리코드 IS NULL"))
+
+# 동아리코드별 학생 수를 많은 순으로
+print(q("""SELECT 동아리코드, COUNT(*) AS 학생수
+           FROM 학생
+           GROUP BY 동아리코드
+           ORDER BY 학생수 DESC"""))
+
+# ✏️ 2반 학생만 골라 이름 순으로 정렬해 보세요.
+</textarea></div>
+
+<h2><span class="sec-no">4</span>테이블 잇기와 데이터 고치기: JOIN · UPDATE · DELETE <i class="pub">씨마스</i></h2>
+
+<p>학생 테이블에는 동아리코드만 있으므로 동아리 이름을 보려면 두 테이블을 <code>JOIN</code>으로 연결합니다. <code>ON</code> 뒤에 연결할 키를 적습니다.
+<code>JOIN</code>(= <code>INNER JOIN</code>)은 양쪽에 짝이 있는 행만, <code>LEFT JOIN</code>은 왼쪽 테이블의 행을 모두 남깁니다.</p>
+
+<div class="pycell" data-title="JOIN으로 동아리 이름 붙이고 집계하기"><textarea>
+# 독서 기록도 테이블로 추가 (pandas 표를 한 번에 테이블로 저장)
+load_csv("school_reading.csv").to_sql("독서", con, index=False)
+
+# 학생 + 동아리 : 과학실에서 활동하는 학생
+print(q("""SELECT s.이름, s.반, c.동아리명
+           FROM 학생 s JOIN 동아리 c ON s.동아리코드 = c.동아리코드
+           WHERE c.활동장소 = '과학실'"""))
+
+# 세 테이블 연결 : 동아리별 1인당 평균 독서 권수
+print(q("""SELECT c.동아리명,
+                  COUNT(DISTINCT s.학번) AS 학생수,
+                  ROUND(SUM(r.독서권수) * 1.0 / COUNT(DISTINCT s.학번), 1) AS 일인당권수
+           FROM 학생 s
+           JOIN 동아리 c ON s.동아리코드 = c.동아리코드
+           JOIN 독서 r  ON s.학번 = r.학번
+           GROUP BY c.동아리명
+           ORDER BY 일인당권수 DESC"""))
+
+# ✏️ 첫 번째 질의의 JOIN을 LEFT JOIN으로 바꾸고 WHERE 절을 지우면 어떤 학생이 추가로 나오나요?
+</textarea></div>
+
+<p>세 테이블을 연결한 결과, 동아리별 1인당 독서 권수는 독서토론반 11.5권, 로봇공학반 10.0권, 방송반 9.8권, 데이터탐구반 7.3권, 환경지킴이 2.0권 순입니다.
+(데이터탐구반의 실제 값은 7.25권입니다. SQLite의 ROUND는 5를 올리고, pandas의 round는 가장 가까운 짝수 쪽으로 맞추므로 pandas에서는 7.2로 표시됩니다.)
+pandas의 <code>merge</code>로 하던 통합을 SQL 한 문장으로 한 것입니다(서건우 학생은 처음에 입력이 거부되어 이 집계에서 빠졌습니다).</p>
+
+<div class="pycell" data-title="UPDATE와 DELETE로 데이터 고치기"><textarea>
+# 확인 결과 서건우 학생의 동아리는 C2(로봇공학반)였다 → 올바른 값으로 다시 입력
+cur.execute("INSERT INTO 학생 VALUES (20113, '서건우', 1, 'C2')")
+
+# 조주원 학생이 환경지킴이(C4)에 가입했다 → 수정(UPDATE)
+cur.execute("UPDATE 학생 SET 동아리코드 = 'C4' WHERE 학번 = 20107")
+
+# 명단에 없는 학번 20399의 독서 기록 → 확인 후 삭제(DELETE)
+cur.execute("DELETE FROM 독서 WHERE 학번 = 20399")
+print("삭제된 행 수:", cur.rowcount)
+con.commit()
+
+print(q("SELECT * FROM 학생 WHERE 학번 IN (20107, 20113)"))
+print(q("SELECT COUNT(*) AS 학생수 FROM 학생"))
+print(q("SELECT COUNT(*) AS 독서기록수 FROM 독서"))
+
+# ✏️ 주의: WHERE 없이 UPDATE 학생 SET 반 = 3 을 실행하면 어떻게 될지 예측해 보세요. (실행 후 결과 확인!)
+</textarea></div>
+
+<p>학생은 다시 30명이 되었고, 독서 기록은 137건에서 20399의 기록 1건이 지워져 136건이 되었습니다.</p>
+
+<div class="box box-warn">
+  <span class="box-label">WHERE 없는 UPDATE·DELETE는 위험하다</span>
+  <code>UPDATE</code>와 <code>DELETE</code>는 <code>WHERE</code> 조건에 맞는 <b>모든 행</b>에 적용됩니다. 조건을 빠뜨리면 테이블 전체가 바뀌거나 지워집니다.
+  실제 업무에서는 먼저 같은 조건으로 <code>SELECT</code>를 실행해 바뀔 행을 확인한 뒤 <code>UPDATE</code>·<code>DELETE</code>를 실행하는 습관을 들입니다.
+</div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  이 차시는 4학점 확장 차시로, 앞 차시(테이블 분해·통합)를 배우지 않았어도 2절의 복습 문단으로 따라올 수 있게 구성했습니다.
+  브라우저 셀 대신 온라인 SQL 실행기나 DB Browser for SQLite(무료 프로그램)를 써도 같은 SQL을 실습할 수 있습니다.
+  흔한 실수: 문자 값에 따옴표 빠뜨리기, <code>= NULL</code>로 빈 값 찾기(항상 결과 없음 → <code>IS NULL</code>), GROUP BY 없이 COUNT와 일반 열을 함께 SELECT 하기.
+  시간 배분: SQL 개념 8분 · CREATE/INSERT 10분 · 조립기 12분 · SELECT/JOIN 셀 12분 · UPDATE/DELETE와 정리 8분.
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">개별 활동</span>질문을 SQL로 번역하기 <i class="pub">씨마스</i></div>
+  <div class="act-body">
+    <p style="margin-top:0">아래 우리말 질문을 SQL 문으로 쓰고, 위 파이썬 셀에서 <code>print(q("…"))</code>로 실행해 결과를 적으세요.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th style="width:34%">질문</th><th>SQL 문</th><th style="width:18%">결과</th></tr></thead>
+      <tbody>
+        <tr><td>2반 학생은 모두 몇 명인가?</td><td>&nbsp;</td><td></td></tr>
+        <tr><td>독서 기록 중 한 달에 5권 이상 읽은 기록은 몇 건인가?</td><td>&nbsp;</td><td></td></tr>
+        <tr><td>월별 전체 독서 권수를 월 순서대로 보여라.</td><td>&nbsp;</td><td></td></tr>
+        <tr><td>도서관에서 활동하는 동아리 학생의 이름을 보여라.</td><td>&nbsp;</td><td></td></tr>
+      </tbody>
+    </table></div>
+    <p>내가 만든 질문 하나를 SQL로 쓰고, 그 질문이 누구에게 어떤 도움이 될지 적으세요.</p>
+    <div class="write-lines"><div class="line"></div><div class="line"></div></div>
+  </div>
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>SQL은 관계형 데이터베이스에 질의하는 표준 언어로, 정의어(CREATE·ALTER·DROP), 조작어(INSERT·SELECT·UPDATE·DELETE), 제어어(GRANT·REVOKE)로 나뉜다.</li>
+    <li>SELECT … FROM … WHERE … GROUP BY … ORDER BY … LIMIT 순으로 쓰며, 처리는 FROM → WHERE → GROUP BY → SELECT → ORDER BY → LIMIT 순이다.</li>
+    <li>JOIN … ON 키로 여러 테이블을 연결해 통합된 결과를 얻는다. 빈 값은 IS NULL로 찾는다.</li>
+    <li>기본키·외래키 규칙은 잘못된 데이터 입력을 막고, UPDATE·DELETE는 반드시 WHERE 조건을 확인한 뒤 실행한다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- SQL 문 조립기 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const COLS = ["학번", "이름", "반", "동아리", "독서권수"];
+  const DATA = [
+    [20101,"김민준",1,"로봇공학반",8], [20102,"이서연",1,"독서토론반",14], [20103,"박도윤",1,"로봇공학반",5],
+    [20104,"최하윤",1,"방송반",9], [20105,"정시우",1,"데이터탐구반",7], [20106,"강지유",1,"독서토론반",12],
+    [20201,"황지우",2,"로봇공학반",6], [20202,"안선우",2,"데이터탐구반",10], [20203,"송예린",2,"방송반",4],
+    [20204,"류현우",2,"독서토론반",15], [20205,"홍채원",2,"데이터탐구반",9], [20206,"김유준",2,"방송반",11],
+  ].map(r => Object.fromEntries(COLS.map((c, i) => [c, r[i]])));
+  const NUM = { 학번:true, 반:true, 독서권수:true };
+  const CLUBS = ["로봇공학반", "독서토론반", "방송반", "데이터탐구반"];
+  const checked = { 학번:false, 이름:true, 반:true, 동아리:true, 독서권수:true };
+
+  $("sq-cols").innerHTML = COLS.map(c => `<label><input type="checkbox" data-c="${c}"${checked[c] ? " checked" : ""}>${c}</label>`).join(" ");
+  $("sq-cols").querySelectorAll("input").forEach(i => i.addEventListener("change", () => { checked[i.dataset.c] = i.checked; render(); }));
+
+  function whereUI(){
+    const col = $("sq-wcol").value;
+    const ops = !col ? [] : col === "동아리" ? ["=", "<>"] : ["=", ">", ">=", "<", "<=", "<>"];
+    $("sq-wop").innerHTML = ops.map(o => `<option>${o}</option>`).join("");
+    $("sq-wop").disabled = !col;
+    if (!col) $("sq-wval").innerHTML = "";
+    else if (col === "동아리") $("sq-wval").innerHTML = `<select id="sq-v">${CLUBS.map(c => `<option>${c}</option>`).join("")}</select>`;
+    else if (col === "반") $("sq-wval").innerHTML = `<select id="sq-v"><option>1</option><option>2</option></select>`;
+    else $("sq-wval").innerHTML = `<input type="number" id="sq-v" value="10" min="0" max="20">`;
+    const v = $("sq-v"); if (v) { v.addEventListener("change", render); v.addEventListener("input", render); }
+  }
+  function orderUI(){
+    const g = $("sq-group").value, prev = $("sq-ocol").value;
+    const opts = g ? ["", g, "집계값"] : ["", ...COLS];
+    $("sq-ocol").innerHTML = opts.map(o => `<option value="${o}">${o || "(정렬 안 함)"}</option>`).join("");
+    if (opts.includes(prev)) $("sq-ocol").value = prev;
+  }
+
+  const kw = s => `<span class="kw">${s}</span>`;
+  const lit = (col, v) => col === "동아리" ? `<span class="str">'${v}'</span>` : v;
+  const cmp = (a, op, b) => ({ "=":a == b, "<>":a != b, ">":a > b, ">=":a >= b, "<":a < b, "<=":a <= b })[op];
+
+  function render(){
+    const g = $("sq-group").value, agg = $("sq-agg").value;
+    $("sq-agg").disabled = !g;
+    $("sq-cols-row").style.opacity = g ? .45 : 1;
+    $("sq-cols").querySelectorAll("input").forEach(i => i.disabled = !!g);
+    const wcol = $("sq-wcol").value, wop = $("sq-wop").value, vEl = $("sq-v");
+    let wval = vEl ? vEl.value : "";
+    if (wcol && NUM[wcol]) wval = Number(wval);
+    const ocol = $("sq-ocol").value, odir = $("sq-odir").value, lim = $("sq-limit").value;
+    const aggName = agg === "COUNT" ? "COUNT(*)" : `${agg}(독서권수)`;
+
+    // SQL 문 만들기
+    const sel = g ? [g, aggName + " AS 집계값"] : COLS.filter(c => checked[c]);
+    let sql = `${kw("SELECT")} ${sel.length ? sel.join(", ") : "*"}\n${kw("FROM")} 학생`;
+    if (wcol) sql += `\n${kw("WHERE")} ${wcol} ${wop.replace("<", "&lt;").replace(">", "&gt;")} ${lit(wcol, wval)}`;
+    if (g) sql += `\n${kw("GROUP BY")} ${g}`;
+    if (ocol) sql += `\n${kw("ORDER BY")} ${ocol} ${kw(odir)}`;
+    if (lim) sql += `\n${kw("LIMIT")} ${lim}`;
+    $("sq-code").innerHTML = sql + ";";
+
+    // 실행: FROM → WHERE → GROUP BY → SELECT → ORDER BY → LIMIT
+    let rows = DATA.slice();
+    if (wcol) rows = rows.filter(r => cmp(r[wcol], wop, wval));
+    let head, out;
+    if (g) {
+      const groups = {};
+      rows.forEach(r => (groups[r[g]] = groups[r[g]] || []).push(r));
+      out = Object.keys(groups).map(k => {
+        const arr = groups[k], s = arr.reduce((a, r) => a + r.독서권수, 0);
+        const val = agg === "COUNT" ? arr.length : agg === "SUM" ? s : agg === "MAX" ? Math.max(...arr.map(r => r.독서권수)) : Math.round(s / arr.length * 10) / 10;
+        return { [g]: g === "반" ? +k : k, 집계값: val };
+      });
+      head = [g, "집계값"];
+    } else {
+      head = COLS.filter(c => checked[c]); if (!head.length) head = COLS.slice();
+      out = rows;
+    }
+    if (ocol) out = out.slice().sort((a, b) => {
+      const x = a[ocol], y = b[ocol], d = typeof x === "number" ? x - y : String(x).localeCompare(String(y), "ko");
+      return odir === "ASC" ? d : -d;
+    });
+    if (lim) out = out.slice(0, +lim);
+    $("sq-out").innerHTML = `<thead><tr>${head.map(h => `<th>${h === "집계값" ? aggName : h}</th>`).join("")}</tr></thead><tbody>` +
+      (out.length ? out.map(r => `<tr>${head.map(h => `<td>${r[h]}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="${head.length}">(조건에 맞는 행 없음)</td></tr>`) + `</tbody>`;
+    $("sq-n").textContent = out.length;
+    const steps = [["FROM", true], ["WHERE", !!wcol], ["GROUP BY", !!g], ["SELECT", true], ["ORDER BY", !!ocol], ["LIMIT", !!lim]];
+    $("sq-order").innerHTML = "처리 순서: " + steps.map(([s, on]) => `<span class="${on ? "on" : ""}">${s}</span>`).join(" → ");
+  }
+
+  $("sq-group").addEventListener("change", () => { orderUI(); render(); });
+  $("sq-wcol").addEventListener("change", () => { whereUI(); render(); });
+  ["sq-agg", "sq-wop", "sq-ocol", "sq-odir", "sq-limit"].forEach(id => $(id).addEventListener("change", render));
+  whereUI(); orderUI(); render();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"다음 SQL 명령어 중 데이터 정의어(DDL)에 해당하는 것은?",
+    choices:["SELECT","INSERT","CREATE","UPDATE","GRANT"], answer:2,
+    explain:"CREATE·ALTER·DROP은 테이블 구조를 다루는 정의어입니다. SELECT·INSERT·UPDATE는 조작어(DML), GRANT는 제어어(DCL)입니다." },
+  { type:"mc", q:"학생 테이블에서 ‘2반 학생의 이름을 독서권수가 많은 순으로 3명’ 보여 주는 SQL로 옳은 것은?",
+    choices:["SELECT 이름 FROM 학생 WHERE 반 = 2 ORDER BY 독서권수 DESC LIMIT 3","SELECT 이름 FROM 학생 ORDER BY 반 = 2 LIMIT 3","SELECT 학생 FROM 이름 WHERE 반 = 2 LIMIT 3","SELECT 이름 FROM 학생 WHERE 반 = 2 ORDER BY 독서권수 ASC LIMIT 3","SELECT * FROM 학생 GROUP BY 반 = 2"], answer:0,
+    explain:"조건은 WHERE 반 = 2, 많은 순은 ORDER BY 독서권수 DESC(내림차순), 3명은 LIMIT 3입니다. ④는 적은 순(ASC)입니다." },
+  { type:"mc", q:"조립기의 학생 테이블(12명)에서 SELECT 반, COUNT(*) FROM 학생 WHERE 독서권수 >= 10 GROUP BY 반 을 실행하면 1반과 2반의 결과는? (1반 독서권수: 8, 14, 5, 9, 7, 12 / 2반: 6, 10, 4, 15, 9, 11)",
+    choices:["1반 2, 2반 3","1반 3, 2반 3","1반 2, 2반 2","1반 6, 2반 6","1반 1, 2반 3"], answer:0,
+    explain:"10권 이상인 학생은 1반에서 14, 12 → 2명, 2반에서 10, 15, 11 → 3명입니다. WHERE로 먼저 거른 뒤 GROUP BY로 묶어 셉니다." },
+  { type:"ox", q:"동아리코드가 비어 있는 학생을 찾으려면 WHERE 동아리코드 = NULL 이라고 쓰면 된다.",
+    answer:false, explain:"SQL에서 NULL은 ‘알 수 없는 값’이라 = 로 비교하면 항상 참이 되지 않습니다. WHERE 동아리코드 IS NULL 이라고 써야 합니다." },
+  { type:"short", q:"외래키 규칙(REFERENCES)이 켜진 데이터베이스에 동아리 테이블에 없는 코드 C9를 가진 학생을 INSERT하려 했더니 거부되었습니다. 이 기능이 데이터 분석에 주는 이점을 설명하세요.",
+    model:"외래키 규칙은 참조 무결성을 지켜, 연결 대상이 없는 잘못된 값이 데이터베이스에 들어오는 것을 입력 단계에서 막는다. 그 결과 나중에 테이블을 JOIN해 분석할 때 짝이 없어 결과에서 빠지거나 결측이 생기는 행이 줄어들고, 입력 실수를 즉시 발견해 고칠 수 있어 분석 결과를 더 믿을 수 있게 된다." },
+]);
+</script>
+</body>
+</html>

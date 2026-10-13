@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>오리엔테이션: 데이터로 세상 읽기 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 콜레라 지도 탐정 */
+.cm-wrap { display:grid; grid-template-columns:1.5fr 1fr; gap:16px; align-items:start; }
+@media (max-width:760px){ .cm-wrap { grid-template-columns:1fr; } }
+#cm-map { width:100%; height:auto; background:#fbfaf6; border:1px solid var(--line); border-radius:10px; display:block; touch-action:manipulation; }
+#cm-map .pump { cursor:pointer; }
+#cm-map .pump:hover circle { stroke-width:4; }
+.cm-bars .row { display:grid; grid-template-columns:62px 1fr 42px; gap:6px; align-items:center; font-size:.82rem; margin:5px 0; }
+.cm-bars .bar { height:14px; background:var(--paper); border:1px solid var(--line); border-radius:999px; overflow:hidden; }
+.cm-bars .bar i { display:block; height:100%; border-radius:999px; transition:width .35s; }
+.cm-msg { margin-top:10px; padding:10px 12px; border-radius:10px; background:var(--tip-bg); border:1px solid #cbe4f7; font-size:.88rem; line-height:1.55; }
+/* 과목 로드맵 */
+.roadmap { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; margin:16px 0; }
+.roadmap .rm { border-radius:12px; padding:12px 14px; color:#fff; font-size:.86rem; line-height:1.5; }
+.roadmap .rm b { display:block; font-size:1rem; margin-bottom:3px; }
+/* 교재 사용법 */
+.howto { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; margin:14px 0; }
+.howto div { background:#fff; border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:.86rem; }
+.howto div b { display:block; font-size:.93rem; margin-bottom:2px; }
+</style>
+</head>
+<body data-unit="0" data-lesson="L01">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>오리엔테이션: 데이터로 세상 읽기</h1>
+  <span class="std-badge">과목 안내 · 전 영역 성취기준 개관</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>역사 속 사례를 통해 데이터가 문제 해결의 근거가 되는 과정을 설명할 수 있다.</li>
+      <li>데이터 과학 문제 해결 과정 7단계의 흐름을 말할 수 있다.</li>
+      <li>이 교재의 위젯·파이썬 실습 셀·퀴즈를 사용해 학습할 수 있다.</li>
+    </ul>
+    <div class="std-full">이 과목은 네 영역으로 이루어집니다. Ⅰ. 데이터 과학의 이해(12데과01-01~04) · Ⅱ. 데이터 준비와 분석(12데과02-01~04) · Ⅲ. 데이터 모델링과 평가(12데과03-01~06) · Ⅳ. 데이터 과학 프로젝트(12데과04-01~05). 오늘은 과목 전체를 미리 둘러보는 차시로, 특정 성취기준보다 과목 전체의 문제 해결 흐름을 경험하는 데 초점을 둡니다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span class="on">문제 정의</span><span class="on">수집</span><span>전처리</span><span class="on">탐색</span><span>모델링</span><span class="on">평가·해석</span><span class="on">공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  아침에 일어나 날씨 앱으로 강수 확률을 보고, 버스 도착 알림을 확인하고, 점심에는 급식 메뉴 앱을 열어 봅니다.
+  저녁에는 동영상 앱이 “좋아할 만한 영상”을 골라 줍니다. 이 모든 장면 뒤에는 <b>데이터</b>가 있습니다.
+  그런데 데이터가 이렇게 흔해지기 훨씬 전인 170여 년 전에도, 데이터를 모으고 지도 위에 찍어 보는 것만으로
+  수많은 생명을 구한 사람들이 있었습니다. 그들은 어떤 질문을 던졌고, 데이터에서 무엇을 보았을까요?
+</div>
+
+<h2><span class="sec-no">1</span>데이터로 생명을 구한 두 사람 <i class="pub-c">공통</i></h2>
+
+<h3>나이팅게일: 그래프로 설득하다</h3>
+<p>1850년대 크림 전쟁 당시 야전 병원에서 일하던 간호사 <b>플로렌스 나이팅게일</b>은 병사들의 사망 원인을 꼼꼼하게 기록했습니다.
+기록을 정리해 보니 전투에서 입은 상처보다 <b>더러운 병원 환경에서 생긴 감염병</b>으로 죽는 병사가 훨씬 많았습니다.
+그녀는 이 사실을 달마다 부채꼴 크기로 사망자 수를 나타낸 그림(흔히 ‘장미 그림’이라고 부릅니다)으로 표현했고,
+숫자 표만으로는 움직이지 않던 정부 관계자들을 설득해 병원 위생 개혁을 이끌어 냈습니다.</p>
+
+<figure>
+<svg viewBox="0 0 420 250" role="img" aria-label="장미 그림 형태의 개념 도해">
+  <g transform="translate(130,125)">
+    <!-- 12개 부채꼴: 바깥(파랑)=감염병, 안쪽(분홍)=부상, 가운데(회색)=기타 — 개념 도해 -->
+    <g id="rose"></g>
+    <circle r="3" fill="#1e2733"/>
+  </g>
+  <g font-size="12" fill="#4b5a6b">
+    <rect x="265" y="70" width="14" height="14" fill="#7fb3d5"/><text x="286" y="82">예방 가능한 감염병</text>
+    <rect x="265" y="96" width="14" height="14" fill="#f1a7a7"/><text x="286" y="108">전투 부상</text>
+    <rect x="265" y="122" width="14" height="14" fill="#b8c2cc"/><text x="286" y="134">기타 원인</text>
+    <text x="265" y="170" font-size="11">부채꼴 하나 = 한 달</text>
+    <text x="265" y="186" font-size="11">넓이가 클수록 사망자가 많음</text>
+  </g>
+</svg>
+<figcaption>나이팅게일식 ‘장미 그림’의 구조를 보여 주는 개념 도해(실제 수치가 아닌 예시). 파란 부분이 압도적으로 크다는 것이 한눈에 보입니다.</figcaption>
+</figure>
+
+<h3>존 스노: 지도 위에 점을 찍다</h3>
+<p>1854년 영국 런던의 소호 지역에서 콜레라가 퍼져 며칠 만에 수백 명이 목숨을 잃었습니다.
+당시 많은 사람은 콜레라가 ‘나쁜 공기(독기)’ 때문에 생긴다고 믿었습니다.
+의사 <b>존 스노</b>는 생각이 달랐습니다. 그는 “혹시 <b>마시는 물</b>이 원인이 아닐까?”라는 질문을 세우고,
+사망자가 나온 집을 하나하나 찾아가 주소를 기록한 뒤 지도 위에 표시했습니다.
+그러자 사망자가 <b>브로드 가(Broad Street)의 물 펌프</b> 주변에 몰려 있다는 사실이 드러났습니다.
+스노의 주장에 따라 그 펌프의 손잡이가 제거되었고, 이 사례는 오늘날 <span class="keyterm">역학(疫學)</span>과 데이터 시각화의 출발점으로 꼽힙니다.</p>
+
+<div class="box box-tip">
+  <span class="box-label">두 사람의 공통점</span>
+  ① 분명한 <b>질문</b>이 있었다 → ② 직접 <b>데이터를 모았다</b> → ③ 데이터를 <b>표와 그림으로 정리해 패턴을 찾았다</b>
+  → ④ 결과로 사람들을 <b>설득하고 행동을 바꾸었다</b>. 바로 이것이 이 과목에서 배울 <b>데이터 과학의 문제 해결 과정</b>입니다.
+</div>
+
+<h2><span class="sec-no">2</span>콜레라 지도 탐정 되어 보기 <i class="pub">YBM</i></h2>
+
+<p>존 스노의 지도를 단순화해 다시 만든 체험용 지도입니다. 점 하나는 사망자 한 명의 집이고, 동그란 표시는 동네의 물 펌프입니다.
+(실제 기록을 그대로 옮긴 것이 아니라 수업용으로 <b>새로 만든 가상 배치</b>입니다.)
+먼저 <b>펌프를 숨긴 채</b> 점만 보고 어디에 몰려 있는지 추측한 다음, 펌프를 눌러 확인해 보세요.</p>
+
+<div class="sim">
+  <div class="sim-head">콜레라 지도 탐정 — 가장 가까운 펌프는 어디?</div>
+  <div class="sim-body">
+    <div class="sim-controls">
+      <button id="cm-toggle" class="ghost">👁 펌프 보이기</button>
+      <button id="cm-all">🗺 모든 펌프 기준으로 나누기</button>
+      <button id="cm-reset" class="gray">↺ 처음으로</button>
+    </div>
+    <div class="cm-wrap">
+      <svg id="cm-map" viewBox="0 0 520 380" aria-label="콜레라 사망자와 펌프 위치 지도"></svg>
+      <div>
+        <div style="font-weight:800;font-size:.9rem;margin-bottom:4px">가장 가까운 펌프별 사망자 수</div>
+        <div class="cm-bars" id="cm-bars"></div>
+        <div class="cm-msg" id="cm-msg">먼저 점들이 어디에 몰려 있는지 눈으로 살펴보세요. 그다음 [펌프 보이기]를 누릅니다.</div>
+      </div>
+    </div>
+    <p class="widget-hint">관찰 포인트: 펌프 A 바로 옆 네모(양조장) 안에는 왜 사망자가 없을까요? 실제 역사에서도 양조장 일꾼들은 거의 병에 걸리지 않았다고 전해집니다. 그들은 무엇을 마셨을까요?</p>
+  </div>
+</div>
+
+<p>위젯은 집에서 펌프까지의 <b>직선거리</b>로 ‘가장 가까운 펌프’를 정합니다. 실제로 스노는 골목을 따라 <b>걸어가는 거리</b>를 따졌고,
+지도에서 벗어난 예외 사례(멀리 살지만 브로드 가 펌프 물을 일부러 길어다 먹은 사람 등)도 찾아가 확인했습니다.
+이처럼 <b>예외를 확인하는 태도</b>가 결론을 더 단단하게 만듭니다.</p>
+
+<div class="box box-warn">
+  <span class="box-label">지도만으로는 부족하다</span>
+  사망자가 펌프 주변에 몰려 있다는 것은 강력한 <b>단서</b>이지만, 그것만으로 “펌프 물이 원인이다”가 증명되지는 않습니다.
+  펌프 주변에 사람이 원래 많이 살았을 수도 있으니까요. 스노는 물을 공급하는 회사별 사망률 비교 같은 추가 데이터로 주장을 보강했습니다.
+  이 과목의 Ⅲ·Ⅳ영역에서 <b>“함께 나타난다 ≠ 원인이다”</b>를 여러 번 다시 만나게 됩니다.
+</div>
+
+<h2><span class="sec-no">3</span>데이터 과학의 문제 해결 과정 <i class="pub-c">공통</i></h2>
+
+<p><span class="keyterm">데이터 과학(data science)</span>은 데이터를 수집·정리·분석해 의미 있는 지식을 얻고, 그것으로 실제 문제를 해결하는 학문입니다.
+교과서마다 단계를 나누는 방식은 조금씩 다르지만, 이 교재에서는 다음 <b>7단계</b>로 정리합니다. 각 차시 제목 아래의 단계 표시줄(위의 동그란 배지)이 그 차시가 어느 단계를 주로 다루는지 알려 줍니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:110px">단계</th><th>하는 일</th><th style="width:36%">존 스노의 경우</th></tr></thead>
+  <tbody>
+    <tr><td><b>① 문제 정의</b></td><td>무엇을 알고 싶은지 질문과 목표를 분명히 한다.</td><td>콜레라는 어디서, 무엇을 통해 퍼지는가?</td></tr>
+    <tr><td><b>② 수집</b></td><td>질문에 답할 수 있는 데이터를 모은다.</td><td>사망자 주소, 가구별 식수원 조사</td></tr>
+    <tr><td><b>③ 전처리</b></td><td>빠지거나 잘못된 값을 고치고 분석하기 좋은 형태로 정리한다.</td><td>주소를 지도 좌표로 옮기고 중복 기록 정리</td></tr>
+    <tr><td><b>④ 탐색</b></td><td>표·그래프로 데이터의 특징과 패턴을 살핀다.</td><td>점 지도를 그려 사망자가 몰린 곳 확인</td></tr>
+    <tr><td><b>⑤ 모델링</b></td><td>규칙이나 관계를 수학적·통계적 방법으로 찾아낸다.</td><td>각 집에서 가장 가까운 펌프로 나누어 집계</td></tr>
+    <tr><td><b>⑥ 평가·해석</b></td><td>결과가 믿을 만한지 따지고 의미를 해석한다.</td><td>예외 사례(양조장, 먼 곳의 사망자) 확인</td></tr>
+    <tr><td><b>⑦ 공유</b></td><td>결과를 알리고 의사 결정·행동으로 이어지게 한다.</td><td>지역 위원회에 알려 펌프 손잡이 제거</td></tr>
+  </tbody>
+</table></div>
+
+<p>이 단계는 한 번에 쭉 끝나는 직선이 아닙니다. 탐색하다가 데이터가 부족하면 다시 수집으로, 평가 결과가 나쁘면 모델링으로 되돌아가는
+<b>반복 과정</b>입니다. 질문을 바꾸어 처음부터 다시 시작하기도 합니다.</p>
+
+<h2><span class="sec-no">4</span>이 과목의 지도와 교재 사용법</h2>
+
+<h3>과목 로드맵</h3>
+<div class="roadmap">
+  <div class="rm" style="background:var(--u1)"><b>Ⅰ. 데이터 과학의 이해</b>데이터 과학의 개념, 데이터의 형태와 속성, 데이터베이스와 통합, 데이터와 사회·진로</div>
+  <div class="rm" style="background:var(--u2)"><b>Ⅱ. 데이터 준비와 분석</b>수집과 편향, 파이썬·pandas, 결측치·이상치·정규화, 시각화, 상관 분석</div>
+  <div class="rm" style="background:var(--u3)"><b>Ⅲ. 데이터 모델링과 평가</b>회귀, 군집, 연관 분석, 분류, 모델 평가와 선택</div>
+  <div class="rm" style="background:var(--u4)"><b>Ⅳ. 데이터 과학 프로젝트</b>주제 선정부터 분석, 해석, 윤리 성찰, 발표까지 직접 해 보기</div>
+</div>
+<p>왼쪽 메뉴 아래의 <b>3학점/4학점 전환 버튼</b>으로 과정을 고를 수 있습니다. ◆ 표시가 붙은 차시는 4학점 과정의 <b>확장 차시</b>로,
+3학점 과정에서는 건너뛰어도 앞뒤 차시를 이해하는 데 지장이 없습니다.</p>
+
+<h3>교재의 구성 요소</h3>
+<div class="howto">
+  <div><b>🕹️ 위젯</b>버튼·슬라이더·클릭으로 데이터를 직접 바꿔 보며 개념을 체험합니다.</div>
+  <div><b>🐍 파이썬 실습 셀</b>설치 없이 브라우저에서 코드를 실행합니다. 처음 실행할 때만 10~20초 정도 준비 시간이 걸립니다.</div>
+  <div><b>📝 활동</b>개별·모둠·토론 활동지입니다. 인쇄하거나 공책에 옮겨 적어 사용합니다.</div>
+  <div><b>✏️ 스스로 점검하기</b>차시 끝의 퀴즈입니다. 고르면 바로 채점되고 해설이 나옵니다.</div>
+  <div><b>출판사 표시</b><i class="pub-c">공통</i>은 여러 교과서가 함께 다루는 핵심 내용, <i class="pub">YBM</i> 등은 특정 교과서의 소재를 참고해 새로 구성한 내용입니다.</div>
+</div>
+
+<h3>파이썬 실습 셀 사용해 보기</h3>
+<p>초록색 <b>▶ 실행</b> 버튼을 누르면 아래에 결과가 나옵니다. 코드를 마음대로 고쳐도 되고, <b>되돌리기</b>를 누르면 원래 코드로 돌아갑니다.
+<code>#</code> 뒤에 쓴 글은 <b>주석</b>으로, 컴퓨터가 실행하지 않는 설명문입니다. 셀 마지막 줄의 <code># ✏️</code>는 직접 바꿔 볼 과제입니다.</p>
+
+<div class="pycell" data-title="첫 번째 코드: 출력과 계산"><textarea>
+print("안녕하세요, 데이터 과학!")
+
+# 하루 스마트폰 사용 시간이 3.5시간이면 1년(365일)은 몇 시간일까?
+hours_per_day = 3.5
+hours_per_year = hours_per_day * 365
+print("1년 사용 시간:", hours_per_year, "시간")
+print("며칠에 해당할까?", round(hours_per_year / 24, 1), "일")
+
+# ✏️ 자신의 하루 사용 시간을 넣어 다시 계산해 보세요.
+</textarea></div>
+
+<p>이번에는 교재에 들어 있는 데이터 파일을 불러와 봅니다. <code>air.csv</code>는 8개 지역의 월별 미세먼지 농도를 담은 <b>수업용 가상 데이터</b>입니다.
+<code>load_csv("파일 이름")</code> 한 줄이면 표 형태로 불러올 수 있습니다.</p>
+
+<div class="pycell" data-title="데이터 파일 불러오기 맛보기"><textarea>
+df = load_csv("air.csv")
+print(df.head())                 # 앞의 5줄 보기
+print("행(줄) 수:", len(df), "/ 열(칸) 이름:", list(df.columns))
+
+# 월별 평균 미세먼지 농도를 막대그래프로
+import matplotlib.pyplot as plt
+monthly = df.groupby("월")["미세먼지"].mean()
+print(monthly.round(1))
+monthly.plot(kind="bar", color="#0e7490")
+plt.title("월별 평균 미세먼지 농도(가상 데이터)")
+plt.xlabel("월"); plt.ylabel("㎍/㎥")
+plt.show()
+
+# ✏️ "미세먼지"를 "초미세먼지"로 바꾸어 실행해 보세요. 모양이 비슷한가요?
+</textarea></div>
+
+<p id="air-note">그래프를 보면 미세먼지 농도가 <b>늦겨울과 봄(2~4월)에 가장 높고 늦여름~초가을(8~9월)에 가장 낮은</b> 계절 패턴이 한눈에 보입니다.
+가장 높은 달(2·3월, 약 50.4)이 가장 낮은 달(9월, 약 24.9)의 두 배 정도입니다.
+아직 코드의 뜻을 모두 몰라도 괜찮습니다. Ⅱ영역에서 한 줄씩 차근차근 배웁니다. 오늘은 “데이터를 불러와 그래프로 보면 숫자 표에서 안 보이던 것이 보인다”는 점만 기억합시다.</p>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  첫 차시는 파이썬 셀이 처음 로딩될 때 10~20초가 걸리므로, 존 스노 이야기를 하는 동안 학생들에게 첫 셀을 미리 실행해 두게 하면 좋습니다.
+  학교 네트워크가 느리면 파이썬 셀은 교사 화면으로 시연하고 위젯 활동에 시간을 더 배분합니다(이야기 10분 · 위젯 15분 · 7단계 정리 10분 · 교재 안내와 셀 실행 10분 · 퀴즈 5분).
+  흔한 오개념: “데이터 과학 = 코딩”. 오늘 사례 모두 컴퓨터 없이 이루어졌음을 강조해, 핵심은 <b>질문과 근거</b>라는 점을 짚어 주세요.
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">개별 활동</span>나의 하루 데이터 발자국 <i class="pub">삼양</i></div>
+  <div class="act-body">
+    <ol>
+      <li>어제 하루 동안 내가 만들거나 사용한 데이터를 5가지 이상 찾아 적어 보세요.
+        <div class="table-wrap"><table>
+          <thead><tr><th>언제</th><th>어디서(앱·장소)</th><th>어떤 데이터</th><th>누가 어떻게 활용할까?</th></tr></thead>
+          <tbody><tr><td>&nbsp;</td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td></tr></tbody>
+        </table></div></li>
+      <li>위 데이터 중 하나를 골라, 그 데이터로 해결할 수 있는 <b>문제(질문)</b>를 한 문장으로 만들어 보세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+    </ol>
+  </div>
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">모둠 활동</span>우리가 존 스노라면? — 7단계로 계획 세우기 <i class="pub-c">공통</i></div>
+  <div class="act-body">
+    <p style="margin-top:0">상황: 최근 2주 동안 우리 학교에서 배탈 난 학생이 평소보다 많아졌습니다. 원인을 찾기 위한 계획을 7단계로 세워 보세요.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th style="width:110px">단계</th><th>우리 모둠의 계획</th></tr></thead>
+      <tbody>
+        <tr><td>문제 정의</td><td>&nbsp;</td></tr><tr><td>수집</td><td>&nbsp;</td></tr><tr><td>전처리</td><td>&nbsp;</td></tr>
+        <tr><td>탐색</td><td>&nbsp;</td></tr><tr><td>모델링</td><td>&nbsp;</td></tr><tr><td>평가·해석</td><td>&nbsp;</td></tr><tr><td>공유</td><td>&nbsp;</td></tr>
+      </tbody>
+    </table></div>
+    <p>생각해 볼 점: 학생들의 건강 정보를 모을 때 지켜야 할 약속은 무엇일까요?</p>
+    <div class="write-lines"><div class="line"></div></div>
+  </div>
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>나이팅게일과 존 스노는 데이터를 모으고 그림으로 정리해 패턴을 찾고, 그 결과로 사람들을 설득해 생명을 구했다.</li>
+    <li>데이터 과학의 문제 해결 과정: 문제 정의 → 수집 → 전처리 → 탐색 → 모델링 → 평가·해석 → 공유이며, 필요하면 앞 단계로 되돌아가는 반복 과정이다.</li>
+    <li>데이터가 함께 몰려 나타나는 것은 단서일 뿐, 원인임을 보이려면 예외 확인과 추가 근거가 필요하다.</li>
+    <li>이 교재에서는 위젯으로 체험하고, 파이썬 셀로 실습하고, 활동과 퀴즈로 정리한다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 장미 그림 개념 도해 ---------- */
+(function(){
+  const g = document.getElementById("rose");
+  if (!g) return;
+  // 예시 반지름(실제 수치 아님): 감염병, 부상, 기타
+  const dis = [40,48,62,78,95,100,88,70,55,44,36,30];
+  const wnd = [12,14,16,18,20,22,20,18,16,14,12,10];
+  const oth = [16,18,20,24,26,28,26,22,20,18,16,14];
+  const NS = "http://www.w3.org/2000/svg";
+  const wedge = (r, a0, a1, fill) => {
+    const p = document.createElementNS(NS, "path");
+    const x0 = r * Math.cos(a0), y0 = r * Math.sin(a0), x1 = r * Math.cos(a1), y1 = r * Math.sin(a1);
+    p.setAttribute("d", `M0,0 L${x0.toFixed(1)},${y0.toFixed(1)} A${r},${r} 0 0 1 ${x1.toFixed(1)},${y1.toFixed(1)} Z`);
+    p.setAttribute("fill", fill); p.setAttribute("stroke", "#fff"); p.setAttribute("stroke-width", "1");
+    g.appendChild(p);
+  };
+  for (let i = 0; i < 12; i++) {
+    const a0 = -Math.PI / 2 + i * Math.PI / 6, a1 = a0 + Math.PI / 6;
+    wedge(dis[i], a0, a1, "#7fb3d5");   // 가장 큰 것부터 그려야 작은 것이 위에 보인다
+    wedge(oth[i], a0, a1, "#b8c2cc");
+    wedge(wnd[i], a0, a1, "#f1a7a7");
+  }
+})();
+
+/* ---------- 콜레라 지도 탐정 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const svg = $("cm-map");
+  const NS = "http://www.w3.org/2000/svg";
+  const W = 520, H = 380;
+  const PUMPS = [
+    { id:"A", x:250, y:175, color:"#dc2626" },
+    { id:"B", x:85,  y:75,  color:"#2563eb" },
+    { id:"C", x:445, y:85,  color:"#16a34a" },
+    { id:"D", x:430, y:305, color:"#7c3aed" },
+    { id:"E", x:95,  y:300, color:"#d97706" },
+  ];
+  const BREW = { x:268, y:128, w:46, h:28 };   // 양조장
+  // 시드 고정 난수(누가 열어도 같은 지도)
+  let seed = 20240854;
+  const rnd = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const gauss = () => Math.sqrt(-2 * Math.log(rnd() + 1e-9)) * Math.cos(2 * Math.PI * rnd());
+  const inBrew = (x, y) => x > BREW.x - 4 && x < BREW.x + BREW.w + 4 && y > BREW.y - 4 && y < BREW.y + BREW.h + 4;
+  const D = [];
+  while (D.length < 118) {                       // 펌프 A 주변에 몰린 사망자
+    const x = PUMPS[0].x + gauss() * 48, y = PUMPS[0].y + gauss() * 42;
+    if (x < 10 || x > W - 10 || y < 10 || y > H - 10 || inBrew(x, y)) continue;
+    D.push({ x, y });
+  }
+  while (D.length < 140) {                       // 동네 곳곳의 사망자(다른 경로 감염 등)
+    const x = 15 + rnd() * (W - 30), y = 15 + rnd() * (H - 30);
+    if (inBrew(x, y)) continue;
+    D.push({ x, y });
+  }
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  D.forEach(d => {
+    let best = 0;
+    PUMPS.forEach((p, i) => { if (dist(d, p) < dist(d, PUMPS[best])) best = i; });
+    d.near = best;
+  });
+
+  let showPumps = false, mode = "none", sel = -1;   // mode: none | one | all
+
+  const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); (parent || svg).appendChild(e); return e; };
+
+  function draw(){
+    svg.innerHTML = "";
+    // 거리(격자)
+    for (let x = 40; x < W; x += 60) el("line", { x1:x, y1:0, x2:x, y2:H, stroke:"#e7e2d6", "stroke-width": x % 120 === 40 ? 7 : 4 });
+    for (let y = 30; y < H; y += 55) el("line", { x1:0, y1:y, x2:W, y2:y, stroke:"#e7e2d6", "stroke-width": 4 });
+    // 양조장
+    el("rect", { x:BREW.x, y:BREW.y, width:BREW.w, height:BREW.h, fill:"#fff7e0", stroke:"#b4700a", "stroke-width":1.5, rx:3 });
+    const t = el("text", { x:BREW.x + BREW.w / 2, y:BREW.y + 18, "text-anchor":"middle", "font-size":11, fill:"#b4700a", "font-weight":700 }); t.textContent = "양조장";
+    // 사망자 점
+    D.forEach(d => {
+      let fill = "#1e2733", op = 0.75;
+      if (mode === "one") { fill = d.near === sel ? PUMPS[sel].color : "#b8c2cc"; op = d.near === sel ? 0.9 : 0.5; }
+      if (mode === "all") { fill = PUMPS[d.near].color; op = 0.85; }
+      el("circle", { cx:d.x.toFixed(1), cy:d.y.toFixed(1), r:3.6, fill, "fill-opacity":op });
+    });
+    // 펌프
+    if (showPumps) PUMPS.forEach((p, i) => {
+      const g = el("g", { class:"pump", tabindex:0, role:"button", "aria-label":"펌프 " + p.id });
+      el("circle", { cx:p.x, cy:p.y, r:13, fill:"#fff", stroke:p.color, "stroke-width": sel === i ? 5 : 3 }, g);
+      const tx = el("text", { x:p.x, y:p.y + 5, "text-anchor":"middle", "font-size":13, "font-weight":800, fill:p.color }, g); tx.textContent = p.id;
+      g.addEventListener("click", () => pick(i));
+      g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(i); } });
+    });
+    bars();
+  }
+
+  function counts(){ const c = PUMPS.map(() => 0); D.forEach(d => c[d.near]++); return c; }
+
+  function bars(){
+    const c = counts(), max = Math.max(...c);
+    const reveal = mode !== "none";
+    $("cm-bars").innerHTML = PUMPS.map((p, i) => {
+      const vis = reveal && (mode === "all" || i === sel);
+      return `<div class="row"><span style="font-weight:700;color:${p.color}">펌프 ${p.id}</span>` +
+        `<div class="bar"><i style="width:${vis ? c[i] / max * 100 : 0}%;background:${p.color}"></i></div>` +
+        `<span style="text-align:right;font-weight:700">${vis ? c[i] + "명" : "?"}</span></div>`;
+    }).join("");
+  }
+
+  function pick(i){
+    sel = i; mode = "one";
+    draw();
+    const c = counts(), n = c[i], pct = Math.round(n / D.length * 100);
+    const avg = D.filter(d => d.near === i).reduce((s, d) => s + dist(d, PUMPS[i]), 0) / (n || 1);
+    $("cm-msg").innerHTML = `<b>펌프 ${PUMPS[i].id}</b>가 가장 가까운 집의 사망자는 <b>${n}명</b>으로 전체 ${D.length}명의 <b>${pct}%</b>입니다.` +
+      (n ? ` 이 사망자들의 집은 펌프에서 평균 약 ${Math.round(avg / 60 * 10) / 10}블록(골목 한 칸 = 1블록) 떨어져 있습니다.` : "") +
+      (i === 0 ? " 다른 펌프와 비교해 보세요. 한 펌프에만 이렇게 몰린다면 무엇을 의심할 수 있을까요?" : " 다른 펌프도 눌러 비교해 보세요.");
+  }
+
+  $("cm-toggle").addEventListener("click", () => {
+    showPumps = !showPumps;
+    $("cm-toggle").textContent = showPumps ? "🙈 펌프 숨기기" : "👁 펌프 보이기";
+    if (!showPumps) { mode = "none"; sel = -1; }
+    $("cm-msg").textContent = showPumps ? "펌프(A~E)를 하나씩 눌러 보세요. 그 펌프가 가장 가까운 집의 사망자만 색으로 표시됩니다." : "먼저 점들이 어디에 몰려 있는지 눈으로 살펴보세요. 그다음 [펌프 보이기]를 누릅니다.";
+    draw();
+  });
+  $("cm-all").addEventListener("click", () => {
+    showPumps = true; mode = "all"; sel = -1;
+    $("cm-toggle").textContent = "🙈 펌프 숨기기";
+    draw();
+    const c = counts(), top = c.indexOf(Math.max(...c));
+    $("cm-msg").innerHTML = `모든 집을 가장 가까운 펌프 색으로 칠했습니다. 사망자의 <b>${Math.round(c[top] / D.length * 100)}%</b>가 <b>펌프 ${PUMPS[top].id}</b> 구역에 있습니다. ` +
+      `다른 구역의 사망자는 왜 생겼을지도 생각해 보세요(펌프 ${PUMPS[top].id} 물을 길어다 마셨을 수도, 다른 경로로 감염됐을 수도 있습니다).`;
+  });
+  $("cm-reset").addEventListener("click", () => {
+    showPumps = false; mode = "none"; sel = -1;
+    $("cm-toggle").textContent = "👁 펌프 보이기";
+    $("cm-msg").textContent = "먼저 점들이 어디에 몰려 있는지 눈으로 살펴보세요. 그다음 [펌프 보이기]를 누릅니다.";
+    draw();
+  });
+  draw();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"존 스노가 콜레라의 원인을 찾을 때 가장 먼저 한 일로 알맞은 것은?",
+    choices:["콜레라 치료제를 개발했다","‘마시는 물이 원인일 수 있다’는 질문을 세우고 사망자의 주소를 모았다","공기 청정 장치를 설치했다","모든 펌프를 한꺼번에 폐쇄했다","컴퓨터로 사망자 수를 예측했다"], answer:1,
+    explain:"스노는 당시의 통념(나쁜 공기)과 다른 질문을 세우고, 그 질문에 답하기 위해 사망자 주소라는 데이터를 직접 모았습니다. 문제 정의 → 수집의 순서입니다." },
+  { type:"mc", q:"다음 중 데이터 과학 문제 해결 과정의 순서로 옳은 것은?",
+    choices:["수집 → 문제 정의 → 모델링 → 탐색 → 공유","문제 정의 → 수집 → 전처리 → 탐색 → 모델링 → 평가·해석 → 공유","탐색 → 수집 → 전처리 → 문제 정의 → 공유","모델링 → 수집 → 공유 → 평가·해석","문제 정의 → 공유 → 수집 → 모델링 → 탐색"], answer:1,
+    explain:"질문을 먼저 정하고(문제 정의), 데이터를 모아(수집) 정리하고(전처리), 살펴본 뒤(탐색) 규칙을 찾아(모델링) 따져 보고(평가·해석) 알립니다(공유). 필요하면 앞 단계로 되돌아갑니다." },
+  { type:"ox", q:"사망자가 한 펌프 주변에 몰려 있다는 지도만으로도 ‘그 펌프 물이 원인이다’가 완전히 증명된다.",
+    answer:false, explain:"몰려 있다는 것은 강력한 단서이지만, 그 지역에 사람이 원래 많이 살았을 가능성 등 다른 설명도 있습니다. 스노도 예외 사례와 추가 자료로 주장을 보강했습니다." },
+  { type:"mc", q:"위젯에서 사망자 140명 중 105명이 펌프 A 구역에 있었다면, 펌프 A 구역의 비율은 몇 %인가?",
+    choices:["35%","60%","70%","75%","80%"], answer:3,
+    explain:"105 ÷ 140 = 0.75, 즉 75%입니다. 전체에서 차지하는 비율을 구할 때는 부분을 전체로 나눕니다." },
+  { type:"short", q:"나이팅게일이 사망 원인 기록을 숫자 표가 아니라 ‘장미 그림’으로 표현한 이유는 무엇일지, 데이터 과학 7단계 중 어느 단계와 관련 있는지 함께 쓰세요.",
+    model:"숫자 표로는 감염병 사망자가 부상 사망자보다 얼마나 많은지 한눈에 비교하기 어렵지만, 그림으로는 넓이 차이로 즉시 보여 줄 수 있어 통계에 익숙하지 않은 정부 관계자도 쉽게 이해하고 설득될 수 있기 때문이다. 결과를 알리고 행동을 이끌어 내는 ‘공유’ 단계(및 패턴을 찾는 ‘탐색’ 단계)와 관련 있다." },
+]);
+</script>
+</body>
+</html>

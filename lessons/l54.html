@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>프로젝트 발표와 평가 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 루브릭 채점 보드 */
+.rb-top { display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; margin-bottom:10px; }
+.rb-top label { font-size:.84rem; font-weight:700; color:var(--ink-soft); display:flex; align-items:center; gap:6px; }
+.rb-table { table-layout:fixed; font-size:.8rem; }
+.rb-table th { text-align:center; }
+.rb-table th.area, .rb-table td.area { width:118px; text-align:left; font-weight:800; font-size:.84rem; }
+.rb-table td.lv { cursor:pointer; line-height:1.5; transition:background .12s; position:relative; }
+.rb-table td.lv:hover { background:var(--paper); }
+.rb-table td.lv.sel { background:var(--accent-soft); outline:2.5px solid var(--accent); outline-offset:-3px; font-weight:600; }
+.rb-table td.lv.sel::after { content:"✔"; position:absolute; top:4px; right:6px; color:var(--accent); font-weight:900; }
+.rb-table td.pt { width:52px; text-align:center; font-weight:800; font-size:1rem; color:var(--accent); }
+.rb-sum { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:12px 0; }
+.rb-bar { flex:1; min-width:180px; height:14px; background:var(--paper); border:1px solid var(--line); border-radius:999px; overflow:hidden; }
+.rb-bar i { display:block; height:100%; width:0; background:var(--accent); transition:width .3s; }
+.rb-comments { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+@media (max-width:640px){ .rb-comments { grid-template-columns:1fr; } .rb-table { table-layout:auto; } }
+.rb-comments textarea { width:100%; min-height:60px; }
+.rb-rec table { font-size:.8rem; }
+.rb-rec td, .rb-rec th { text-align:center; padding:5px 6px; }
+.rb-rec td:first-child, .rb-rec th:first-child { text-align:left; }
+.rb-rec button.del { padding:1px 7px; font-size:.72rem; }
+@media print {
+  body.rubric-print main > *:not(#rubric-sim) { display:none !important; }
+  body.rubric-print #rubric-sim { border:none; box-shadow:none; margin:0; }
+  body.rubric-print #rubric-sim .no-print-rb { display:none !important; }
+  body.rubric-print .rb-table td.lv.sel { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+}
+.qa-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; }
+</style>
+</head>
+<body data-unit="4" data-lesson="L54">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>프로젝트 발표와 평가</h1>
+  <span class="std-badge">성취기준 12데과04-05</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>프로젝트 결과를 발표하고 질의응답을 통해 분석 과정과 결과를 설명할 수 있다.</li>
+      <li>6영역 3수준 루브릭으로 자기·동료 프로젝트를 근거를 들어 평가할 수 있다.</li>
+      <li>평가 결과를 바탕으로 프로젝트 전 과정을 성찰하고 개선 방향을 제시할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과04-05] 분석을 위한 목적부터 데이터 수집 및 분석에 이르는 전 과정을 성찰하고, 사회적 영향을 고려하여 분석 결과의 활용 방안을 탐색한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span>수집</span><span>전처리</span><span>탐색</span><span>모델링</span><span>평가·해석</span><span class="on">공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  드디어 발표회 날입니다. 친구 모둠의 발표를 들으며 평가지를 채우려는데 고민이 생깁니다.
+  “그래프가 멋지니까 10점? 발표를 떨면서 했으니까 6점?” 느낌으로 매긴 점수는 공정할까요?
+  그리고 우리 모둠에 대한 평가 점수가 기대보다 낮다면, 그 점수에서 무엇을 배울 수 있을까요?
+  오늘은 <b>기준(루브릭)</b>을 가지고 발표를 듣고, 평가하고, 성찰합니다.
+</div>
+
+<h2><span class="sec-no">1</span>발표회 운영과 질의응답 <i class="pub-c">공통</i></h2>
+
+<p>발표회는 발표하는 모둠만의 시간이 아니라 <b>모두가 함께 배우는 시간</b>입니다. 청중도 역할이 있습니다.</p>
+<div class="cards">
+  <div class="cardbox"><h4>🎤 발표 모둠</h4><p>5분 발표 + 3분 질의응답. 스토리 구조(문제 → 메시지 → 근거 → 한계 → 제안)를 지키고, 모둠원 모두가 참여한다.</p></div>
+  <div class="cardbox"><h4>👂 청중 모둠</h4><p>루브릭으로 평가하고 질문을 하나 이상 준비한다. “잘한 점 1개 + 궁금한 점 1개 + 제안 1개”를 적는다.</p></div>
+  <div class="cardbox"><h4>⏱️ 진행 모둠</h4><p>시간을 재고 질문 순서를 정한다. 발표가 끝나면 1분 동안 평가지를 작성할 시간을 준다.</p></div>
+</div>
+
+<h3>질의응답 요령</h3>
+<div class="qa-grid">
+  <div class="box box-tip" style="margin:0"><span class="box-label">질문할 때</span>
+    <ul style="margin:0;padding-left:18px">
+      <li>비난이 아니라 <b>이해·개선</b>을 위한 질문을 한다.</li>
+      <li>구체적으로 묻는다. “데이터가 이상해요” (×) → “8월 전력이 낮은 것은 방학 때문인가요?” (○)</li>
+      <li>데이터 과학 관점의 질문: 표본 크기, 전처리 이유, 방법 선택 이유, 인과 여부, 일반화 범위, 사회적 영향.</li>
+    </ul></div>
+  <div class="box box-tip" style="margin:0"><span class="box-label">답할 때</span>
+    <ul style="margin:0;padding-left:18px">
+      <li>질문을 한 번 다시 말해 확인한다. “8월이 낮은 이유를 물으신 거죠?”</li>
+      <li>근거(숫자·그래프)를 들어 짧게 답한다. 모르면 솔직히 인정하고 “다음 분석에서 확인하겠습니다.”</li>
+      <li>좋은 지적은 한계와 후속 탐구로 받아들인다.</li>
+    </ul></div>
+</div>
+
+<h2><span class="sec-no">2</span>루브릭으로 평가하기 <i class="pub">천재</i></h2>
+
+<p><span class="keyterm">루브릭(rubric)</span>은 평가 영역과 영역별 수준을 미리 정해 둔 평가 기준표입니다.
+평가하는 사람마다 기준이 달라지는 것을 막고, 평가받는 사람에게는 <b>무엇을 더 잘하면 되는지</b> 알려 줍니다.
+이 교재의 프로젝트는 데이터 과학 문제 해결 과정에 맞춘 <b>6영역 × 3수준</b> 루브릭으로 평가합니다.</p>
+
+<div class="sim" id="rubric-sim">
+  <div class="sim-head">루브릭 채점 보드 — 6영역 × 3수준</div>
+  <div class="sim-body">
+    <div class="rb-top">
+      <label>평가 대상 <input type="text" id="rb-team" placeholder="예: 3모둠" style="width:110px"></label>
+      <label>평가 유형 <select id="rb-type"><option>자기 평가</option><option selected>동료 평가</option><option>교사 평가</option></select></label>
+      <label>평가자 <input type="text" id="rb-who" placeholder="예: 1모둠" style="width:100px"></label>
+    </div>
+    <div class="table-wrap"><table class="rb-table" id="rb-table"></table></div>
+    <div class="rb-sum">
+      <span class="stat-chip">합계 <b id="rb-total">0</b> / 18</span>
+      <span class="stat-chip">100점 환산 <b id="rb-100">0</b></span>
+      <div class="rb-bar"><i id="rb-bar"></i></div>
+      <span class="stat-chip" id="rb-left">미선택 6영역</span>
+    </div>
+    <div class="rb-comments">
+      <label style="font-size:.84rem;font-weight:700">👍 잘한 점<textarea class="plain" id="rb-good"></textarea></label>
+      <label style="font-size:.84rem;font-weight:700">🔧 보완할 점·제안<textarea class="plain" id="rb-fix"></textarea></label>
+    </div>
+    <div class="sim-controls no-print-rb" style="margin-top:12px">
+      <button id="rb-save">💾 평가 기록에 추가</button>
+      <button id="rb-reset" class="gray">새 평가지</button>
+      <button id="rb-print" class="ghost">🖨️ 평가지 인쇄</button>
+    </div>
+    <div class="rb-rec" id="rb-rec"></div>
+    <p class="widget-hint no-print-rb">칸을 클릭해 수준을 고르세요. 기록은 이 브라우저에 저장되며(저장이 막힌 환경에서는 이 화면을 닫기 전까지만 유지), 같은 모둠에 대한 여러 평가의 평균이 자동으로 계산됩니다.</p>
+  </div>
+</div>
+
+<h2><span class="sec-no">3</span>자기 평가와 동료 평가 <i class="pub">삼양</i> <i class="pub">씨마스</i></h2>
+
+<p><span class="keyterm">자기 평가</span>는 우리 모둠이 스스로 과정을 돌아보는 평가이고, <span class="keyterm">동료 평가</span>는 다른 모둠이 우리를 보는 평가입니다.
+두 평가의 차이가 큰 영역이 바로 <b>성장의 단서</b>입니다. 예를 들어 우리는 ‘해석’에 3점을 줬는데 동료들이 2점을 줬다면,
+우리가 생각한 것만큼 해석이 청중에게 전달되지 않았다는 뜻입니다.</p>
+
+<p>동료 평가 점수를 모을 때도 데이터 과학이 필요합니다. 어떤 모둠은 모두에게 후하게, 어떤 모둠은 모두에게 짜게 점수를 줄 수 있습니다.
+게다가 자기 모둠은 평가하지 않으므로, 후한 평가자에게 평가받지 못한 모둠은 불리해집니다.
+이럴 때 평가자별로 점수를 <b>표준화(Z-점수)</b>하면 평가자의 기준 차이를 줄일 수 있습니다.</p>
+
+<div class="pycell" data-title="동료 평가 점수의 공정성 점검 (가상 자료)"><textarea>
+import pandas as pd
+import numpy as np
+
+# 행: 평가한 모둠, 열: 평가받은 모둠, 값: 루브릭 합계(18점 만점). 자기 모둠은 평가하지 않음(NaN)
+scores = pd.DataFrame(
+    [[np.nan, 12, 11, 10, 13],
+     [15, np.nan, 14, 13, 16],
+     [13, 15, np.nan, 12, 14],
+     [17, 18, 18, np.nan, 17],
+     [12, 11, 12, 11, np.nan]],
+    index=["평가자1", "평가자2", "평가자3", "평가자4", "평가자5"],
+    columns=["1모둠", "2모둠", "3모둠", "4모둠", "5모둠"])
+
+print("평가자별 평균(후한 정도):\n", scores.mean(axis=1).round(2).to_string())
+raw = scores.mean().round(2)
+
+# 평가자마다 Z-점수로 표준화: (점수 - 그 평가자의 평균) / 그 평가자의 표준편차
+z = scores.sub(scores.mean(axis=1), axis=0).div(scores.std(axis=1), axis=0)
+zmean = z.mean().round(2)
+
+result = pd.DataFrame({"원점수 평균": raw, "원점수 순위": raw.rank(ascending=False).astype(int),
+                       "Z 평균": zmean, "Z 순위": zmean.rank(ascending=False).astype(int)})
+print("\n", result)
+
+# ✏️ 평가자4의 점수를 모두 3점씩 낮추면 원점수 순위와 Z 순위는 각각 어떻게 될까요? 왜 그럴까요?
+</textarea></div>
+
+<p>평가자4는 평균 <b>17.5점</b>으로 매우 후하고, 평가자1과 평가자5는 평균 <b>11.5점</b>으로 짭니다.
+원점수 평균으로는 1모둠이 <b>14.25점으로 2위</b>였지만, 1모둠은 짠 평가자1을 피하고(자기 모둠이므로) 후한 평가자4에게는 평가받은 덕을 보았습니다.
+반대로 4모둠은 가장 후한 평가자4의 점수를 받을 수 없어 불리합니다.
+평가자별로 표준화하면 1모둠의 Z 평균은 <b>0.00으로 4위</b>가 됩니다. 점수를 그대로 합치기 전에 <b>평가자의 기준 차이</b>를 점검하는 습관이 공정한 평가의 출발입니다.
+물론 모둠 수가 적을 때는 표준화 결과도 흔들릴 수 있으므로, 점수와 함께 <b>서술형 피드백</b>을 꼭 참고합니다.</p>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">개별 활동</span>프로젝트 성찰 일지 <i class="pub">삼양</i></div>
+  <div class="act-body">
+    <div class="table-wrap"><table>
+      <thead><tr><th>성찰 질문</th><th style="width:90px">스스로 (상·중·하)</th><th>근거가 되는 장면</th></tr></thead>
+      <tbody>
+        <tr><td>분석 목적에 맞게 데이터를 모으고 전처리했는가?</td><td></td><td></td></tr>
+        <tr><td>두 가지 이상의 방법으로 분석하고 결과를 비교했는가?</td><td></td><td></td></tr>
+        <tr><td>예상과 다른 결과가 나왔을 때 포기하지 않고 끝까지 원인을 찾았는가?</td><td></td><td></td></tr>
+        <tr><td>결과의 한계와 사회적 영향을 고려해 활용 방안을 제안했는가?</td><td></td><td></td></tr>
+        <tr><td>모둠 안에서 내 역할을 책임감 있게 수행하고 다른 의견을 존중했는가?</td><td></td><td></td></tr>
+      </tbody>
+    </table></div>
+    <p><b>자기 평가와 동료 평가의 차이가 가장 큰 영역</b>과 그 이유</p>
+    <div class="write-lines"><div class="line"></div><div class="line"></div></div>
+    <p><b>프로젝트를 다시 한다면 바꾸고 싶은 점</b> 한 가지</p>
+    <div class="write-lines"><div class="line"></div></div>
+  </div>
+</div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  루브릭은 발표 <b>전에</b> 미리 공개해 학생들이 목표로 삼게 하세요. 발표회는 모둠 수에 따라 1~2차시가 필요하며,
+  시간이 부족하면 교실 네 모서리에 포스터를 붙이고 돌아다니며 듣는 <b>갤러리 워크</b> 방식(모둠당 3분 설명 × 2회전)이 효율적입니다.
+  동료 평가 점수는 성적에 직접 반영하기보다 피드백 자료로 쓰는 것을 권합니다. 채점 보드 대신 스프레드시트 설문 양식으로 평가를 모아
+  <code>AVERAGE</code>·<code>STANDARDIZE</code> 함수로 같은 공정성 점검을 해 볼 수 있습니다.
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>발표회에서는 발표·청중·진행 모두 역할이 있으며, 질의응답은 근거를 들어 짧고 정직하게 한다.</li>
+    <li>루브릭은 평가 영역과 수준을 미리 정한 기준표로, 공정한 평가와 구체적인 개선 방향을 제공한다.</li>
+    <li>자기 평가와 동료 평가의 차이는 성장의 단서이다. 동료 평가 점수는 평가자별 기준 차이를 점검(표준화)한 뒤 해석한다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 루브릭 채점 보드 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const KEY = "dsc-l54-rubric";
+  const AREAS = [
+    { n:"문제 정의·주제 적합성", d:["해결할 질문이 구체적이고 데이터로 답할 수 있으며, 사회적 의미(SDGs 등)가 분명하다.","질문은 있으나 범위가 넓거나 데이터로 답하기 어려운 부분이 있다.","무엇을 알아내려는지 불분명하다."] },
+    { n:"데이터 수집·전처리", d:["출처·기간·규모를 밝히고, 편향을 고려해 수집했으며, 결측·이상치 처리 방법과 이유를 기록했다.","수집·전처리는 했으나 이유나 기록이 부족하다.","출처가 불분명하거나 전처리 없이 분석했다."] },
+    { n:"탐색·분석 방법", d:["EDA로 특징을 파악하고, 2가지 이상 방법을 같은 기준으로 비교해 적합한 방법을 골랐다.","2가지 방법을 적용했으나 비교 기준이나 선택 이유가 약하다.","한 가지 방법만 쓰거나 방법이 목적에 맞지 않다."] },
+    { n:"결과 해석·일반화", d:["숫자를 정확히 해석하고, 인과와 상관을 구분하며, 일반화 범위와 한계를 밝혔다.","해석은 있으나 한계나 일반화 범위 설명이 부족하다.","결과를 과장하거나 상관을 인과로 해석했다."] },
+    { n:"윤리·사회적 영향", d:["개인정보·편향을 점검하고, 사회적 영향을 고려한 활용 방안과 보완책을 제시했다.","윤리 문제를 언급했으나 구체적인 점검·보완이 부족하다.","윤리·사회적 영향을 고려하지 않았다."] },
+    { n:"공유·소통·협업", d:["메시지가 분명한 보고서·포스터·발표로 전달하고, 질의에 근거로 답하며, 모두가 참여했다.","전달은 되었으나 구조나 시각화가 산만하거나 참여가 고르지 않다.","핵심이 전달되지 않았다."] },
+  ];
+  const LV = [3, 2, 1], LVN = ["상 (3)", "중 (2)", "하 (1)"];
+  let sel = new Array(AREAS.length).fill(0);
+  let records = [];
+  try { records = JSON.parse(localStorage.getItem(KEY) || "[]"); if (!Array.isArray(records)) records = []; } catch (e) { records = []; }
+  const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(records)); } catch (e) {} };
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+
+  function drawTable(){
+    $("rb-table").innerHTML = `<thead><tr><th class="area">영역</th>${LVN.map(l => `<th>${l}</th>`).join("")}<th style="width:52px">점수</th></tr></thead><tbody>` +
+      AREAS.map((a, i) => `<tr><td class="area">${i + 1}. ${a.n}</td>${a.d.map((d, j) =>
+        `<td class="lv${sel[i] === LV[j] ? " sel" : ""}" data-a="${i}" data-v="${LV[j]}" tabindex="0">${d}</td>`).join("")}<td class="pt">${sel[i] || "–"}</td></tr>`).join("") + "</tbody>";
+    const total = sel.reduce((s, v) => s + v, 0), left = sel.filter(v => !v).length;
+    $("rb-total").textContent = total;
+    $("rb-100").textContent = Math.round(total / 18 * 100);
+    $("rb-bar").style.width = (total / 18 * 100) + "%";
+    $("rb-left").textContent = left ? `미선택 ${left}영역` : "✅ 6영역 모두 선택";
+  }
+  function pick(td){ const i = +td.dataset.a, v = +td.dataset.v; sel[i] = sel[i] === v ? 0 : v; drawTable(); }
+  $("rb-table").addEventListener("click", e => { const td = e.target.closest("td.lv"); if (td) pick(td); });
+  $("rb-table").addEventListener("keydown", e => { const td = e.target.closest("td.lv"); if (td && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); pick(td); } });
+
+  function drawRecords(){
+    if (!records.length){ $("rb-rec").innerHTML = ""; return; }
+    const teams = [...new Set(records.map(r => r.team))];
+    const avg = teams.map(t => {
+      const rs = records.filter(r => r.team === t);
+      const areaAvg = AREAS.map((_, i) => rs.reduce((s, r) => s + r.s[i], 0) / rs.length);
+      return { t, n: rs.length, areaAvg, tot: areaAvg.reduce((s, v) => s + v, 0) };
+    }).sort((a, b) => b.tot - a.tot);
+    $("rb-rec").innerHTML =
+      `<h3 style="margin-top:18px">모둠별 평균 (평가 ${records.length}건)</h3><div class="table-wrap"><table><thead><tr><th>모둠</th><th>평가 수</th>${AREAS.map((_, i) => `<th>${i + 1}</th>`).join("")}<th>합계 평균</th></tr></thead><tbody>` +
+      avg.map(a => `<tr><td><b>${esc(a.t)}</b></td><td>${a.n}</td>${a.areaAvg.map(v => `<td>${v.toFixed(1)}</td>`).join("")}<td><b>${a.tot.toFixed(1)}</b></td></tr>`).join("") +
+      `</tbody></table></div><details class="reveal no-print-rb"><summary>개별 평가 기록 보기·삭제</summary><div class="reveal-body"><div class="table-wrap"><table><thead><tr><th>대상</th><th>유형</th><th>평가자</th><th>합계</th><th>잘한 점 / 보완할 점</th><th></th></tr></thead><tbody>` +
+      records.map((r, k) => `<tr><td>${esc(r.team)}</td><td>${esc(r.type)}</td><td>${esc(r.who || "-")}</td><td>${r.s.reduce((s, v) => s + v, 0)}</td><td style="text-align:left">${esc(r.good || "")}${r.fix ? " / " + esc(r.fix) : ""}</td><td><button class="gray del" data-k="${k}">삭제</button></td></tr>`).join("") +
+      `</tbody></table></div></div></details>`;
+  }
+  $("rb-rec").addEventListener("click", e => {
+    const b = e.target.closest("button.del"); if (!b) return;
+    records.splice(+b.dataset.k, 1); persist(); drawRecords();
+    const d = document.querySelector("#rb-rec details"); if (d) d.open = true;
+  });
+
+  $("rb-save").addEventListener("click", () => {
+    const team = $("rb-team").value.trim();
+    if (!team){ alert("평가 대상 모둠 이름을 입력하세요."); $("rb-team").focus(); return; }
+    if (sel.some(v => !v)){ alert("6개 영역의 수준을 모두 선택하세요."); return; }
+    records.push({ team, type: $("rb-type").value, who: $("rb-who").value.trim(), s: sel.slice(), good: $("rb-good").value.trim(), fix: $("rb-fix").value.trim() });
+    persist(); drawRecords();
+    sel = new Array(AREAS.length).fill(0); $("rb-good").value = ""; $("rb-fix").value = ""; $("rb-team").value = "";
+    drawTable();
+  });
+  $("rb-reset").addEventListener("click", () => { sel = new Array(AREAS.length).fill(0); $("rb-good").value = ""; $("rb-fix").value = ""; drawTable(); });
+  $("rb-print").addEventListener("click", () => { document.body.classList.add("rubric-print"); window.print(); });
+  window.addEventListener("afterprint", () => document.body.classList.remove("rubric-print"));
+  drawTable(); drawRecords();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"루브릭을 사용하는 까닭으로 가장 알맞은 것은?",
+    choices:["점수를 빨리 매기기 위해","평가 기준을 미리 정해 공정하게 평가하고, 무엇을 개선할지 알려 주기 위해","발표 시간을 줄이기 위해","동료 평가를 없애기 위해","모든 모둠이 같은 점수를 받게 하기 위해"], answer:1,
+    explain:"루브릭은 영역과 수준별 기준을 미리 정해 평가자마다 기준이 달라지는 것을 막고, 평가받는 사람에게 구체적인 개선 방향을 알려 줍니다." },
+  { type:"mc", q:"6영역 × 3수준(상 3점·중 2점·하 1점) 루브릭에서 한 모둠이 상 2개, 중 3개, 하 1개를 받았다. 합계와 100점 환산 점수(반올림)는?",
+    choices:["11점, 61점","12점, 67점","13점, 72점","14점, 78점","15점, 83점"], answer:1,
+    explain:"합계 = 3×2 + 2×3 + 1×1 = 12점, 100점 환산 = 12 ÷ 18 × 100 ≈ 66.7 → 67점입니다." },
+  { type:"ox", q:"동료 평가에서 평가자마다 점수를 주는 기준(후함·짬)이 다를 수 있으므로, 점수를 합치기 전에 평가자별로 표준화해 보는 것이 공정성 점검에 도움이 된다.",
+    answer:true, explain:"평가자별 Z-점수로 바꾸면 ‘그 평가자 기준에서 얼마나 높게 평가했는가’로 비교할 수 있어, 후한·짠 평가자의 영향을 줄일 수 있습니다." },
+  { type:"mc", q:"발표 후 “왜 선형 회귀 대신 트리 회귀를 선택했나요?”라는 질문을 받았다. 가장 좋은 답변은?",
+    choices:["선생님이 추천하셨기 때문입니다","트리가 더 멋져 보였습니다","같은 테스트 데이터에서 트리 회귀의 오차(RMSE)가 더 작았고, 기온과 전력의 곡선 관계를 더 잘 반영했기 때문입니다","잘 모르겠습니다, 다음 질문 받겠습니다","선형 회귀는 틀린 방법이기 때문입니다"], answer:2,
+    explain:"질문에는 근거(같은 기준의 비교 결과, 데이터의 특징)를 들어 짧게 답하는 것이 좋습니다." },
+  { type:"short", q:"우리 모둠은 ‘결과 해석·일반화’ 영역에 자기 평가로 3점을 주었는데, 동료 평가 평균은 1.8점이었다. 이 차이가 무엇을 뜻할 수 있는지와 앞으로의 개선 방법을 쓰세요.",
+    model:"우리는 해석을 충분히 했다고 생각했지만 청중에게는 해석의 근거나 한계가 잘 전달되지 않았다는 뜻일 수 있다. 예를 들어 상관을 인과처럼 말했거나 일반화 범위를 밝히지 않았을 수 있다. 동료들의 서술형 피드백을 확인하고, 보고서와 발표에 ‘이 결과는 ○○ 자료에 근거한다’는 적용 범위와 인과를 주장할 수 없는 이유를 분명히 추가하겠다." },
+]);
+</script>
+</body>
+</html>

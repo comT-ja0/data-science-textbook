@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>데이터 과학 진로 탐색 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 진로 추천 카드 */
+.cr-pick { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 12px; }
+.cr-chip { background:#fff; color:var(--ink-soft); border:1.5px solid var(--line); border-radius:999px; padding:5px 12px; font-weight:600; font-size:.82rem; }
+.cr-chip:hover { filter:none; border-color:var(--accent); }
+.cr-chip.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+.cr-label { font-size:.84rem; font-weight:800; color:var(--ink-soft); }
+.cr-top { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-top:10px; }
+.cr-card { border:1.5px solid var(--line); border-radius:12px; padding:12px 14px; background:#fff; position:relative; }
+.cr-card.rank1 { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+.cr-card h4 { margin:0 0 4px; font-size:1rem; }
+.cr-card .rk { position:absolute; right:10px; top:8px; font-weight:800; color:var(--accent); font-size:.8rem; }
+.cr-card p { margin:4px 0; font-size:.82rem; color:var(--ink-soft); line-height:1.5; }
+.cr-card .why { font-size:.78rem; background:var(--paper); border-radius:8px; padding:5px 8px; margin-top:6px; }
+.cr-all { margin-top:14px; }
+.cr-all .row { display:grid; grid-template-columns:170px 1fr 30px; align-items:center; gap:8px; font-size:.8rem; margin:3px 0; }
+.cr-all .bar { height:10px; background:var(--paper); border:1px solid var(--line); border-radius:999px; overflow:hidden; }
+.cr-all .bar i { display:block; height:100%; background:var(--accent); transition:width .3s; }
+@media (max-width:560px){ .cr-all .row { grid-template-columns:120px 1fr 26px; } }
+</style>
+</head>
+<body data-unit="1" data-lesson="L10">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>데이터 과학 진로 탐색</h1>
+  <span class="std-badge">성취기준 12데과01-04</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>여러 분야의 데이터 관련 직업이 하는 일과 다루는 데이터를 조사해 설명할 수 있다.</li>
+      <li>텍스트 데이터에서 단어 빈도를 세어 직업에 필요한 역량을 분석할 수 있다.</li>
+      <li>관심 분야와 데이터 역량을 연결하여 나의 진로 계획을 표현할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과01-04] 데이터로 인한 사회 변화를 인식하고, 진로 및 직업과 관련한 데이터 기반 문제 해결 사례를 분석한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span class="on">문제 정의</span><span class="on">수집</span><span class="on">전처리</span><span class="on">탐색</span><span>모델링</span><span>평가·해석</span><span class="on">공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  “저는 수학보다 축구가 좋은데, 데이터 과학이 저랑 무슨 상관이 있나요?”
+  한 학생의 질문에 선생님이 웃으며 휴대 전화를 보여 주었습니다. 화면에는 한 프로 축구단의 채용 공고가 떠 있었습니다.
+  <b>“경기 영상과 선수 이동 데이터를 분석할 분을 찾습니다. 축구를 사랑하는 분 우대.”</b>
+  좋아하는 분야와 데이터 역량이 만나면 어떤 직업이 생길까요? 오늘은 나만의 ‘데이터 진로 지도’를 그려 봅니다.
+</div>
+
+<h2><span class="sec-no">1</span>데이터 과학이 필요한 직업들 <i class="pub-c">공통</i> <i class="pub">씨마스</i></h2>
+
+<p>데이터 관련 직업은 크게 두 무리로 나눌 수 있습니다. 데이터 자체를 다루는 <b>데이터 전문 직업</b>과,
+자기 분야의 문제를 데이터로 푸는 <b>‘분야 + 데이터’ 융합 직업</b>입니다. 오늘날에는 두 번째 무리가 빠르게 늘고 있습니다.</p>
+
+<div class="cards">
+  <div class="cardbox"><h4>🛠️ 데이터 엔지니어</h4><p>데이터를 모으고 저장·전달하는 시스템을 만든다. 데이터베이스, 클라우드, 자동화 프로그램을 다룬다.</p></div>
+  <div class="cardbox"><h4>📊 데이터 분석가</h4><p>데이터를 정리·시각화해 “지금 무슨 일이 일어나고 있는가”를 설명하고 보고서로 전한다.</p></div>
+  <div class="cardbox"><h4>🤖 데이터 과학자·AI 엔지니어</h4><p>통계·기계학습 모델로 앞으로 일어날 일을 예측하거나, 인공지능 서비스를 개발한다.</p></div>
+  <div class="cardbox"><h4>⚽ 스포츠 데이터 분석가</h4><p>선수 이동·경기 기록을 분석해 전술과 선수 영입, 부상 예방에 도움을 준다.</p></div>
+  <div class="cardbox"><h4>🧬 생물정보학자</h4><p>유전체·단백질 같은 생명 데이터를 분석해 질병 원인과 신약 후보를 찾는다.</p></div>
+  <div class="cardbox"><h4>🗺️ GIS·스마트 도시 전문가</h4><p>지도·위치 데이터로 교통 흐름, 재난 위험 지역, 공공시설의 알맞은 위치를 분석한다.</p></div>
+</div>
+
+<p>이 밖에도 금융 데이터 분석가, 마케팅 데이터 분석가, 정보 보안 전문가, 데이터 시각화 디자이너, 기후 데이터 과학자, 스마트팜 전문가 등
+거의 모든 분야에 데이터를 다루는 일이 있습니다. 직업 정보는 <b>커리어넷</b>(한국직업능력연구원 운영)이나 <b>워크넷·고용24</b>(고용노동부) 같은 공공 진로 정보 사이트에서 찾아볼 수 있습니다.</p>
+
+<h2><span class="sec-no">2</span>데이터 직업인에게 필요한 역량 <i class="pub">씨마스</i> <i class="pub">YBM</i></h2>
+
+<p>데이터 직업인에게 필요한 역량은 흔히 알파벳 <b>T 모양</b>으로 설명합니다. 가로줄은 여러 분야에 두루 필요한 기본 역량, 세로줄은 한 분야의 깊은 전문성입니다.</p>
+
+<figure>
+<svg viewBox="0 0 560 210" role="img" aria-label="T자형 역량 그림">
+  <rect x="40" y="20" width="480" height="56" rx="10" fill="#e2f4f8" stroke="#0e7490" stroke-width="1.5"/>
+  <text x="280" y="44" text-anchor="middle" font-size="14" font-weight="800" fill="#0e7490">넓은 기본 역량</text>
+  <text x="280" y="64" text-anchor="middle" font-size="12" fill="#1e2733">프로그래밍 · 통계와 수학 · 시각화 · 소통과 협업 · 데이터 윤리</text>
+  <rect x="215" y="76" width="130" height="120" rx="10" fill="#fdf1de" stroke="#d97706" stroke-width="1.5"/>
+  <text x="280" y="116" text-anchor="middle" font-size="14" font-weight="800" fill="#b45309">깊은 전문성</text>
+  <text x="280" y="138" text-anchor="middle" font-size="12" fill="#1e2733">(도메인 지식)</text>
+  <text x="280" y="160" text-anchor="middle" font-size="12" fill="#1e2733">예: 스포츠 전술,</text>
+  <text x="280" y="178" text-anchor="middle" font-size="12" fill="#1e2733">의학, 기후 과학</text>
+  <text x="80" y="130" font-size="12" fill="#4b5a6b">어느 분야에서든</text>
+  <text x="80" y="148" font-size="12" fill="#4b5a6b">데이터를 다룰 힘</text>
+  <text x="380" y="130" font-size="12" fill="#4b5a6b">좋은 질문을 던지고</text>
+  <text x="380" y="148" font-size="12" fill="#4b5a6b">결과를 해석할 힘</text>
+</svg>
+<figcaption>그림 1. T자형 역량 — 데이터 기본 역량(가로)과 자기 분야의 전문성(세로)</figcaption>
+</figure>
+
+<p>세계경제포럼(WEF)은 2023년 「일자리의 미래」 보고서에서 앞으로 중요해질 역량으로 <b>분석적 사고</b>, <b>창의적 사고</b>와 함께
+<b>인공지능·빅데이터 활용 능력</b>을 꼽았습니다. 코딩 실력만이 전부가 아니라는 점에 주목하세요.
+데이터에서 찾은 결과를 동료와 시민이 이해하도록 <b>설명하는 능력</b>, 데이터를 <b>책임 있게 다루는 윤리 의식</b>도 반드시 필요합니다.</p>
+
+<h2><span class="sec-no">3</span>나에게 맞는 데이터 직업 찾기 <i class="pub">YBM</i></h2>
+
+<div class="sim">
+  <div class="sim-head">진로 추천 카드 — 관심사와 강점을 고르면 직업을 추천해요</div>
+  <div class="sim-body">
+    <p style="margin-top:0;font-size:.92rem">관심 분야와 자신 있는(또는 키우고 싶은) 역량을 여러 개 골라 보세요. 관심 분야 일치는 2점, 역량 일치는 1점으로 계산해 점수가 높은 직업 3개를 추천합니다.</p>
+    <div class="cr-label">① 관심 분야</div>
+    <div class="cr-pick" id="cr-int"></div>
+    <div class="cr-label">② 자신 있는 역량</div>
+    <div class="cr-pick" id="cr-skill"></div>
+    <div class="sim-controls"><button id="cr-reset" class="gray">↺ 모두 지우기</button><button id="cr-rand" class="ghost">🎲 친구 프로필 예시</button></div>
+    <div class="cr-top" id="cr-top"></div>
+    <div class="cr-all" id="cr-all"></div>
+    <p class="widget-hint">관찰 포인트: 역량만 바꾸고 관심 분야를 그대로 두면 추천이 얼마나 바뀌나요? 이 추천기는 ‘점수 규칙’이라는 아주 단순한 모델입니다. 규칙을 어떻게 바꾸면 더 좋아질까요?</p>
+  </div>
+</div>
+
+<div class="box box-warn">
+  <span class="box-label">추천은 출발점일 뿐</span>
+  위 추천기는 교사가 정한 간단한 규칙으로 점수를 매긴 것이라 여러분의 가능성을 모두 반영하지 못합니다.
+  추천된 직업을 커리어넷 등에서 직접 조사해 보고, 관심이 가지 않으면 과감히 다른 직업을 찾아보세요.
+</div>
+
+<h2><span class="sec-no">4</span>채용 공고의 핵심어 분석하기 <i class="pub">천재</i></h2>
+
+<p>어떤 역량이 정말 많이 요구될까요? 채용 공고 같은 글도 데이터입니다. 표 형태가 아닌 <b>비정형 텍스트 데이터</b>이므로,
+단어로 쪼개고(<span class="keyterm">토큰화</span>), 의미 없는 말을 지우고(<span class="keyterm">불용어 제거</span>), 단어마다 몇 번 나왔는지 세는(<span class="keyterm">빈도 분석</span>) 순서로 분석합니다.
+단어 빈도를 글자 크기로 나타낸 그림이 <b>워드 클라우드</b>입니다. 아래 가상의 채용 공고 세 개로 해 봅시다.</p>
+
+<div class="pycell" data-title="① 문장을 단어로 쪼개고 세기"><textarea>
+from collections import Counter
+
+ads = """
+프로 구단에서 경기 데이터를 분석할 데이터 분석가를 모집합니다. 선수 기록 데이터 수집과 전처리, 시각화 보고서 작성, 코치진과의 소통을 담당합니다. 파이썬과 SQL 활용 능력, 통계 지식, 스포츠에 대한 관심을 우대합니다.
+병원 진료 데이터를 분석해 환자 대기 시간을 줄일 데이터 과학자를 찾습니다. 파이썬 기반 기계학습 모델 개발, 데이터 전처리, 결과 시각화와 발표를 담당합니다. 통계 지식과 의료 분야 이해, 개인정보 보호 의식이 필요합니다.
+전력 사용 데이터를 수집하고 저장하는 데이터 엔지니어를 모집합니다. 데이터베이스 설계, SQL 활용, 파이썬 자동화, 협업과 소통 능력을 갖춘 분을 우대합니다. 기후와 에너지 문제에 대한 관심을 환영합니다.
+"""
+
+words = ads.split()              # 빈칸을 기준으로 쪼개기
+print("단어 수:", len(words))
+print(words[:12])
+print(Counter(words).most_common(8))
+
+# ✏️ '데이터를'과 '데이터'가 따로 세어진 것을 찾아보세요. 왜 문제가 될까요?
+</textarea></div>
+
+<p>결과를 보면 ‘데이터를’, ‘데이터’처럼 같은 단어가 조사 때문에 다르게 세어집니다. 문장 부호를 지우고 흔한 조사를 떼어 낸 뒤 다시 세어 봅시다.</p>
+
+<div class="pycell" data-title="② 전처리 후 빈도 막대그래프"><textarea>
+import matplotlib.pyplot as plt
+
+JOSA = ["으로", "에서", "을", "를", "은", "는", "의", "와", "과", "로", "에"]
+STOP = {"모집합니다", "담당합니다", "우대합니다", "찾습니다", "필요합니다", "환영합니다",
+        "대한", "분을", "갖춘", "기반", "줄일", "분석할", "수집하고", "저장하는", "분석해", "작성", "능력", "관심"}
+
+def clean(w):
+    w = w.strip(".,")
+    for j in JOSA:                       # 긴 조사부터 확인
+        if w.endswith(j) and len(w) > len(j) + 1:
+            return w[:-len(j)]
+    return w
+
+tokens = [clean(w) for w in words]
+tokens = [w for w in tokens if w not in STOP]
+top = Counter(tokens).most_common(10)
+print(top)
+
+labels = [w for w, c in top][::-1]
+counts = [c for w, c in top][::-1]
+plt.figure(figsize=(6, 4))
+plt.barh(labels, counts, color="#0e7490")
+plt.title("채용 공고 핵심어 빈도 상위 10개")
+plt.xlabel("등장 횟수")
+plt.tight_layout()
+plt.show()
+
+# ✏️ STOP에서 "능력"과 "관심"을 빼면 순위가 어떻게 바뀌나요? 불용어는 누가, 어떤 기준으로 정해야 할까요?
+</textarea></div>
+
+<div class="pycell" data-title="③ 간단한 워드 클라우드 만들기"><textarea>
+freq = Counter(tokens).most_common(20)
+biggest = freq[0][1]
+
+plt.figure(figsize=(7, 4))
+for i, (w, c) in enumerate(freq):
+    x = 0.1 + (i % 4) * 0.27            # 4칸씩 격자로 배치
+    y = 0.9 - (i // 4) * 0.19
+    size = 10 + 26 * c / biggest         # 많이 나올수록 큰 글자
+    color = "#0e7490" if c >= 3 else ("#d97706" if c == 2 else "#8595a6")
+    plt.text(x, y, w, fontsize=size, color=color, ha="center", va="center")
+plt.axis("off")
+plt.title("채용 공고 워드 클라우드")
+plt.show()
+
+# ✏️ ads 문자열에 여러분이 관심 있는 직업의 공고 문장을 한 줄 더 넣고 ①~③을 다시 실행해 보세요.
+</textarea></div>
+
+<p>세 공고 모두에서 <b>데이터</b>가 압도적으로 많이 나오는 것은 당연하지만, 그다음으로 <b>파이썬·SQL·통계·전처리·시각화·소통</b>이 두 번 이상 등장합니다.
+분야는 달라도 요구하는 기본 역량은 비슷하다는 뜻입니다. 다만 공고 세 개는 표본이 너무 작으므로, 결론을 일반화하려면 훨씬 많은 공고를 모아야 합니다.</p>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  비코딩 반은 Orange3의 Text 애드온(Corpus → Preprocess Text → Word Cloud)이나 무료 워드 클라우드 웹 도구로 같은 활동을 할 수 있습니다.
+  한국어는 조사가 붙어 있어 빈칸 기준 토큰화의 한계가 분명하다는 점을 ‘전처리가 결과를 바꾼다’는 Ⅱ영역 내용의 예고로 활용하세요.
+  실제 채용 사이트의 공고를 대량으로 복사해 오는 활동은 이용약관을 확인하게 하고, 개인정보(담당자 연락처 등)는 지우도록 지도합니다.
+</div>
+
+<h2><span class="sec-no">5</span>나의 진로를 데이터로 표현하기 <i class="pub">YBM</i> <i class="pub">천재</i></h2>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">개별 활동</span>미래의 채용 공고문 만들기 <i class="pub">YBM</i></div>
+  <div class="act-body">
+    <p style="margin-top:0">10년 뒤 내가 일하고 싶은 회사(기관)가 <b>나 같은 사람</b>을 뽑는다고 상상하고 채용 공고문을 써 봅시다.</p>
+    <div class="table-wrap"><table>
+      <tbody>
+        <tr><th style="width:150px">회사·기관 이름</th><td>&nbsp;</td></tr>
+        <tr><th>직무 이름</th><td>&nbsp;</td></tr>
+        <tr><th>해결할 문제</th><td>&nbsp;</td></tr>
+        <tr><th>다루게 될 데이터</th><td>&nbsp;</td></tr>
+        <tr><th>필요한 역량 (기본)</th><td>&nbsp;</td></tr>
+        <tr><th>필요한 역량 (전문)</th><td>&nbsp;</td></tr>
+        <tr><th>우대 사항</th><td>&nbsp;</td></tr>
+      </tbody>
+    </table></div>
+    <p>이 직무를 위해 고등학교에서 들을 과목과 할 수 있는 활동을 계획해 보세요.</p>
+    <div class="write-lines"><div class="line"></div><div class="line"></div></div>
+  </div>
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">조사 활동</span>데이터 직업인 인터뷰 · 진로 인포그래픽 <i class="pub">씨마스</i> <i class="pub">천재</i></div>
+  <div class="act-body">
+    <ol>
+      <li>관심 직업을 하나 정해 커리어넷·직업인 인터뷰 기사 등에서 다음을 조사하세요.
+        <div class="table-wrap"><table>
+          <thead><tr><th>하는 일</th><th>다루는 데이터</th><th>데이터 기반 문제 해결 사례</th><th>필요한 역량</th></tr></thead>
+          <tbody><tr><td style="height:60px">&nbsp;</td><td></td><td></td><td></td></tr></tbody>
+        </table></div></li>
+      <li>만약 그 직업인을 직접 인터뷰한다면 묻고 싶은 질문 3개를 쓰세요. (예: “일하면서 가장 자주 쓰는 데이터는 무엇인가요?”)
+        <div class="write-lines"><div class="line"></div><div class="line"></div><div class="line"></div></div></li>
+      <li>조사 내용을 A4 한 장 인포그래픽(핵심 숫자·아이콘·짧은 문장)으로 표현하고, 위 파이썬 ③처럼 직업 소개 글의 워드 클라우드를 넣어 보세요.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>데이터 직업에는 데이터 자체를 다루는 전문 직업(엔지니어·분석가·과학자)과 ‘분야 + 데이터’ 융합 직업이 있다.</li>
+    <li>데이터 직업인에게는 넓은 기본 역량(프로그래밍·통계·시각화·소통·윤리)과 한 분야의 깊은 전문성이 함께 필요하다(T자형 역량).</li>
+    <li>텍스트 데이터는 토큰화 → 불용어 제거 → 빈도 분석 순서로 분석하며, 전처리 방식에 따라 결과가 달라진다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 진로 추천 카드 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const INT = ["스포츠","의료·생명","환경·기후","게임·미디어","금융·경제","도시·교통","보안·IT","마케팅·소비","농업·식품","교육"];
+  const SKILL = ["코딩","수학·통계","소통·발표","디자인·시각화","현장 조사·실험"];
+  const JOBS = [
+    { n:"스포츠 데이터 분석가", i:"⚽", int:["스포츠","게임·미디어"], sk:["수학·통계","소통·발표","코딩"],
+      d:"경기 영상·선수 이동 데이터로 전술과 선수 영입을 돕는다.", sub:"확률과 통계, 데이터 과학, 스포츠 과학" },
+    { n:"생물정보학자", i:"🧬", int:["의료·생명","농업·식품"], sk:["코딩","수학·통계","현장 조사·실험"],
+      d:"유전체·단백질 데이터를 분석해 질병 원인과 신약 후보를 찾는다.", sub:"생명과학, 화학, 프로그래밍" },
+    { n:"의료 데이터 분석가", i:"🏥", int:["의료·생명","교육"], sk:["수학·통계","소통·발표"],
+      d:"진료·검사 기록을 분석해 환자 대기 시간 단축, 질병 조기 발견을 돕는다.", sub:"생명과학, 확률과 통계, 보건" },
+    { n:"기후 데이터 과학자", i:"🌏", int:["환경·기후","농업·식품","도시·교통"], sk:["코딩","수학·통계","현장 조사·실험"],
+      d:"기온·강수·해수면 데이터로 기후 변화를 분석하고 미래를 예측한다.", sub:"지구과학, 기후 변화와 환경 생태, 미적분" },
+    { n:"금융 데이터 분석가", i:"💹", int:["금융·경제"], sk:["수학·통계","코딩"],
+      d:"거래·시장 데이터로 위험을 측정하고 금융 사기를 탐지한다.", sub:"경제, 확률과 통계, 미적분" },
+    { n:"마케팅 데이터 분석가", i:"🛍️", int:["마케팅·소비","게임·미디어","금융·경제"], sk:["소통·발표","디자인·시각화","수학·통계"],
+      d:"구매·검색 데이터로 소비자를 이해하고 판매 전략을 세운다.", sub:"경제, 사회와 문화, 데이터 과학" },
+    { n:"GIS·스마트 도시 전문가", i:"🗺️", int:["도시·교통","환경·기후"], sk:["디자인·시각화","코딩","현장 조사·실험"],
+      d:"지도·위치 데이터로 교통 흐름과 공공시설 위치를 분석한다.", sub:"한국지리, 세계지리, 정보" },
+    { n:"정보 보안 전문가", i:"🔐", int:["보안·IT","금융·경제"], sk:["코딩","수학·통계"],
+      d:"접속 기록 데이터에서 해킹 시도 같은 이상 징후를 찾아 막는다.", sub:"정보, 인공지능 기초, 수학" },
+    { n:"데이터 엔지니어", i:"🛠️", int:["보안·IT","게임·미디어","마케팅·소비"], sk:["코딩"],
+      d:"데이터를 모으고 저장·전달하는 시스템과 데이터베이스를 만든다.", sub:"정보, 프로그래밍, 데이터 과학" },
+    { n:"AI(기계학습) 엔지니어", i:"🤖", int:["보안·IT","게임·미디어","의료·생명"], sk:["코딩","수학·통계"],
+      d:"데이터로 학습하는 인공지능 모델을 만들고 서비스에 적용한다.", sub:"인공지능 기초, 미적분, 기하" },
+    { n:"데이터 시각화 디자이너·데이터 저널리스트", i:"🎨", int:["게임·미디어","교육","환경·기후"], sk:["디자인·시각화","소통·발표"],
+      d:"복잡한 데이터를 이해하기 쉬운 그래프·기사·인포그래픽으로 전한다.", sub:"미술, 언어와 매체, 데이터 과학" },
+    { n:"스마트팜 전문가", i:"🌱", int:["농업·식품","환경·기후"], sk:["현장 조사·실험","코딩"],
+      d:"온실 센서 데이터로 온도·물·양분을 자동 조절해 수확량을 높인다.", sub:"농업 생명 과학, 생명과학, 정보" },
+    { n:"교육 데이터 분석가(에듀테크)", i:"📚", int:["교육","게임·미디어"], sk:["소통·발표","수학·통계"],
+      d:"학습 기록을 분석해 학생 수준에 맞는 문제와 학습 경로를 추천한다.", sub:"교육학 관련 과목, 확률과 통계, 정보" },
+  ];
+  const selI = new Set(), selS = new Set();
+
+  function chips(el, list, set){
+    el.innerHTML = list.map(x => `<button class="cr-chip" data-v="${x}">${x}</button>`).join("");
+    el.addEventListener("click", e => {
+      const b = e.target.closest(".cr-chip"); if (!b) return;
+      const v = b.dataset.v;
+      if (set.has(v)) set.delete(v); else set.add(v);
+      render();
+    });
+  }
+  function score(j){
+    const mi = j.int.filter(x => selI.has(x)), ms = j.sk.filter(x => selS.has(x));
+    return { s: 2 * mi.length + ms.length, mi, ms };
+  }
+  function render(){
+    document.querySelectorAll("#cr-int .cr-chip").forEach(b => b.classList.toggle("on", selI.has(b.dataset.v)));
+    document.querySelectorAll("#cr-skill .cr-chip").forEach(b => b.classList.toggle("on", selS.has(b.dataset.v)));
+    if (!selI.size && !selS.size){
+      $("cr-top").innerHTML = `<p style="color:var(--ink-faint);font-size:.9rem">관심 분야나 역량을 하나 이상 골라 보세요.</p>`;
+      $("cr-all").innerHTML = ""; return;
+    }
+    const ranked = JOBS.map((j, k) => ({ j, k, ...score(j) })).sort((a, b) => b.s - a.s || a.k - b.k);
+    const max = Math.max(1, ranked[0].s);
+    const top = ranked.filter(r => r.s > 0).slice(0, 3);
+    $("cr-top").innerHTML = top.length ? top.map((r, idx) => `
+      <div class="cr-card${idx === 0 ? " rank1" : ""}"><span class="rk">${idx + 1}위 · ${r.s}점</span>
+        <h4>${r.j.i} ${r.j.n}</h4><p>${r.j.d}</p><p>📘 관련 과목: ${r.j.sub}</p>
+        <div class="why">일치 — 관심: ${r.mi.length ? r.mi.join(", ") : "없음"} / 역량: ${r.ms.length ? r.ms.join(", ") : "없음"}</div></div>`).join("")
+      : `<p style="color:var(--ink-faint);font-size:.9rem">일치하는 직업이 없습니다. 다른 항목도 골라 보세요.</p>`;
+    $("cr-all").innerHTML = `<div class="cr-label" style="margin-bottom:4px">전체 직업 점수</div>` + ranked.map(r =>
+      `<div class="row"><span>${r.j.i} ${r.j.n}</span><div class="bar"><i style="width:${(r.s / max * 100).toFixed(0)}%"></i></div><b>${r.s}</b></div>`).join("");
+  }
+  chips($("cr-int"), INT, selI);
+  chips($("cr-skill"), SKILL, selS);
+  $("cr-reset").addEventListener("click", () => { selI.clear(); selS.clear(); render(); });
+  const PROFILES = [
+    { i:["스포츠","교육"], s:["소통·발표"] },
+    { i:["환경·기후","농업·식품"], s:["현장 조사·실험","수학·통계"] },
+    { i:["게임·미디어","보안·IT"], s:["코딩"] },
+    { i:["금융·경제","마케팅·소비"], s:["디자인·시각화","소통·발표"] },
+  ];
+  let pi = 0;
+  $("cr-rand").addEventListener("click", () => {
+    const p = PROFILES[pi++ % PROFILES.length];
+    selI.clear(); selS.clear(); p.i.forEach(x => selI.add(x)); p.s.forEach(x => selS.add(x)); render();
+  });
+  render();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"‘T자형 역량’에서 세로줄이 뜻하는 것은?",
+    choices:["여러 분야에 두루 필요한 프로그래밍 능력","한 분야에 대한 깊은 전문성(도메인 지식)","발표와 글쓰기 능력","데이터 윤리 의식","하드웨어 조립 능력"], answer:1,
+    explain:"가로줄은 프로그래밍·통계·시각화·소통·윤리 같은 넓은 기본 역량, 세로줄은 스포츠·의학·기후처럼 자기 분야의 깊은 전문성입니다." },
+  { type:"mc", q:"텍스트 데이터에서 단어 빈도를 분석하는 순서로 알맞은 것은?",
+    choices:["빈도 분석 → 토큰화 → 불용어 제거","불용어 제거 → 빈도 분석 → 토큰화","토큰화 → 불용어 제거 → 빈도 분석","토큰화 → 빈도 분석 → 수집","시각화 → 토큰화 → 수집"], answer:2,
+    explain:"글을 단어로 쪼개고(토큰화), 의미 없는 말을 지운 뒤(불용어 제거), 단어별 등장 횟수를 셉니다(빈도 분석)." },
+  { type:"ox", q:"한국어 문장을 빈칸 기준으로만 쪼개면 ‘데이터를’과 ‘데이터’가 서로 다른 단어로 세어질 수 있다.",
+    answer:true, explain:"한국어는 명사 뒤에 조사가 붙기 때문에 빈칸 기준 토큰화만으로는 같은 단어가 여러 형태로 나뉩니다. 조사를 떼는 전처리가 필요합니다." },
+  { type:"mc", q:"진로 추천기에서 관심 분야 일치는 2점, 역량 일치는 1점이다. 어떤 학생이 관심 분야 ‘의료·생명’, ‘농업·식품’과 역량 ‘코딩’을 골랐다면 생물정보학자(관심: 의료·생명, 농업·식품 / 역량: 코딩, 수학·통계, 현장 조사·실험)의 점수는?",
+    choices:["2점","3점","4점","5점","6점"], answer:3,
+    explain:"관심 분야 2개 일치 → 2 × 2 = 4점, 역량 1개(코딩) 일치 → 1점. 합계 5점입니다." },
+  { type:"short", q:"채용 공고 3개만 분석해서 “데이터 직업에는 SQL이 꼭 필요하다”고 결론 내리는 것에는 어떤 문제가 있는지 쓰고, 더 믿을 만한 결론을 얻는 방법을 제안하세요.",
+    model:"공고 3개는 표본이 너무 작고 특정 분야(스포츠·의료·에너지)에 치우쳐 있어 전체 데이터 직업을 대표하지 못한다. 여러 분야·기업의 채용 공고를 수백 개 이상 모으고, 분야별로 나누어 SQL이 등장하는 공고의 비율을 비교하면 더 믿을 만한 결론을 얻을 수 있다." },
+]);
+</script>
+</body>
+</html>

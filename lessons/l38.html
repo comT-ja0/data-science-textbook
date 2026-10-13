@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>모델 평가: 정확도와 혼동 행렬 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 혼동 행렬·임계값 실험기 */
+.cm { border-collapse:separate; border-spacing:4px; margin:0 auto; }
+.cm th { font-size:.78rem; color:var(--ink-soft); font-weight:700; padding:2px 6px; border:none; background:none; }
+.cm td { width:118px; height:66px; text-align:center; border-radius:10px; font-size:.78rem; font-weight:700; line-height:1.3; border:none; }
+.cm td b { display:block; font-size:1.5rem; }
+.cm td.tp { background:#eafaf0; color:#127a3c; } .cm td.tn { background:#eef7ff; color:#1d6fb8; }
+.cm td.fp { background:#fef6e7; color:#b4700a; } .cm td.fn { background:#fdeeee; color:#b32424; }
+.th-grid { display:grid; grid-template-columns:1.3fr 1fr; gap:16px; align-items:start; }
+@media (max-width:760px){ .th-grid { grid-template-columns:1fr; } }
+#th-canvas { width:100%; height:auto; border:1px solid var(--line); background:#fbfcfd; touch-action:none; cursor:ew-resize; }
+.mbar { margin:7px 0; font-size:.85rem; }
+.mbar .t { display:flex; justify-content:space-between; font-weight:700; }
+.mbar .b { height:11px; background:var(--paper); border:1px solid var(--line); border-radius:999px; overflow:hidden; }
+.mbar .b i { display:block; height:100%; background:var(--accent); transition:width .2s; }
+.scn-note { font-size:.85rem; padding:9px 13px; border-radius:10px; background:var(--tip-bg); border:1px solid #cbe4f7; margin-top:10px; }
+.cm-static td { width:130px; height:58px; }
+</style>
+</head>
+<body data-unit="3" data-lesson="L38">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>모델 평가: 정확도와 혼동 행렬</h1>
+  <span class="std-badge">성취기준 12데과03-05</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>혼동 행렬을 만들고 정확도·정밀도·재현율·F1 점수를 계산할 수 있다.</li>
+      <li>문제 상황에 따라 어떤 평가 지표가 더 중요한지 판단하고, 분류 기준(임계값)을 조정할 수 있다.</li>
+      <li>회귀·군집·연관·분류 모델에 알맞은 평가 방법을 비교하여 정리할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과03-05] 데이터 분석 방법에 따른 데이터 모델의 분석 결과를 비교하고 평가한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span>수집</span><span>전처리</span><span>탐색</span><span>모델링</span><span class="on">평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  어떤 회사가 “우리 감염병 진단 AI는 정확도 99%!”라고 광고합니다. 대단해 보이지요?
+  그런데 알고 보니 검사받은 1,000명 중 실제 감염자는 10명뿐이었고, 이 AI는 <b>모든 사람에게 ‘음성’</b>이라고 답했습니다.
+  990명을 맞혔으니 정확도는 정말 99%입니다. 하지만 감염자 10명은 한 명도 찾아내지 못했습니다. 이 AI는 좋은 모델일까요?
+</div>
+
+<h2><span class="sec-no">1</span>혼동 행렬: 무엇을 어떻게 틀렸나 <i class="pub">삼양</i></h2>
+
+<p>분류 모델을 평가할 때는 ‘몇 개 맞혔나’뿐 아니라 <b>어떤 식으로 틀렸는지</b>를 봐야 합니다.
+실제 값과 예측 값을 교차해 네 칸으로 정리한 표를 <span class="keyterm">혼동 행렬(confusion matrix)</span>이라고 합니다.
+찾고 싶은 대상(감염, 스팸 등)을 <b>양성(Positive)</b>, 나머지를 <b>음성(Negative)</b>이라고 합니다.</p>
+
+<div class="table-wrap"><table class="cm cm-static">
+  <tr><th></th><th>예측: 양성</th><th>예측: 음성</th></tr>
+  <tr><th>실제: 양성</th><td class="tp">TP 진양성<br><small>양성을 양성으로 (맞힘)</small></td><td class="fn">FN 위음성<br><small>양성을 놓침</small></td></tr>
+  <tr><th>실제: 음성</th><td class="fp">FP 위양성<br><small>음성을 양성으로 (헛경보)</small></td><td class="tn">TN 진음성<br><small>음성을 음성으로 (맞힘)</small></td></tr>
+</table></div>
+
+<p>혼동 행렬에서 네 가지 지표를 계산합니다.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:110px">지표</th><th>질문</th><th style="width:230px">계산</th></tr></thead>
+  <tbody>
+    <tr><td><b>정확도</b></td><td>전체 중 몇 개를 맞혔나?</td><td><code>(TP + TN) ÷ 전체</code></td></tr>
+    <tr><td><b>정밀도</b><br>(precision)</td><td>양성이라고 한 것 중 진짜 양성은 얼마나? — 헛경보가 적은가</td><td><code>TP ÷ (TP + FP)</code></td></tr>
+    <tr><td><b>재현율</b><br>(recall)</td><td>진짜 양성 중 몇 개를 찾아냈나? — 놓친 것이 적은가</td><td><code>TP ÷ (TP + FN)</code></td></tr>
+    <tr><td><b>F1 점수</b></td><td>정밀도와 재현율을 함께 고려하면?</td><td><code>2 × 정밀도 × 재현율 ÷ (정밀도 + 재현율)</code></td></tr>
+  </tbody>
+</table></div>
+
+<h3>손으로 계산해 보기</h3>
+<p>스팸 필터가 메일 100통을 분류했더니 TP = 40, FP = 10, FN = 5, TN = 45였습니다.</p>
+<ul>
+  <li>정확도 = (40 + 45) ÷ 100 = <b>0.85</b></li>
+  <li>정밀도 = 40 ÷ (40 + 10) = <b>0.80</b> — 스팸함에 들어간 메일 5통 중 1통은 정상 메일</li>
+  <li>재현율 = 40 ÷ (40 + 5) ≈ <b>0.889</b> — 스팸 45통 중 40통을 걸러 냄</li>
+  <li>F1 = 2 × 0.80 × 0.889 ÷ (0.80 + 0.889) ≈ 1.422 ÷ 1.689 ≈ <b>0.842</b></li>
+</ul>
+
+<details class="reveal"><summary>생각 열기의 ‘정확도 99%’ AI를 계산해 보세요 (정답 확인)</summary>
+<div class="reveal-body">
+모두 음성이라고 답했으므로 TP = 0, FN = 10, FP = 0, TN = 990입니다. 정확도 = 990 ÷ 1000 = 0.99이지만,
+재현율 = 0 ÷ (0 + 10) = <b>0</b>입니다. 양성이 드문 <b>불균형 데이터</b>에서는 정확도가 모델의 실력을 크게 부풀릴 수 있으므로,
+반드시 혼동 행렬과 재현율·정밀도를 함께 확인해야 합니다. (양성으로 예측한 것이 없으므로 정밀도는 계산할 수 없습니다.)
+</div></details>
+
+<h2><span class="sec-no">2</span>상황에 따라 중요한 지표가 다르다 <i class="pub">삼양</i></h2>
+
+<div class="cards">
+  <div class="cardbox"><h4>📧 스팸 필터 → 정밀도</h4><p>정상 메일(합격 통지!)이 스팸함으로 가면(FP) 큰 손해입니다. 스팸 몇 통이 받은편지함에 남는 것(FN)은 참을 만합니다. <b>헛경보를 줄여야</b> 합니다.</p></div>
+  <div class="cardbox"><h4>🦠 감염병 선별 검사 → 재현율</h4><p>감염자를 놓치면(FN) 병이 퍼집니다. 건강한 사람이 양성으로 나오면(FP) 정밀 검사를 한 번 더 받으면 됩니다. <b>놓치지 않아야</b> 합니다.</p></div>
+</div>
+
+<p>많은 분류 모델은 ‘양성일 확률(점수)’을 계산한 뒤, 점수가 <span class="keyterm">임계값(threshold)</span> 이상이면 양성으로 판정합니다.
+임계값을 낮추면 양성 판정이 늘어 재현율이 오르지만 헛경보(FP)도 늘고, 임계값을 높이면 정밀도가 오르지만 놓치는 양성(FN)이 늘어납니다.
+정밀도와 재현율은 보통 <b>한쪽을 올리면 다른 쪽이 내려가는</b> 관계입니다.</p>
+
+<div class="sim">
+  <div class="sim-head">임계값 실험기 — 기준을 옮기면 혼동 행렬이 바뀝니다</div>
+  <div class="sim-body">
+    <div class="sim-controls">
+      <label>상황 <select id="th-scn"><option value="med">🦠 감염병 선별 검사 (40명)</option><option value="spam">📧 스팸 메일 필터 (40통)</option></select></label>
+      <label for="th-slider">임계값</label><input type="range" id="th-slider" min="0" max="1" step="0.01" value="0.5" style="width:180px"><b id="th-val">0.50</b>
+      <button id="th-best" class="ghost">F1 최대 임계값 찾기</button>
+    </div>
+    <div class="th-grid">
+      <div>
+        <canvas id="th-canvas" width="560" height="250"></canvas>
+        <p class="widget-hint" id="th-legend"></p>
+      </div>
+      <div>
+        <div class="table-wrap" style="margin:0"><table class="cm">
+          <tr><th></th><th id="th-pp">예측: 양성</th><th id="th-pn">예측: 음성</th></tr>
+          <tr><th id="th-ap">실제: 양성</th><td class="tp">TP<b id="c-tp">0</b></td><td class="fn">FN<b id="c-fn">0</b></td></tr>
+          <tr><th id="th-an">실제: 음성</th><td class="fp">FP<b id="c-fp">0</b></td><td class="tn">TN<b id="c-tn">0</b></td></tr>
+        </table></div>
+        <div class="mbar"><div class="t"><span>정확도</span><span id="m-acc"></span></div><div class="b"><i id="b-acc"></i></div></div>
+        <div class="mbar"><div class="t"><span>정밀도</span><span id="m-pre"></span></div><div class="b"><i id="b-pre"></i></div></div>
+        <div class="mbar"><div class="t"><span>재현율</span><span id="m-rec"></span></div><div class="b"><i id="b-rec"></i></div></div>
+        <div class="mbar"><div class="t"><span>F1 점수</span><span id="m-f1"></span></div><div class="b"><i id="b-f1"></i></div></div>
+      </div>
+    </div>
+    <div class="scn-note" id="th-note"></div>
+  </div>
+</div>
+
+<h2><span class="sec-no">3</span>파이썬으로 혼동 행렬 만들기 <i class="pub-c">공통</i></h2>
+
+<p>L37에서 당도와 붉은정도 두 속성만으로 만든 k-NN 과일 분류 모델(테스트 정확도 0.852)을 혼동 행렬로 자세히 들여다봅시다.
+세 범주 분류에서는 혼동 행렬이 3 × 3이 됩니다.</p>
+
+<div class="pycell" data-title="다중 분류의 혼동 행렬과 분류 보고서"><textarea>
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
+from sklearn.metrics import confusion_matrix, accuracy_score, classification_report
+
+df = load_csv("fruit.csv")
+two = ["당도", "붉은정도"]
+X_tr, X_te, y_tr, y_te = train_test_split(
+    df[two], df["과일"], test_size=0.3, random_state=42, stratify=df["과일"])
+knn = make_pipeline(StandardScaler(), KNeighborsClassifier(n_neighbors=5)).fit(X_tr, y_tr)
+pred = knn.predict(X_te)
+
+labels = ["귤", "배", "사과"]
+cm = confusion_matrix(y_te, pred, labels=labels)
+print(pd.DataFrame(cm, index=["실제_" + l for l in labels], columns=["예측_" + l for l in labels]))
+print("정확도:", round(accuracy_score(y_te, pred), 3))
+print(classification_report(y_te, pred, digits=3))
+
+# ✏️ n_neighbors를 3으로 바꾸면 어떤 칸의 숫자가 달라지나요?
+</textarea></div>
+
+<p>대각선(15, 16, 15)이 맞힌 개수이고, 나머지 칸이 틀린 방식입니다. 실제 사과 18개 중 3개를 귤로 잘못 분류했고,
+실제 귤도 2개는 배로, 1개는 사과로 분류했습니다. 분류 보고서에서 사과는 정밀도 <b>0.938</b>(사과라고 한 16개 중 15개가 진짜 사과)로 높지만
+재현율은 <b>0.833</b>(사과 18개 중 15개만 찾음)입니다. 귤과 사과를 헷갈리는 것은 두 과일의 붉은정도와 당도 범위가 겹치기 때문입니다.
+보고서의 <code>macro avg</code>는 세 과일의 지표를 단순 평균한 값입니다.</p>
+
+<p>이번에는 ‘사과인가, 아닌가’를 가리는 이진 분류를 해 봅시다. 당도 센서 하나만 있는 저렴한 선별기를 가정하고,
+로지스틱 회귀로 사과일 확률을 구한 뒤 임계값을 바꿔 봅니다.</p>
+
+<div class="pycell" data-title="임계값에 따른 정밀도·재현율 변화"><textarea>
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import precision_score, recall_score, f1_score
+
+y = (df["과일"] == "사과").astype(int)          # 사과 = 1(양성), 나머지 = 0
+Xa_tr, Xa_te, ya_tr, ya_te = train_test_split(
+    df[["당도"]], y, test_size=0.3, random_state=42, stratify=y)
+logi = LogisticRegression().fit(Xa_tr, ya_tr)
+prob = logi.predict_proba(Xa_te)[:, 1]         # 사과일 확률
+print("처음 5개 확률:", prob[:5].round(2))
+
+for th in [0.3, 0.5, 0.7]:
+    p = (prob >= th).astype(int)
+    tn, fp, fn, tp = confusion_matrix(ya_te, p).ravel()
+    print(f"기준 {th}: TP {tp} FP {fp} FN {fn} TN {tn} | 정확도 {accuracy_score(ya_te, p):.3f} "
+          f"정밀도 {precision_score(ya_te, p):.3f} 재현율 {recall_score(ya_te, p):.3f} F1 {f1_score(ya_te, p):.3f}")
+
+# ✏️ 기준을 0.2와 0.9로도 바꿔 보세요. 재현율과 정밀도는 어떻게 되나요?
+</textarea></div>
+
+<p>임계값을 0.3 → 0.5 → 0.7로 올리자 정밀도는 <b>0.609 → 0.786 → 0.818</b>로 오르고, 재현율은 <b>0.778 → 0.611 → 0.500</b>으로 떨어졌습니다.
+‘사과를 하나도 놓치면 안 되는’ 상황이라면 0.3이, ‘사과 상자에 다른 과일이 섞이면 안 되는’ 상황이라면 0.7이 알맞습니다.
+정확도는 0.5에서 0.815로 가장 높았지만, 정확도가 가장 높은 기준이 늘 목적에 맞는 기준은 아닙니다.</p>
+
+<h2><span class="sec-no">4</span>모델마다 평가 방법이 다르다 <i class="pub">씨마스</i></h2>
+
+<p>Ⅲ영역에서 배운 모델들의 평가 방법을 한눈에 정리해 봅시다. 모델이 하는 일이 다르면 ‘잘했다’를 재는 자도 다릅니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:90px">모델</th><th>평가 지표</th><th>좋은 방향</th><th>주의할 점</th></tr></thead>
+  <tbody>
+    <tr><td><b>회귀</b></td><td>MAE, MSE, RMSE, 결정계수 R²</td><td>오차 ↓, R² ↑(최대 1)</td><td>R²는 ‘정확도’가 아니라 평균으로 예측할 때보다 오차를 얼마나 줄였는지(설명력)</td></tr>
+    <tr><td><b>분류</b></td><td>정확도, 정밀도, 재현율, F1, 혼동 행렬</td><td>모두 ↑(최대 1)</td><td>불균형 데이터에서 정확도만 보면 속는다</td></tr>
+    <tr><td><b>군집</b></td><td>SSE(inertia), 실루엣 계수</td><td>SSE ↓, 실루엣 ↑</td><td>정답이 없으므로 수치는 안내자일 뿐, 해석 가능성이 중요</td></tr>
+    <tr><td><b>연관</b></td><td>지지도, 신뢰도, 향상도</td><td>목적에 따라</td><td>향상도 1 근처는 독립, 신뢰도만 보면 인기 상품에 속는다</td></tr>
+  </tbody>
+</table></div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">토론 활동</span>우리 모델은 무엇을 더 중요하게 봐야 할까? <i class="pub">삼양</i></div>
+  <div class="act-body">
+    <ol>
+      <li>각 상황에서 FP와 FN이 무엇인지 쓰고, 정밀도와 재현율 중 더 중요한 지표를 고르세요.
+        <div class="table-wrap"><table>
+          <thead><tr><th>상황 (양성)</th><th>FP의 의미</th><th>FN의 의미</th><th>더 중요한 지표</th></tr></thead>
+          <tbody>
+            <tr><td>공항 보안 검색 (위험물)</td><td></td><td></td><td></td></tr>
+            <tr><td>유튜브 추천 (좋아할 영상)</td><td></td><td></td><td></td></tr>
+            <tr><td>신용카드 부정 사용 탐지 (부정 거래)</td><td></td><td></td><td></td></tr>
+            <tr><td>학교 급식 알레르기 경고 (알레르기 유발 식품)</td><td></td><td></td><td></td></tr>
+          </tbody>
+        </table></div></li>
+      <li>임계값 실험기에서 ‘감염병 선별 검사’의 재현율을 1.0으로 만드는 가장 높은 임계값을 찾고, 그때 FP가 몇 명인지 쓰세요. 이 기준을 실제로 쓴다면 어떤 추가 조치가 필요할까요?
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+      <li>“정확도 99%” 광고를 보았을 때 꼭 물어봐야 할 질문 두 가지를 쓰세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+    </ol>
+  </div>
+</div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  FP·FN 용어는 학생들이 가장 많이 헷갈립니다. 뒤 글자(P/N)는 <b>모델의 예측</b>, 앞 글자(T/F)는 <b>예측이 맞았는지</b>라고 풀어 주면 좋습니다.
+  스프레드시트 학급은 COUNTIFS로 네 칸을 세어 지표를 계산하게 하고, Orange 학급은 <b>Test and Score → Confusion Matrix</b> 위젯에서 칸을 클릭해 틀린 데이터를 확인합니다.
+  흔한 오개념: “정확도가 높으면 무조건 좋은 모델”, “정밀도와 재현율은 동시에 올릴 수 있다(임계값만 바꾸면)”, “R²도 정확도의 한 종류”.
+  시간 배분: 혼동 행렬·손계산 15분, 임계값 실험기 10분, 파이썬 15분, 토론 10분.
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>혼동 행렬은 실제와 예측을 교차해 TP·FP·FN·TN으로 나눈 표로, 모델이 어떤 식으로 틀렸는지 보여 준다.</li>
+    <li>정확도 = (TP+TN)/전체, 정밀도 = TP/(TP+FP), 재현율 = TP/(TP+FN), F1은 정밀도와 재현율의 조화 평균이다.</li>
+    <li>헛경보가 비싼 문제(스팸 필터)는 정밀도, 놓치는 것이 위험한 문제(감염병 선별)는 재현율이 중요하다.</li>
+    <li>임계값을 낮추면 재현율↑·정밀도↓, 높이면 정밀도↑·재현율↓ — 목적에 맞게 정한다.</li>
+    <li>회귀(MAE·RMSE·R²), 분류(정확도·정밀도·재현율·F1), 군집(SSE·실루엣), 연관(지지도·신뢰도·향상도)은 평가 지표가 다르다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 임계값 실험기 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  // 모델 점수(양성일 확률) — 교육용으로 설계한 40건
+  const POS = [0.95,0.91,0.88,0.83,0.79,0.74,0.68,0.61,0.55,0.47,0.38,0.29];
+  const NEG = [0.72,0.64,0.58,0.52,0.49,0.44,0.41,0.36,0.33,0.31,0.27,0.25,0.22,0.20,0.18,0.16,0.14,0.12,0.11,0.09,0.08,0.07,0.06,0.05,0.04,0.03,0.02,0.01];
+  const DATA = POS.map(s => ({ s, y: 1 })).concat(NEG.map(s => ({ s, y: 0 })));
+  const SCN = {
+    med:  { pos: "감염", neg: "비감염", pp: "예측: 양성", pn: "예측: 음성",
+            legend: "● 빨간 점 = 실제 감염자(12명), ● 파란 점 = 실제 비감염자(28명). 가로 위치는 모델이 계산한 ‘감염 확률’입니다.",
+            note: (m) => `놓친 감염자(FN) <b>${m.fn}명</b>은 검사 후 그대로 생활하며 병을 퍼뜨릴 수 있습니다. 불필요한 재검사(FP)는 <b>${m.fp}명</b>입니다. 선별 검사에서는 재현율을 높이는 쪽(임계값 ↓)이 일반적입니다.` },
+    spam: { pos: "스팸", neg: "정상", pp: "예측: 스팸", pn: "예측: 정상",
+            legend: "● 빨간 점 = 실제 스팸(12통), ● 파란 점 = 실제 정상 메일(28통). 가로 위치는 모델이 계산한 ‘스팸 확률’입니다.",
+            note: (m) => `스팸함으로 잘못 들어간 정상 메일(FP) <b>${m.fp}통</b> — 중요한 연락을 놓칠 수 있습니다. 받은편지함에 남은 스팸(FN)은 <b>${m.fn}통</b>입니다. 스팸 필터는 정밀도를 높이는 쪽(임계값 ↑)이 일반적입니다.` }
+  };
+  const cv = $("th-canvas"), ctx = cv.getContext("2d"), W = cv.width, H = cv.height, PL = 20, PR = 20;
+  const xOf = s => PL + s * (W - PL - PR);
+  const sOf = x => Math.max(0, Math.min(1, (x - PL) / (W - PL - PR)));
+
+  function metrics(t){
+    let tp = 0, fp = 0, fn = 0, tn = 0;
+    DATA.forEach(d => { const p = d.s >= t; if (d.y && p) tp++; else if (d.y) fn++; else if (p) fp++; else tn++; });
+    const acc = (tp + tn) / DATA.length, pre = tp + fp ? tp / (tp + fp) : null, rec = tp / (tp + fn);
+    const f1 = pre !== null && pre + rec > 0 ? 2 * pre * rec / (pre + rec) : 0;
+    return { tp, fp, fn, tn, acc, pre, rec, f1 };
+  }
+
+  // 같은 점수대의 점은 위로 쌓기
+  function layout(){
+    const rows = { 1: [], 0: [] };
+    const placed = [];
+    DATA.slice().sort((a, b) => a.s - b.s).forEach(d => {
+      const x = xOf(d.s); let lvl = 0;
+      while (placed.some(p => p.y === d.y && p.lvl === lvl && Math.abs(p.x - x) < 13)) lvl++;
+      placed.push({ ...d, x, lvl });
+    });
+    return placed;
+  }
+  const PTS = layout();
+
+  function draw(t){
+    ctx.clearRect(0, 0, W, H);
+    const tx = xOf(t);
+    ctx.fillStyle = "#fdf1de"; ctx.fillRect(tx, 0, W - PR - tx, H - 30);
+    ctx.fillStyle = "#b4700a"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "right";
+    ctx.fillText("양성 판정 →", W - PR - 4, 16);
+    ctx.textAlign = "left"; ctx.fillStyle = "#1d6fb8"; ctx.fillText("← 음성 판정", PL + 4, 16);
+    // 두 줄: 위 = 실제 양성, 아래 = 실제 음성
+    const base = { 1: 100, 0: H - 42 };
+    ctx.strokeStyle = "#dde4ec"; ctx.beginPath(); ctx.moveTo(PL, base[1] + 8); ctx.lineTo(W - PR, base[1] + 8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(PL, base[0] + 8); ctx.lineTo(W - PR, base[0] + 8); ctx.stroke();
+    ctx.fillStyle = "#4b5a6b"; ctx.font = "11px sans-serif"; ctx.textAlign = "left";
+    const sc = SCN[$("th-scn").value];
+    ctx.fillText("실제 " + sc.pos, PL, base[1] + 22); ctx.fillText("실제 " + sc.neg, PL, base[0] - 52);
+    PTS.forEach(p => {
+      const y = base[p.y] - p.lvl * 13;
+      const pred = p.s >= t;
+      ctx.beginPath(); ctx.arc(p.x, y, 5.5, 0, Math.PI * 2);
+      ctx.fillStyle = p.y ? "#e4572e" : "#2e86de"; ctx.fill();
+      const wrong = pred !== !!p.y;
+      ctx.lineWidth = wrong ? 2.5 : 1; ctx.strokeStyle = wrong ? "#1e2733" : "#fff"; ctx.stroke();
+    });
+    ctx.strokeStyle = "#d97706"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(tx, 0); ctx.lineTo(tx, H - 26); ctx.stroke();
+    ctx.fillStyle = "#4b5a6b"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+    for (let v = 0; v <= 1.0001; v += 0.1) ctx.fillText(v.toFixed(1), xOf(v), H - 8);
+    ctx.textAlign = "left";
+  }
+
+  function render(){
+    const t = +$("th-slider").value;
+    $("th-val").textContent = t.toFixed(2);
+    const m = metrics(t), sc = SCN[$("th-scn").value];
+    ["tp", "fp", "fn", "tn"].forEach(k => $("c-" + k).textContent = m[k]);
+    const set = (k, v) => { $("m-" + k).textContent = v === null ? "계산 불가" : v.toFixed(3); $("b-" + k).style.width = (v || 0) * 100 + "%"; };
+    set("acc", m.acc); set("pre", m.pre); set("rec", m.rec); set("f1", m.f1);
+    $("th-pp").textContent = sc.pp; $("th-pn").textContent = sc.pn;
+    $("th-ap").textContent = "실제: " + sc.pos; $("th-an").textContent = "실제: " + sc.neg;
+    $("th-legend").textContent = sc.legend + " 테두리가 굵은 점은 잘못 판정된 것입니다.";
+    $("th-note").innerHTML = sc.note(m);
+    draw(t);
+  }
+
+  let dragging = false;
+  const setFromEvent = e => { const r = cv.getBoundingClientRect(); $("th-slider").value = sOf((e.clientX - r.left) * W / r.width).toFixed(2); render(); };
+  cv.addEventListener("pointerdown", e => { dragging = true; cv.setPointerCapture(e.pointerId); setFromEvent(e); });
+  cv.addEventListener("pointermove", e => { if (dragging) setFromEvent(e); });
+  cv.addEventListener("pointerup", () => dragging = false);
+  cv.addEventListener("pointercancel", () => dragging = false);
+  $("th-slider").addEventListener("input", render);
+  $("th-scn").addEventListener("change", render);
+  $("th-best").addEventListener("click", () => {
+    let best = 0, bf = -1;
+    for (let i = 0; i <= 100; i++){ const f = metrics(i / 100).f1; if (f > bf + 1e-12){ bf = f; best = i / 100; } }
+    $("th-slider").value = best; render();
+  });
+  render();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"어떤 모델의 혼동 행렬이 TP 30, FP 20, FN 10, TN 140이다. 재현율은?",
+    choices:["0.60","0.75","0.85","0.875","0.93"], answer:1,
+    explain:"재현율 = TP ÷ (TP + FN) = 30 ÷ 40 = 0.75입니다. 정밀도는 30 ÷ 50 = 0.60, 정확도는 (30 + 140) ÷ 200 = 0.85입니다." },
+  { type:"mc", q:"위 모델의 F1 점수로 가장 가까운 값은?",
+    choices:["0.60","0.667","0.675","0.75","0.85"], answer:1,
+    explain:"F1 = 2 × 0.60 × 0.75 ÷ (0.60 + 0.75) = 0.9 ÷ 1.35 ≈ 0.667입니다. 두 값의 단순 평균(0.675)보다 작은 쪽에 가깝게 나옵니다." },
+  { type:"ox", q:"양성이 전체의 1%뿐인 데이터에서 정확도가 99%인 모델은 양성을 잘 찾아내는 모델이라고 확신할 수 있다.",
+    answer:false, explain:"모두 음성이라고만 답해도 정확도는 99%가 됩니다. 이때 재현율은 0입니다. 불균형 데이터에서는 혼동 행렬과 재현율·정밀도를 함께 확인해야 합니다." },
+  { type:"mc", q:"분류 임계값을 0.5에서 0.2로 낮추었을 때 일반적으로 일어나는 변화는?",
+    choices:["양성 판정이 줄고 재현율이 낮아진다","양성 판정이 늘어 재현율은 높아지고 정밀도는 낮아지는 경향이 있다","정밀도와 재현율이 모두 반드시 높아진다","혼동 행렬이 바뀌지 않는다","정확도가 반드시 1이 된다"], answer:1,
+    explain:"기준이 낮아지면 더 많은 데이터가 양성으로 판정되어 놓치는 양성(FN)은 줄지만 헛경보(FP)는 늘어납니다. 실습에서도 0.5 → 0.3으로 낮추자 재현율 0.611 → 0.778, 정밀도 0.786 → 0.609가 되었습니다." },
+  { type:"short", q:"학교 급식 알레르기 경고 시스템(알레르기 유발 식품을 양성으로 판정)을 만든다면 정밀도와 재현율 중 무엇을 더 중요하게 보겠습니까? FP와 FN의 의미를 들어 설명하세요.",
+    model:"재현율을 더 중요하게 본다. FN은 알레르기 유발 식품인데 안전하다고 판정하는 것으로, 학생의 건강에 심각한 위험을 줄 수 있다. FP는 안전한 식품에 경고를 띄우는 것으로 약간의 불편(다른 메뉴 선택)만 생긴다. 따라서 임계값을 낮춰 FN을 최대한 줄이고, 늘어나는 FP는 영양 선생님이 한 번 더 확인하는 방식으로 보완한다." },
+]);
+</script>
+</body>
+</html>

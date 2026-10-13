@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>데이터 통합과 파생 속성 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* concat vs merge 비교기 */
+.src-tables { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; margin-bottom:12px; }
+.src-tables h5 { margin:0 0 4px; font-size:.8rem; color:var(--ink-soft); }
+.mini { font-size:.76rem; margin:0; }
+.mini th, .mini td { padding:3px 6px; text-align:center; }
+.op-btns { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 10px; }
+.op-btns button { background:#fff; color:var(--accent); border:1.5px solid var(--accent); font-size:.8rem; padding:6px 10px; }
+.op-btns button.on { background:var(--accent); color:#fff; }
+.op-code { font-family:var(--font-mono); font-size:.84rem; background:#212a36; color:#e6edf5; border-radius:8px; padding:8px 12px; margin:6px 0; overflow-x:auto; white-space:pre; }
+.res td.nan { background:#fdeeee; color:var(--no); font-weight:700; }
+.res tr.bad td { background:#fef6e7; }
+.res-shape { font-weight:800; color:var(--accent); font-size:.9rem; }
+.op-msg { margin-top:8px; padding:9px 12px; border-radius:10px; background:var(--accent-soft); font-size:.88rem; }
+.how-row { display:none; gap:6px; align-items:center; font-size:.85rem; font-weight:700; }
+.how-row.show { display:flex; flex-wrap:wrap; }
+</style>
+</head>
+<body data-unit="2" data-lesson="L23">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>데이터 통합과 파생 속성</h1>
+  <span class="std-badge">성취기준 12데과02-03</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>구조가 같은 데이터를 이어 붙이는 방법(concat)과 공통 속성으로 연결하는 방법(merge)을 구분하여 적용할 수 있다.</li>
+      <li>기존 속성을 계산하거나 요약하여 분석에 필요한 파생 속성을 만들 수 있다.</li>
+      <li>집계·통합·파생 속성 만들기를 이어서 수행하고, 통합 과정에서 생긴 결측과 불일치를 점검할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과02-03] 데이터를 분석하기 위해 데이터 속성 간의 관계를 파악하고 통합한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span>수집</span><span class="on">전처리</span><span class="on">탐색</span><span>모델링</span><span>평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  도서부가 “어느 동아리 학생들이 책을 가장 많이 읽을까?”를 조사하려고 합니다. 그런데 자료가 세 곳에 흩어져 있습니다.
+  학생 명단(학번·이름·반·동아리코드), 동아리 목록(동아리코드·동아리명), 그리고 도서관의 월별 독서 기록(학번·월·독서권수) 137줄.
+  독서 기록에는 동아리 정보가 없고, 학생 명단에는 독서량이 없습니다. 게다가 명단은 1반·2반 파일로 나뉘어 있다면?
+  오늘은 흩어진 데이터를 <b>이어 붙이고, 연결하고, 새 속성을 만들어</b> 질문에 답해 봅니다.
+</div>
+
+<h2><span class="sec-no">1</span>이어 붙이기와 연결하기 <i class="pub">삼양</i></h2>
+
+<p>데이터 통합에는 성격이 전혀 다른 두 가지 방법이 있습니다.</p>
+
+<div class="cards">
+  <div class="cardbox"><h4>📚 이어 붙이기 — <code>pd.concat</code></h4><p><b>구조(열)가 같은</b> 데이터를 위아래로 쌓는다. 예: 1반 명단 + 2반 명단, 1월 기록 + 2월 기록. 행 수가 늘어난다.</p></div>
+  <div class="cardbox"><h4>🔗 연결하기 — <code>pd.merge</code></h4><p><b>구조가 다른</b> 데이터를 <b>공통 속성(키)</b>의 값이 같은 행끼리 옆으로 잇는다. 예: 학생 명단 + 독서 기록(학번). 열이 늘어난다.</p></div>
+</div>
+
+<figure>
+<svg viewBox="0 0 640 170" role="img" aria-label="concat과 merge의 모양 비교">
+  <g transform="translate(20,10)">
+    <text x="120" y="12" font-size="13" font-weight="700" text-anchor="middle" fill="#1e2733">concat: 위아래로 쌓기</text>
+    <rect x="30" y="24" width="90" height="40" fill="#e8effe" stroke="#2563eb"/><text x="75" y="49" font-size="12" text-anchor="middle">1반 (15행)</text>
+    <rect x="30" y="70" width="90" height="40" fill="#fef6e7" stroke="#f59e0b"/><text x="75" y="95" font-size="12" text-anchor="middle">2반 (15행)</text>
+    <text x="140" y="72" font-size="20" fill="#8595a6">→</text>
+    <rect x="170" y="24" width="90" height="40" fill="#e8effe" stroke="#2563eb"/><rect x="170" y="64" width="90" height="40" fill="#fef6e7" stroke="#f59e0b"/>
+    <text x="215" y="125" font-size="12" text-anchor="middle" fill="#4b5a6b">30행, 열은 그대로</text>
+  </g>
+  <g transform="translate(330,10)">
+    <text x="140" y="12" font-size="13" font-weight="700" text-anchor="middle" fill="#1e2733">merge: 키로 옆에 잇기</text>
+    <rect x="0" y="24" width="70" height="80" fill="#e8effe" stroke="#2563eb"/><text x="35" y="60" font-size="12" text-anchor="middle">학번</text><text x="35" y="76" font-size="12" text-anchor="middle">이름…</text>
+    <rect x="80" y="24" width="60" height="80" fill="#eafaf0" stroke="#16a34a"/><text x="110" y="60" font-size="12" text-anchor="middle">학번</text><text x="110" y="76" font-size="12" text-anchor="middle">독서</text>
+    <text x="152" y="70" font-size="20" fill="#8595a6">→</text>
+    <rect x="180" y="24" width="70" height="80" fill="#e8effe" stroke="#2563eb"/><rect x="250" y="24" width="40" height="80" fill="#eafaf0" stroke="#16a34a"/>
+    <text x="235" y="125" font-size="12" text-anchor="middle" fill="#4b5a6b">학번이 같은 행끼리, 열이 늘어남</text>
+  </g>
+</svg>
+<figcaption>concat은 같은 구조를 쌓고, merge는 키로 다른 구조를 잇는다.</figcaption>
+</figure>
+
+<p>merge에서 한쪽에만 있는 키를 어떻게 처리할지는 <code>how</code>로 정합니다.
+<code>inner</code>는 양쪽에 모두 있는 키만, <code>left</code>는 왼쪽 표의 모든 행을, <code>outer</code>는 양쪽의 모든 행을 남기고 짝이 없는 칸은 결측(NaN)으로 둡니다.
+(조인 종류는 L07에서 자세히 다루었습니다.)</p>
+
+<h2><span class="sec-no">2</span>concat과 merge 비교기 <i class="pub">삼양</i></h2>
+
+<div class="sim">
+  <div class="sim-head">concat vs merge 비교기 — 결과 표의 모양을 확인하세요</div>
+  <div class="sim-body">
+    <p style="margin-top:0;font-size:.88rem">교재 데이터(school_*.csv)에서 몇 줄만 뽑은 네 개의 표입니다. 독서합계는 일부 학생만 남긴 예시입니다.</p>
+    <div class="src-tables" id="ct-src"></div>
+    <div class="op-btns" id="ct-ops">
+      <button data-op="ab">① concat([A, B])</button>
+      <button data-op="ac">② concat([A, C])</button>
+      <button data-op="ac1">③ concat([A, C], axis=1)</button>
+      <button data-op="mg">④ merge(A, C)</button>
+      <button data-op="all">⑤ A+B 붙이고 → C, D 연결</button>
+    </div>
+    <div class="how-row" id="ct-how">how =
+      <label><input type="radio" name="ct-how" value="inner" checked> inner</label>
+      <label><input type="radio" name="ct-how" value="left"> left</label>
+      <label><input type="radio" name="ct-how" value="right"> right</label>
+      <label><input type="radio" name="ct-how" value="outer"> outer</label>
+    </div>
+    <div class="op-code" id="ct-code"></div>
+    <div class="res-shape" id="ct-shape"></div>
+    <div class="table-wrap"><table class="data res" id="ct-res"></table></div>
+    <div class="op-msg" id="ct-msg"></div>
+    <p class="widget-hint">관찰 포인트: ②와 ③은 코드는 실행되지만 결과가 엉망입니다. 어디가 잘못되었나요? ④에서 how를 바꿀 때 20102번과 20399번 학생은 어떻게 되나요?</p>
+  </div>
+</div>
+
+<h2><span class="sec-no">3</span>파생 속성 만들기 <i class="pub">YBM</i> <i class="pub">씨마스</i></h2>
+
+<p>수집한 속성을 그대로 쓰지 않고, 계산하거나 요약해서 분석에 더 알맞은 새 속성을 만들 수 있습니다.
+이것을 <span class="keyterm">파생 속성(파생 변수, derived attribute)</span>이라고 합니다. 좋은 파생 속성은 분석 결과를 훨씬 명확하게 만들어 줍니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:170px">만드는 방법</th><th>예</th></tr></thead>
+  <tbody>
+    <tr><td><b>여러 속성 더하기</b></td><td>함께 탄 형제자매 수 + 부모 수 + 1(본인) → <b>가족 규모</b>. 따로 볼 때보다 ‘가족 단위 여행’의 특성이 잘 드러난다.</td></tr>
+    <tr><td><b>나누어 비율 만들기</b></td><td>숙소 1박 요금 ÷ 최대 숙박 인원 → <b>1인당 숙박비</b>. 인원이 다른 숙소끼리 공정하게 비교할 수 있다.</td></tr>
+    <tr><td><b>공식 적용</b></td><td>몸무게(kg) ÷ 키(m)² → <b>체질량지수(BMI)</b></td></tr>
+    <tr><td><b>집계(요약)</b></td><td>학생별 월별 독서 기록 → 학생별 <b>독서 합계</b>, <b>기록 개월 수</b>, <b>월평균 독서량</b></td></tr>
+    <tr><td><b>구간 나누기</b></td><td>기온 → ‘추움·선선·따뜻·더움’, 점수 → 등급 (<code>pd.cut</code>)</td></tr>
+    <tr><td><b>날짜 쪼개기</b></td><td>날짜 → 월, 요일, 주말 여부, 계절</td></tr>
+  </tbody>
+</table></div>
+
+<div class="pycell" data-title="파생 속성: 가족 규모와 1인당 숙박비"><textarea>
+import pandas as pd
+
+여행 = pd.DataFrame({
+    "숙소": ["바다펜션", "산장", "시티호텔", "한옥스테이", "캠핑카"],
+    "1박요금": [180000, 240000, 150000, 300000, 90000],
+    "최대인원": [4, 8, 2, 6, 3],
+    "형제자매": [1, 3, 0, 2, 1],
+    "부모": [2, 2, 0, 2, 1],
+})
+여행["가족규모"] = 여행["형제자매"] + 여행["부모"] + 1
+여행["1인당숙박비"] = 여행["1박요금"] / 여행["최대인원"]
+여행["가격대"] = pd.cut(여행["1인당숙박비"], bins=[0, 35000, 60000, 1e9], labels=["저렴", "보통", "비쌈"])
+print(여행.sort_values("1인당숙박비"))
+
+# ✏️ 1박요금만 보면 가장 비싼 숙소는? 1인당숙박비로 보면? 결론이 어떻게 달라지나요?
+</textarea></div>
+
+<p>1박 요금만 보면 한옥스테이(30만 원)가 가장 비싸고 캠핑카(9만 원)가 가장 싸지만, 인원으로 나눈 1인당 숙박비로 보면
+<b>산장과 캠핑카(각 3만 원)</b>가 가장 저렴하고 <b>시티호텔(7만 5천 원)</b>이 가장 비쌉니다. 파생 속성 하나로 결론이 완전히 달라졌습니다.</p>
+
+<h2><span class="sec-no">4</span>집계 → 통합 → 분석, 한 번에 해 보기 <i class="pub">삼양</i></h2>
+
+<p>이제 생각 열기의 질문 “어느 동아리 학생들이 책을 가장 많이 읽을까?”에 답해 봅시다.
+순서는 ① 1·2반 명단 이어 붙이기 → ② 독서 기록을 학생별로 <b>집계</b>해 파생 속성 만들기 → ③ 명단·동아리 목록과 <b>연결</b> → ④ 동아리별 비교입니다.</p>
+
+<div class="pycell" data-title="① 이어 붙이기(concat)"><textarea>
+st = load_csv("school_students.csv")
+반1 = st[st["반"] == 1]          # 반별 파일이 따로 있다고 가정
+반2 = st[st["반"] == 2]
+print("1반", 반1.shape, "/ 2반", 반2.shape)
+
+명단 = pd.concat([반1, 반2], ignore_index=True)
+print("이어 붙인 명단", 명단.shape)
+print(명단.tail(3))
+
+# ✏️ ignore_index=True를 빼면 행 번호(인덱스)가 어떻게 되나요?
+</textarea></div>
+
+<div class="pycell" data-title="② 집계로 파생 속성 만들기(groupby)"><textarea>
+reading = load_csv("school_reading.csv")
+print("독서 기록", reading.shape)
+
+요약 = reading.groupby("학번")["독서권수"].agg(독서합계="sum", 기록개월="count").reset_index()
+요약["월평균"] = (요약["독서합계"] / 요약["기록개월"]).round(2)
+print(요약.head())
+print("기록이 있는 학생 수:", len(요약))
+print("기록 개월 수 분포:", 요약["기록개월"].value_counts().sort_index().to_dict())
+
+# ✏️ 독서합계와 월평균 중 학생끼리 비교하기에 더 공정한 속성은 무엇일까요? 기록 개월 수를 보고 판단하세요.
+</textarea></div>
+
+<p>3~7월 다섯 달의 기록이 모두 있는 학생은 19명이고, 네 달·세 달·한 달만 기록된 학생도 있습니다.
+기록한 달 수가 다르면 <b>합계</b>는 공정한 비교가 아니므로, 기록한 달의 평균인 <b>월평균</b>을 파생 속성으로 만들었습니다.
+(기록이 없는 달을 0권으로 볼지, 기록 누락으로 볼지는 도서관에 확인해야 하는 문제입니다. 빈칸은 0이 아닐 수 있다는 L17의 교훈을 떠올리세요.)</p>
+
+<div class="pycell" data-title="③ 연결(merge)하고 ④ 동아리별로 비교"><textarea>
+import matplotlib.pyplot as plt
+
+clubs = load_csv("school_clubs.csv")
+통합 = 명단.merge(요약, on="학번", how="left").merge(clubs, on="동아리코드", how="left")
+print("통합 결과", 통합.shape)
+
+# 통합 점검: 짝이 맞지 않는 데이터 찾기
+print("명단에 없는 학번의 독서 기록:", sorted(set(요약["학번"]) - set(명단["학번"])))
+print("동아리명이 비어 있는 학생:")
+print(통합.loc[통합["동아리명"].isna(), ["학번", "이름", "동아리코드"]])
+
+동아리별 = 통합.groupby("동아리명")[["독서합계", "월평균"]].mean().round(2).sort_values("월평균", ascending=False)
+동아리별["학생수"] = 통합.groupby("동아리명").size()
+print(동아리별)
+
+plt.barh(동아리별.index[::-1], 동아리별["월평균"][::-1], color="#2563eb")
+plt.xlabel("학생 1인당 월평균 독서량(권)")
+plt.title("동아리별 월평균 독서량")
+plt.show()
+
+# ✏️ how="inner"로 바꾸면 통합 결과가 몇 행이 되나요? 어떤 학생이 빠지나요?
+</textarea></div>
+
+<p>통합 결과는 30행입니다. 점검해 보면 독서 기록에는 명단에 없는 학번 <b>20399</b>가 있어 left 조인에서 빠졌고,
+동아리코드가 비어 있는 학생 2명(20107, 20207)과 존재하지 않는 코드 <b>C9</b>를 가진 학생(20113)은 동아리명이 NaN이 되었습니다.
+<code>groupby</code>는 NaN인 행을 자동으로 빼므로 동아리별 평균은 27명으로 계산됩니다.
+결과를 보면 월평균은 로봇공학반(2.37권)이 독서토론반(2.30권)보다 조금 높고, 환경지킴이는 학생이 1명뿐이라 다른 동아리와 비교하기 어렵습니다.
+이런 사실을 모르고 결과만 보면 ‘전교생 분석’이라고 잘못 말할 수 있습니다. <b>통합 후에는 반드시 행 수와 결측을 점검</b>하세요.</p>
+
+<div class="box box-warn">
+  <span class="box-label">concat은 짝을 맞춰 주지 않는다</span>
+  두 표를 <code>pd.concat([A, B], axis=1)</code>로 옆에 붙이면 <b>행의 순서(위치)</b>대로 붙습니다. 두 표의 정렬 순서가 조금만 달라도
+  다른 학생의 기록이 붙어 버리지만 오류 메시지는 나오지 않습니다. 공통 키가 있다면 옆으로 붙일 때는 항상 <code>merge</code>를 쓰세요.
+</div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  Orange에서는 <b>Concatenate</b>(이어 붙이기)와 <b>Merge Data</b>(연결하기) 위젯, 파생 속성은 <b>Feature Constructor</b> 위젯으로 같은 흐름을 구성할 수 있습니다.
+  스프레드시트에서는 붙여넣기(concat), <code>VLOOKUP</code>/<code>XLOOKUP</code>(merge), 피벗 테이블(groupby)에 해당합니다.
+  이 차시는 확장 차시로, 3학점 반은 L07(조인)과 L22 사이에서 4절 파이썬 셀 ②③만 과제로 제시해도 됩니다.
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">탐구 활동</span>파생 속성 설계하기 <i class="pub">YBM</i></div>
+  <div class="act-body">
+    <p style="margin-top:0">다음 데이터로 질문에 답하려면 어떤 파생 속성이 필요할까요? 계산식과 함께 쓰세요.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th style="width:30%">가진 데이터</th><th style="width:28%">질문</th><th>만들 파생 속성과 계산식</th></tr></thead>
+      <tbody>
+        <tr><td>bike.csv (날짜, 기온, 강수량, 대여량 …)</td><td>주말과 평일 중 언제 더 많이 빌릴까?</td><td></td></tr>
+        <tr><td>지역별 인구 수, 지역별 교통사고 건수</td><td>어느 지역의 교통사고 위험이 가장 높을까?</td><td></td></tr>
+        <tr><td>반별 급식 신청 인원, 실제 먹은 인원</td><td>어느 반의 급식 잔반이 가장 많을까?</td><td></td></tr>
+        <tr><td>학생별 수행평가 4회 점수</td><td>꾸준히 성장한 학생은 누구일까?</td><td></td></tr>
+      </tbody>
+    </table></div>
+    <p><b>생각 더하기</b> — ④번의 파생 속성을 만들 때, 한 번 결시해 점수가 빈 학생은 어떻게 처리해야 할까요?</p>
+    <div class="write-lines"><div class="line"></div><div class="line"></div></div>
+  </div>
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>구조가 같은 데이터는 <code>concat</code>으로 위아래로 이어 붙이고, 구조가 다른 데이터는 공통 키로 <code>merge</code>해 옆으로 연결한다.</li>
+    <li>옆으로 붙일 때 concat은 위치로 붙어 짝이 어긋날 수 있으므로, 키가 있으면 merge를 쓴다.</li>
+    <li>파생 속성은 더하기·나누기·공식·집계·구간·날짜 쪼개기로 만들며, 비율(1인당·월평균)은 크기가 다른 대상을 공정하게 비교하게 해 준다.</li>
+    <li>통합 후에는 행 수, 결측, 짝이 없는 키를 점검하고 분석 대상에서 빠진 데이터를 밝힌다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- concat vs merge 비교기 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const NA = null;
+  const A = { name:"A (1반 명단)", cols:["학번","이름","동아리코드"], rows:[[20101,"김민준","C5"],[20102,"이서연","C5"],[20103,"박도윤","C2"]] };
+  const B = { name:"B (2반 명단)", cols:["학번","이름","동아리코드"], rows:[[20201,"황지우","C2"],[20202,"안선우","C1"]] };
+  const C = { name:"C (독서합계)", cols:["학번","독서합계"], rows:[[20101,10],[20103,7],[20201,10],[20399,4]] };
+  const D = { name:"D (동아리)", cols:["동아리코드","동아리명"], rows:[["C1","데이터탐구반"],["C2","로봇공학반"],["C5","독서토론반"]] };
+
+  const cell = v => v === NA ? `<td class="nan">NaN</td>` : `<td>${v}</td>`;
+  function tableHTML(t, badRows){
+    return `<thead><tr><th></th>${t.cols.map(c => `<th>${c}</th>`).join("")}</tr></thead><tbody>` +
+      t.rows.map((r, i) => `<tr class="${badRows && badRows.includes(i) ? "bad" : ""}"><td>${i}</td>${r.map(cell).join("")}</tr>`).join("") + `</tbody>`;
+  }
+  $("ct-src").innerHTML = [A, B, C, D].map(t => `<div><h5>${t.name}</h5><table class="data mini">${tableHTML(t).replace(/<th><\/th>/, "<th>#</th>")}</table></div>`).join("");
+
+  function concatRows(t1, t2){
+    const cols = [...t1.cols]; t2.cols.forEach(c => { if (!cols.includes(c)) cols.push(c); });
+    const pick = (t, r) => cols.map(c => { const j = t.cols.indexOf(c); return j < 0 ? NA : r[j]; });
+    return { cols, rows:[...t1.rows.map(r => pick(t1, r)), ...t2.rows.map(r => pick(t2, r))] };
+  }
+  function concatCols(t1, t2){
+    const n = Math.max(t1.rows.length, t2.rows.length);
+    const rows = [];
+    for (let i = 0; i < n; i++) rows.push([...(t1.rows[i] || t1.cols.map(() => NA)), ...(t2.rows[i] || t2.cols.map(() => NA))]);
+    return { cols:[...t1.cols, ...t2.cols], rows };
+  }
+  function merge(t1, t2, key, how){
+    const k1 = t1.cols.indexOf(key), k2 = t2.cols.indexOf(key);
+    const rest2 = t2.cols.map((c, j) => j).filter(j => j !== k2);
+    const cols = [...t1.cols, ...rest2.map(j => t2.cols[j])];
+    const rows = [], used = new Set();
+    const emptyR = rest2.map(() => NA);
+    if (how === "right") {
+      t2.rows.forEach(r2 => {
+        const m = t1.rows.filter(r1 => r1[k1] === r2[k2]);
+        if (m.length) m.forEach(r1 => rows.push([...r1, ...rest2.map(j => r2[j])]));
+        else { const r1 = t1.cols.map(() => NA); r1[k1] = r2[k2]; rows.push([...r1, ...rest2.map(j => r2[j])]); }
+      });
+      return { cols, rows };
+    }
+    t1.rows.forEach(r1 => {
+      const m = t2.rows.filter(r2 => r2[k2] === r1[k1] && r1[k1] !== NA);
+      m.forEach(r2 => used.add(r2));
+      if (m.length) m.forEach(r2 => rows.push([...r1, ...rest2.map(j => r2[j])]));
+      else if (how !== "inner") rows.push([...r1, ...emptyR]);
+    });
+    if (how === "outer") {
+      t2.rows.filter(r2 => !used.has(r2)).forEach(r2 => { const r1 = t1.cols.map(() => NA); r1[k1] = r2[k2]; rows.push([...r1, ...rest2.map(j => r2[j])]); });
+      rows.sort((a, b) => String(a[k1]).localeCompare(String(b[k1])));
+    }
+    return { cols, rows };
+  }
+
+  let op = "ab";
+  function render(){
+    const how = document.querySelector('input[name="ct-how"]:checked').value;
+    $("ct-how").classList.toggle("show", op === "mg");
+    $("ct-ops").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.op === op));
+    let res, code, msg, bad = [];
+    if (op === "ab") {
+      res = concatRows(A, B); code = "pd.concat([A, B], ignore_index=True)";
+      msg = "✔ 열 구조가 같은 두 명단을 위아래로 쌓았습니다. 3행 + 2행 = 5행, 열은 그대로 3개입니다. concat의 올바른 사용 예입니다.";
+    } else if (op === "ac") {
+      res = concatRows(A, C); code = "pd.concat([A, C], ignore_index=True)";
+      msg = "✘ 구조가 다른 표를 위아래로 쌓으니 열이 합쳐지고(학번·이름·동아리코드·독서합계) 빈칸(NaN)이 가득합니다. 같은 학생(20101, 20103)이 두 줄로 나뉘어 버렸습니다. 구조가 다르면 concat이 아니라 merge입니다.";
+    } else if (op === "ac1") {
+      res = concatCols(A, C); code = "pd.concat([A, C], axis=1)";
+      res.rows.forEach((r, i) => { if (r[0] !== r[3]) bad.push(i); });
+      msg = "✘ axis=1은 행 번호(위치) 순서대로 옆에 붙입니다. 노란 줄을 보세요. 이서연(20102) 옆에 박도윤(20103)의 독서합계가, 박도윤 옆에 20201의 기록이 붙었습니다. 오류 메시지 없이 틀린 결과가 나오는 가장 위험한 실수입니다.";
+    } else if (op === "mg") {
+      res = merge(A, C, "학번", how); code = `pd.merge(A, C, on="학번", how="${how}")`;
+      msg = {
+        inner: "양쪽 모두에 있는 학번(20101, 20103)만 남아 2행입니다. 독서 기록이 없는 20102와 명단에 없는 20201·20399가 모두 빠졌습니다.",
+        left: "왼쪽(A 명단)의 3명이 모두 남고, 독서 기록이 없는 20102의 독서합계는 NaN입니다. ‘명단 기준 분석’에 알맞습니다.",
+        right: "오른쪽(C 독서 기록)의 4행이 모두 남습니다. 1반 명단에 없는 20201·20399는 이름·동아리코드가 NaN입니다.",
+        outer: "양쪽의 모든 학번이 남아 5행입니다. 짝이 없는 칸은 모두 NaN이므로, 어떤 데이터가 서로 맞지 않는지 점검할 때 유용합니다.",
+      }[how];
+    } else {
+      const ab = concatRows(A, B), abc = merge(ab, C, "학번", "left");
+      res = merge(abc, D, "동아리코드", "left");
+      code = 'AB = pd.concat([A, B], ignore_index=True)\nAB.merge(C, on="학번", how="left").merge(D, on="동아리코드", how="left")';
+      msg = "✔ 이어 붙이기(concat)와 연결하기(merge)를 알맞게 조합했습니다. 5명 모두 남았고, 독서 기록이 없는 20102·20202는 NaN입니다. 이제 동아리명으로 groupby하면 동아리별 독서량을 비교할 수 있습니다. (C의 20399는 명단에 없어 빠졌습니다.)";
+    }
+    $("ct-code").textContent = code;
+    $("ct-shape").textContent = `결과: ${res.rows.length}행 × ${res.cols.length}열`;
+    $("ct-res").innerHTML = tableHTML(res, bad);
+    $("ct-msg").textContent = msg;
+  }
+  $("ct-ops").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; op = b.dataset.op; render(); });
+  $("ct-how").addEventListener("change", render);
+  render();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"1월 판매 기록(날짜·상품·수량)과 2월 판매 기록(날짜·상품·수량)을 하나의 표로 만들려고 한다. 가장 알맞은 방법은?",
+    choices:["pd.merge(1월, 2월, on=\"상품\")","pd.concat([1월, 2월], axis=1)","pd.concat([1월, 2월])","1월.groupby(\"상품\")","pd.merge(1월, 2월, how=\"outer\")"], answer:2,
+    explain:"두 표는 열 구조가 같으므로 위아래로 이어 붙이는 concat이 알맞습니다. 상품으로 merge하면 같은 상품의 1월·2월 기록이 모든 조합으로 짝지어져 행이 뻥튀기됩니다." },
+  { type:"ox", q:"키가 같은 두 표를 pd.concat([A, B], axis=1)로 옆에 붙이면, pandas가 자동으로 같은 학번끼리 짝을 맞춰 준다.",
+    answer:false, explain:"concat은 행 인덱스(위치) 기준으로 붙일 뿐, 학번 같은 열의 값을 보고 짝을 맞추지 않습니다. 키로 짝을 맞추려면 merge를 써야 합니다." },
+  { type:"mc", q:"숙소 A는 1박 24만 원·최대 8명, 숙소 B는 1박 15만 원·최대 2명이다. 파생 속성 ‘1인당 숙박비’로 비교한 결과로 옳은 것은?",
+    choices:["A 3만 원, B 7만 5천 원 — A가 1인당 더 저렴하다","A 3만 원, B 7만 5천 원 — B가 1인당 더 저렴하다","A 24만 원, B 15만 원 — B가 더 저렴하다","A 12만 원, B 7만 5천 원 — B가 더 저렴하다","두 숙소의 1인당 숙박비는 같다"], answer:0,
+    explain:"A는 240000 ÷ 8 = 30000원, B는 150000 ÷ 2 = 75000원입니다. 1박 요금은 A가 비싸지만 1인당으로는 A가 훨씬 저렴합니다." },
+  { type:"mc", q:"학생 명단(30명)과 독서 기록 요약(31명, 명단에 없는 학번 1개 포함)을 학번으로 merge(how=\"left\", 명단이 왼쪽)했을 때 결과의 행 수는? (학번은 중복 없음)",
+    choices:["29행","30행","31행","32행","61행"], answer:1,
+    explain:"left 조인은 왼쪽 표(명단 30명)의 모든 행을 그대로 남깁니다. 명단에 없는 학번의 독서 기록은 버려지므로 30행입니다. outer였다면 31행이 됩니다." },
+  { type:"short", q:"월별 독서 기록에서 학생마다 기록이 있는 달의 수가 다르다(1~5개월). 학생들의 독서량을 비교하는 파생 속성으로 ‘독서합계’와 ‘월평균’ 중 무엇이 더 알맞은지 쓰고, 그 파생 속성의 한계도 한 가지 쓰세요.",
+    model:"기록한 달의 수가 다르면 합계는 기록이 많은 학생에게 유리하므로, 독서합계 ÷ 기록 개월 수인 월평균이 더 공정하다. 한계: 기록이 없는 달이 실제로 0권을 읽은 것이라면 월평균은 독서량을 과대평가하게 된다. 또 1개월만 기록된 학생의 월평균은 우연의 영향을 크게 받으므로 기록 개월 수를 함께 표시해야 한다." },
+]);
+</script>
+</body>
+</html>

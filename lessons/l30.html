@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>다중 회귀와 변수 선택 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 변수 선택 실험실 */
+.vs-grid { display:grid; grid-template-columns:minmax(220px,.8fr) 1.2fr; gap:18px; }
+@media (max-width:760px){ .vs-grid { grid-template-columns:1fr; } }
+.vs-vars { display:flex; flex-direction:column; gap:7px; }
+.vs-vars label { display:flex; justify-content:space-between; gap:8px; align-items:center; background:var(--paper); border:1.5px solid var(--line); border-radius:10px; padding:8px 12px; font-weight:700; font-size:.9rem; cursor:pointer; }
+.vs-vars label.on { border-color:var(--accent); background:var(--accent-soft); }
+.vs-vars label small { font-weight:600; color:var(--ink-faint); font-size:.76rem; }
+.vs-eq { font-size:.92rem; font-weight:700; background:#212a36; color:#e6edf5; border-radius:10px; padding:10px 12px; margin-bottom:10px; line-height:1.6; word-break:keep-all; }
+.vs-meter { margin:8px 0; }
+.vs-meter .t { display:flex; justify-content:space-between; font-size:.86rem; font-weight:700; }
+.vs-meter .bar { height:14px; background:var(--paper); border:1px solid var(--line); border-radius:999px; overflow:hidden; margin-top:3px; position:relative; }
+.vs-meter .bar i { display:block; height:100%; border-radius:999px; transition:width .3s; }
+.vs-meter .bar b { position:absolute; top:-2px; bottom:-2px; width:2px; background:#1e2733; }
+.vs-note { margin-top:10px; font-size:.86rem; padding:9px 12px; border-radius:10px; background:var(--accent-soft); font-weight:600; }
+.vs-best { font-size:.8rem; color:var(--ink-faint); margin-top:6px; }
+</style>
+</head>
+<body data-unit="3" data-lesson="L30">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>다중 회귀와 변수 선택</h1>
+  <span class="std-badge">성취기준 12데과03-02</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>독립 변수가 여러 개인 다중 회귀 모델을 만들고, 각 계수를 ‘다른 변수가 같을 때’의 변화로 해석할 수 있다.</li>
+      <li>상관계수·조정 결정계수·테스트 성능을 근거로 알맞은 독립 변수를 선택할 수 있다.</li>
+      <li>다항 회귀와 로그 변환으로 곡선 관계를 선형 회귀 틀 안에서 다룰 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과03-02] 동일한 데이터를 통계적 회귀 모델과 기계학습을 통한 회귀 모델로 분석하여 결과 해석 내용을 비교한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span>수집</span><span>전처리</span><span>탐색</span><span class="on">모델링</span><span class="on">평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  “공부시간만 알면 성적을 맞힐 수 있을까?” 지난 차시들에서 공부시간 하나로 만든 회귀 모델은 성적의 흩어짐 중 절반 남짓만 설명했습니다.
+  같은 시간을 공부해도 잠을 푹 잔 친구와 새벽까지 스마트폰을 본 친구의 성적은 다를 것 같습니다.
+  그렇다면 수면시간, 스마트폰 사용 시간까지 <b>한꺼번에</b> 넣으면 더 잘 설명할 수 있을까요? 변수는 많이 넣을수록 좋은 걸까요?
+</div>
+
+<h2><span class="sec-no">1</span>독립 변수가 여러 개인 회귀 <i class="pub-c">공통</i></h2>
+
+<p>독립 변수가 두 개 이상인 선형 회귀를 <span class="keyterm">다중 선형 회귀(multiple linear regression)</span>라고 합니다.</p>
+
+<span class="formula">ŷ = b + w₁x₁ + w₂x₂ + … + wₖxₖ
+<small>계수 w₁, w₂, …와 절편 b는 단순 회귀와 똑같이 오차 제곱합(MSE)이 가장 작아지도록 정합니다. 최소제곱 해를 바로 계산할 수도, 경사 하강법으로 반복해서 찾을 수도 있습니다.</small></span>
+
+<p>독립 변수가 하나일 때는 산점도 위의 <b>직선</b>이었지만, 두 개이면 3차원 공간의 <b>평면</b>, 그 이상이면 눈으로 그릴 수 없는 ‘초평면’이 됩니다.
+그래도 계산 원리는 같습니다. <code>study.csv</code>로 직접 만들어 봅시다. 이번 차시에서는 120명 중 90명을 훈련, 30명을 테스트 데이터로 나눕니다.</p>
+
+<div class="pycell" data-title="① 공부시간 하나 vs 네 변수 모두"><textarea>
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+
+df = load_csv("study.csv")
+features = ["공부시간", "수면시간", "스마트폰시간", "결석일수"]
+train, test = train_test_split(df, test_size=0.25, random_state=7)
+
+for cols in [["공부시간"], features]:
+    m = LinearRegression().fit(train[cols], train["성적"])
+    print(f"[{' + '.join(cols)}]")
+    for c, w in zip(cols, m.coef_):
+        print(f"   {c:7s} 계수 {w:6.2f}")
+    print(f"   절편 {m.intercept_:.2f}")
+    print(f"   훈련 R² {m.score(train[cols], train['성적']):.3f} / 테스트 R² {m.score(test[cols], test['성적']):.3f}\n")
+
+# ✏️ random_state를 1, 2, 3으로 바꾸어 테스트 R²가 얼마나 흔들리는지 보세요. 테스트 데이터가 30명뿐일 때 생기는 일입니다.
+</textarea></div>
+
+<h2><span class="sec-no">2</span>계수 해석: “다른 변수가 같다면” <i class="pub">씨마스</i></h2>
+
+<p>네 변수를 모두 넣은 모델의 식은 다음과 같습니다(셀 ①의 결과).</p>
+
+<span class="formula">성적 = 41.68 + 7.38×공부시간 + 2.61×수면시간 − 2.33×스마트폰시간 − 1.53×결석일수</span>
+
+<p>다중 회귀의 계수는 <b>다른 독립 변수들의 값이 같다고 할 때</b>, 그 변수가 1만큼 클 때 종속 변수가 평균적으로 얼마나 다른지를 나타냅니다.</p>
+<ul>
+  <li><b>공부시간 7.38</b>: 수면·스마트폰·결석이 같은 학생끼리 비교하면, 공부시간이 1시간 많은 학생의 성적이 평균 약 7.4점 높다.</li>
+  <li><b>스마트폰시간 −2.33</b>: 다른 조건이 같다면 스마트폰을 하루 1시간 더 쓰는 학생의 성적이 평균 약 2.3점 낮다.</li>
+  <li>계수의 부호(+/−)는 관계의 방향, 크기는 <b>단위가 같을 때만</b> 서로 비교할 수 있습니다. ‘시간’과 ‘일’처럼 단위가 다르면 계수 크기만으로 어느 변수가 더 중요한지 말할 수 없습니다.</li>
+</ul>
+
+<div class="box box-warn">
+  <span class="box-label">해석할 때 주의할 점</span>
+  공부시간 하나만 넣었을 때의 계수(7.24)와 네 변수를 넣었을 때의 계수(7.38)는 조금 다릅니다. 함께 넣은 변수가 달라지면 ‘같다고 두는 조건’이 달라지기 때문입니다.
+  또한 계수는 관찰된 경향일 뿐 “스마트폰을 1시간 줄이면 반드시 2.3점 오른다”는 인과를 뜻하지 않습니다.
+</div>
+
+<h2><span class="sec-no">3</span>어떤 변수를 넣을까: 변수 선택 <i class="pub">YBM</i> <i class="pub">삼양</i></h2>
+
+<p>변수를 많이 넣는다고 무조건 좋은 모델이 되지는 않습니다. 변수를 고를 때 다음 기준을 함께 봅니다.</p>
+<ol>
+  <li><b>종속 변수와의 상관</b>: 먼저 상관계수로 관계가 있을 만한 변수를 추립니다(예: |r|이 0.2 이상). 다만 혼자서는 약해도 다른 변수와 함께 넣으면 도움이 되는 경우도 있으니 최종 판단은 모델로 확인합니다.</li>
+  <li><b>독립 변수끼리의 상관(다중공선성)</b>: ‘기온’과 ‘체감 온도’처럼 서로 거의 같은 정보를 가진 변수(|r| ≥ 0.8~0.9)를 함께 넣으면 계수가 불안정해지고 해석이 어려워집니다. 둘 중 하나만 남깁니다.</li>
+  <li><b>조정 결정계수</b>: 훈련 R²는 변수를 추가하기만 하면 (쓸모없는 변수라도) 조금씩 커집니다. <span class="keyterm">조정 결정계수(adjusted R²)</span>는 변수 개수만큼 벌점을 주어, 도움이 안 되는 변수를 넣으면 오히려 작아집니다.</li>
+  <li><b>테스트 성능</b>: 기계학습 관점에서는 처음 보는 데이터에 대한 R²(또는 RMSE)가 가장 중요한 기준입니다.</li>
+</ol>
+
+<span class="formula">조정 R² = 1 − (1 − R²) × (n − 1) ÷ (n − k − 1)
+<small>n은 데이터 수, k는 독립 변수 개수입니다. 예) n = 90, k = 1, R² = 0.568이면 1 − 0.432 × 89 ÷ 88 ≈ 0.563</small></span>
+
+<div class="sim">
+  <div class="sim-head">변수 선택 실험실 — study.csv 90명 학습 · 30명 테스트</div>
+  <div class="sim-body">
+    <div class="vs-grid">
+      <div>
+        <div class="vs-vars" id="vs-vars"></div>
+        <div class="vs-best" id="vs-best"></div>
+      </div>
+      <div>
+        <div class="vs-eq" id="vs-eq"></div>
+        <div class="vs-meter"><div class="t"><span>훈련 R²</span><span id="m-tr"></span></div><div class="bar"><i id="b-tr" style="background:#3a7bd5"></i></div></div>
+        <div class="vs-meter"><div class="t"><span>조정 R² (훈련)</span><span id="m-adj"></span></div><div class="bar"><i id="b-adj" style="background:#6d4fc4"></i></div></div>
+        <div class="vs-meter"><div class="t"><span>테스트 R² (처음 보는 30명)</span><span id="m-te"></span></div><div class="bar"><i id="b-te" style="background:var(--accent)"></i></div></div>
+        <div class="vs-note" id="vs-note"></div>
+      </div>
+    </div>
+    <p class="widget-hint">실험: ① 공부시간만 → 공부시간+결석일수로 바꾸면 훈련 R²와 조정 R²는 각각 어떻게 되나요? ② 결석일수 하나만 넣어 보고, 네 변수 모두일 때 결석일수를 빼 보세요. 혼자서는 쓸모없어 보이는 변수가 함께 있을 때는 어떤가요?</p>
+  </div>
+</div>
+
+<div class="pycell" data-title="② 변수 조합 15가지를 모두 비교하기"><textarea>
+from itertools import combinations
+
+rows = []
+n = len(train)
+for k in range(1, 5):
+    for cols in combinations(features, k):
+        cols = list(cols)
+        m = LinearRegression().fit(train[cols], train["성적"])
+        r2 = m.score(train[cols], train["성적"])
+        adj = 1 - (1 - r2) * (n - 1) / (n - k - 1)
+        rows.append([" + ".join(cols), k, round(r2, 3), round(adj, 3), round(m.score(test[cols], test["성적"]), 3)])
+
+table = pd.DataFrame(rows, columns=["변수 조합", "개수", "훈련R²", "조정R²", "테스트R²"])
+print(table.sort_values("조정R²", ascending=False).to_string(index=False))
+
+# ✏️ 테스트R² 기준으로 정렬하면 순서가 어떻게 바뀌나요? (sort_values("테스트R²", ...))
+</textarea></div>
+
+<p>조정 R²가 가장 높은 조합은 <b>네 변수 모두</b>(조정 R² 0.742, 테스트 R² 0.832)이고, 그다음이 결석일수를 뺀 세 변수(0.717, 0.768)입니다.
+결석일수 하나만으로는 조정 R²가 −0.010으로 쓸모가 없지만, 다른 변수와 함께 넣으면 성능이 올라갑니다.
+결석일수가 스마트폰시간과 약한 음의 상관(r ≈ −0.21)이 있어, 함께 넣었을 때 각자의 영향을 더 정확히 가려 주기 때문입니다.
+이처럼 <b>변수 하나하나의 상관만 보고 버리면 안 되며, 조합을 모델로 확인해야</b> 합니다.</p>
+
+<h2><span class="sec-no">4</span>곡선 관계 다루기 ①: 다항 회귀 <i class="pub">삼양</i></h2>
+
+<p>L29에서 기온 하나로 자전거 대여량을 예측했을 때 테스트 R²는 0.435에 그쳤습니다. 산점도가 ‘너무 더우면 다시 줄어드는’ 곡선이었기 때문입니다.
+이럴 때는 <b>기온²</b>이라는 새 변수를 만들어 넣습니다. 식은 곡선(포물선)이지만 계수를 구하는 방법은 다중 선형 회귀와 똑같습니다. 이것을 <span class="keyterm">다항 회귀</span>라고 합니다.</p>
+
+<span class="formula">대여량 = b + w₁×기온 + w₂×기온²
+<small>w₂가 음수이면 위로 볼록한 포물선이 되어, 적당한 기온에서 대여량이 가장 많아집니다.</small></span>
+
+<div class="pycell" data-title="③ 기온² 넣기와 변수 추가: 자전거 대여량"><textarea>
+import matplotlib.pyplot as plt
+
+bike = load_csv("bike.csv")
+bike["기온2"] = bike["기온"] ** 2                 # 파생 변수: 기온의 제곱
+btr, bte = train_test_split(bike, test_size=0.2, random_state=42)   # L29와 같은 분할
+
+models = {"직선: 기온": ["기온"],
+          "곡선: 기온+기온²": ["기온", "기온2"],
+          "곡선+날씨·휴일": ["기온", "기온2", "강수량", "휴일"]}
+for name, cols in models.items():
+    m = LinearRegression().fit(btr[cols], btr["대여량"])
+    print(f"{name:15s} 훈련 R² {m.score(btr[cols], btr['대여량']):.3f}  테스트 R² {m.score(bte[cols], bte['대여량']):.3f}")
+
+poly = LinearRegression().fit(btr[["기온", "기온2"]], btr["대여량"])
+w1, w2 = poly.coef_
+print(f"\n곡선 식: 대여량 = {poly.intercept_:.1f} + {w1:.2f}×기온 {w2:+.2f}×기온²")
+print(f"대여량이 가장 많은 기온 ≈ {-w1 / (2 * w2):.1f}℃")
+
+xs = np.linspace(-9, 35, 100)
+plt.figure(figsize=(7, 4))
+plt.scatter(bike["기온"], bike["대여량"], s=8, alpha=0.35)
+plt.plot(xs, poly.intercept_ + w1 * xs + w2 * xs ** 2, color="#e8883a", linewidth=2.5, label="기온 + 기온²")
+plt.xlabel("기온(℃)"); plt.ylabel("대여량"); plt.legend(); plt.title("다항 회귀로 곡선 관계 잡기")
+plt.show()
+
+# ✏️ "습도", "풍속"도 넣어 보세요. 테스트 R²가 계속 오르나요?
+</textarea></div>
+
+<p>기온² 하나를 추가했을 뿐인데 테스트 R²가 <b>0.435 → 0.744</b>로 크게 올랐고, 강수량과 휴일을 더하면 <b>0.835</b>가 됩니다.
+곡선 식에 따르면 대여량은 약 <b>16.2℃</b>에서 가장 많습니다. 4월·10월에 대여량이 많았던 이유가 설명되지요.</p>
+
+<h2><span class="sec-no">5</span>곡선 관계 다루기 ②: 로그 변환 <i class="pub">YBM</i></h2>
+
+<p>어떤 데이터는 일정한 <b>비율</b>로 불어납니다. 예를 들어 새로 나온 앱의 누적 가입자 수가 매달 약 20%씩 늘면, 산점도는 점점 가팔라지는 곡선이 됩니다.
+이런 데이터에 <span class="keyterm">로그 변환</span>(y 대신 log y를 쓰는 것)을 하면 곱셈으로 불어나던 관계가 덧셈 관계, 곧 <b>직선</b>으로 바뀌어 선형 회귀를 쓸 수 있습니다.</p>
+
+<div class="pycell" data-title="④ 로그 변환으로 곡선을 직선으로"><textarea>
+rng = np.random.default_rng(42)
+month = np.arange(1, 25)                                   # 1~24개월
+users = 500 * 1.2 ** month * rng.normal(1, 0.08, 24)      # 매달 약 20%씩 증가 (가상 데이터)
+app = pd.DataFrame({"개월": month, "가입자": users.round()})
+
+X = app[["개월"]]
+raw = LinearRegression().fit(X, app["가입자"])
+logm = LinearRegression().fit(X, np.log(app["가입자"]))
+print(f"원래 값에 직선 회귀   R² {raw.score(X, app['가입자']):.3f}")
+print(f"log(가입자)에 직선 회귀 R² {logm.score(X, np.log(app['가입자'])):.3f}")
+print(f"log 기울기 {logm.coef_[0]:.3f} → 한 달에 약 {np.exp(logm.coef_[0]) - 1:.1%}씩 증가")
+
+fig, ax = plt.subplots(1, 2, figsize=(10, 3.5))
+ax[0].scatter(month, app["가입자"], s=15); ax[0].set_title("원래 값: 곡선")
+ax[1].scatter(month, np.log(app["가입자"]), s=15, color="#e8883a"); ax[1].set_title("로그 변환: 직선")
+plt.show()
+
+# ✏️ 1.2를 1.05로 바꾸면(증가율 5%) 원래 값에 직선 회귀를 해도 R²가 높게 나오나요? 왜 그럴까요?
+</textarea></div>
+
+<p>로그 변환한 모델의 기울기를 다시 지수로 되돌리면 ‘한 달에 몇 % 증가’라는 알기 쉬운 해석을 얻습니다. 가격, 인구, 감염자 수, 소득처럼 <b>비율로 변하는 데이터</b>에 자주 씁니다.</p>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">모둠 활동</span>우리 모둠의 최고 회귀 모델 만들기</div>
+  <div class="act-body">
+    <ol>
+      <li>셀 ③의 <code>models</code>에 모둠이 생각한 변수 조합을 두 개 이상 추가하고 결과를 기록하세요. (사용 가능: 기온, 기온2, 습도, 풍속, 강수량, 휴일, 월)
+        <div class="table-wrap"><table>
+          <thead><tr><th>변수 조합</th><th>훈련 R²</th><th>테스트 R²</th><th>이 변수를 넣은 이유</th></tr></thead>
+          <tbody><tr><td>&nbsp;</td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td></tr></tbody>
+        </table></div></li>
+      <li>‘월’을 숫자 1~12 그대로 넣는 것이 알맞을까요? 12월과 1월의 관계를 생각해 이유를 쓰세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+      <li>모둠이 고른 최종 모델의 식을 쓰고, 계수 하나를 ‘다른 변수가 같다면’ 형식으로 해석하세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+    </ol>
+  </div>
+</div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  확장 차시로, 다중 회귀의 계수 해석(2절)과 변수 선택 실험실(3절)을 중심으로 운영하고 4·5절은 시간에 따라 선택합니다.
+  흔한 오개념: ① “변수를 많이 넣을수록 좋다”(훈련 R²만 오름), ② “상관이 약한 변수는 항상 버린다”, ③ “계수가 큰 변수가 더 중요하다”(단위 차이). 변수 선택 실험실로 ①②를, 2절의 단위 이야기로 ③을 다루세요.
+  Orange에서는 Select Columns로 변수를 바꿔 가며 Linear Regression → Test and Score의 R²를 비교하면 같은 활동이 되고, 다항 회귀는 Feature Constructor로 ‘기온*기온’ 열을 만들어 넣으면 됩니다.
+  30명짜리 테스트 데이터는 분할에 따라 R²가 크게 흔들리므로(셀 ①의 ✏️), 이를 L39의 교차 검증으로 연결할 수 있습니다.
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>다중 회귀는 여러 독립 변수로 종속 변수를 설명하며, 각 계수는 ‘다른 변수가 같을 때’ 그 변수가 1 클 때의 평균적 변화이다.</li>
+    <li>변수 선택은 종속 변수와의 상관, 독립 변수끼리의 상관(다중공선성), 조정 R², 테스트 성능을 함께 보고 판단한다.</li>
+    <li>훈련 R²는 변수를 늘리면 항상 커지므로, 조정 R²나 테스트 R²로 비교한다.</li>
+    <li>곡선 관계는 제곱항을 넣은 다항 회귀나 로그 변환으로 선형 회귀의 틀 안에서 다룰 수 있다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 변수 선택 실험실 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const F = ["공부시간", "수면시간", "스마트폰시간", "결석일수"];
+  const R_WITH_Y = [0.755, 0.294, -0.320, -0.071];     // 전체 120명에서 성적과의 상관계수
+  // study.csv, train_test_split(test_size=0.25, random_state=7)로 미리 계산한 값
+  // 키: 네 변수 포함 여부(1/0) → [훈련 R², 조정 R², 테스트 R², 계수들, 절편]
+  const D = {"1000":[0.568,0.563,0.561,[7.24,null,null,null],49.38],"0100":[0.057,0.046,0.121,[null,2.41,null,null],48.9],"0010":[0.089,0.079,0.123,[null,null,-1.75,null],70.47],"0001":[0.001,-0.01,-0.021,[null,null,null,0.32],64.31],"1100":[0.605,0.596,0.605,[7.13,1.96,null,null],36.72],"1010":[0.669,0.661,0.715,[7.32,null,-1.86,null],55.3],"1001":[0.571,0.561,0.584,[7.3,null,null,-0.48],49.92],"0110":[0.169,0.15,0.266,[null,2.89,-1.99,null],52.24],"0101":[0.057,0.036,0.109,[null,2.4,null,0.2],48.71],"0011":[0.091,0.07,0.148,[null,null,-1.82,-0.38],71.22],"1110":[0.727,0.717,0.768,[7.18,2.46,-2.06,null],40.09],"1101":[0.609,0.596,0.63,[7.2,2.0,null,-0.57],37.15],"1011":[0.689,0.678,0.78,[7.49,null,-2.09,-1.31],57.48],"0111":[0.174,0.145,0.305,[null,2.96,-2.1,-0.65],53.05],"1111":[0.754,0.742,0.832,[7.38,2.61,-2.33,-1.53],41.68]};
+  const sel = [true, false, false, false];
+  let prevKey = null;
+
+  $("vs-vars").innerHTML = F.map((f, i) =>
+    `<label id="vl${i}"><span><input type="checkbox" data-i="${i}"${sel[i] ? " checked" : ""}> ${f}</span><small>성적과 r = ${R_WITH_Y[i].toFixed(3)}</small></label>`).join("");
+
+  // 조정 R² 기준 최고 조합
+  const bestKey = Object.keys(D).reduce((a, b) => D[b][1] > D[a][1] ? b : a);
+  const bestName = F.filter((f, i) => bestKey[i] === "1").join(" + ");
+  $("vs-best").textContent = `참고: 조정 R²가 가장 높은 조합은 ‘${bestName}’입니다. 직접 찾아보세요!`;
+
+  function setBar(id, v){ $(id).style.width = Math.max(0, v) * 100 + "%"; }
+  function render(){
+    F.forEach((f, i) => $("vl" + i).classList.toggle("on", sel[i]));
+    const key = sel.map(s => s ? "1" : "0").join("");
+    const note = $("vs-note");
+    if (key === "0000"){
+      $("vs-eq").textContent = "성적 = 훈련 데이터의 평균 점수 (평균 모델 — 독립 변수 없음)";
+      ["m-tr","m-adj","m-te"].forEach(id => $(id).textContent = "0");
+      ["b-tr","b-adj","b-te"].forEach(id => setBar(id, 0));
+      note.textContent = "변수를 하나도 넣지 않으면 모든 학생을 평균으로 예측하는 평균 모델이 되고, R²는 기준점인 0입니다(훈련 데이터 기준).";
+      prevKey = key; return;
+    }
+    const [tr, adj, te, coef, b0] = D[key];
+    let eq = `성적 = ${b0.toFixed(2)}`;
+    coef.forEach((c, i) => { if (c !== null) eq += ` ${c >= 0 ? "+" : "−"} ${Math.abs(c).toFixed(2)}×${F[i]}`; });
+    $("vs-eq").textContent = eq;
+    $("m-tr").textContent = tr.toFixed(3); $("m-adj").textContent = adj.toFixed(3); $("m-te").textContent = te.toFixed(3);
+    setBar("b-tr", tr); setBar("b-adj", adj); setBar("b-te", te);
+    let msg = "";
+    if (prevKey && prevKey !== "0000" && D[prevKey]){
+      const p = D[prevKey], added = key.split("").filter((c, i) => c === "1" && prevKey[i] === "0").length > 0;
+      const dTr = tr - p[0], dAdj = adj - p[1], dTe = te - p[2];
+      msg = `${added ? "변수를 추가" : "변수를 제거"}했더니 훈련 R² ${dTr >= 0 ? "+" : ""}${dTr.toFixed(3)}, 조정 R² ${dAdj >= 0 ? "+" : ""}${dAdj.toFixed(3)}, 테스트 R² ${dTe >= 0 ? "+" : ""}${dTe.toFixed(3)}. `;
+      if (added && dTr >= 0 && dAdj < 0) msg += "훈련 R²는 올랐지만 조정 R²는 떨어졌어요 — 추가한 변수가 별 도움이 안 된다는 신호입니다.";
+      else if (added && dAdj > 0 && dTe > 0) msg += "조정 R²와 테스트 R²가 모두 올랐어요 — 넣을 가치가 있는 변수입니다.";
+      else if (!added && dAdj > 0) msg += "변수를 뺐는데 조정 R²가 올랐어요 — 빠진 변수는 설명에 거의 도움이 되지 않았습니다.";
+      else if (!added) msg += "변수를 빼니 성능이 떨어졌어요 — 빠진 변수가 설명에 기여하고 있었습니다.";
+    } else {
+      msg = "변수를 하나씩 넣고 빼며 세 막대의 변화를 비교해 보세요.";
+    }
+    if (key === "0001") msg += " 결석일수 하나만으로는 성적을 거의 설명하지 못합니다(조정 R² < 0).";
+    note.textContent = msg;
+    prevKey = key;
+  }
+  document.querySelectorAll("#vs-vars input").forEach(cb => cb.addEventListener("change", () => { sel[+cb.dataset.i] = cb.checked; render(); }));
+  render();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"회귀식 ‘몸무게 = −60 + 0.7×키 + 0.02×하루 칼로리 섭취량’에서 키의 계수 0.7에 대한 해석으로 옳은 것은?",
+    choices:["키가 1cm 크면 몸무게가 반드시 0.7kg 늘어난다","칼로리 섭취량이 같은 사람끼리 비교하면, 키가 1cm 큰 사람의 몸무게가 평균 0.7kg 많다","키는 칼로리 섭취량보다 35배 중요하다","키가 0이면 몸무게는 0.7kg이다","키와 몸무게는 음의 관계이다"], answer:1,
+    explain:"다중 회귀의 계수는 다른 독립 변수가 같을 때의 평균적 차이입니다. 단위가 다르므로 계수 크기(0.7과 0.02)만으로 중요도를 비교할 수 없고, 인과도 보장하지 않습니다." },
+  { type:"mc", q:"데이터 100개(n = 100)로 독립 변수 4개(k = 4)인 모델을 만들었더니 R² = 0.62였다. 조정 R²에 가장 가까운 값은?",
+    choices:["0.58","0.60","0.62","0.64","0.66"], answer:1,
+    explain:"조정 R² = 1 − (1 − 0.62) × (100 − 1) ÷ (100 − 4 − 1) = 1 − 0.38 × 99 ÷ 95 ≈ 1 − 0.396 = 0.604입니다. 변수 개수만큼 벌점을 받아 R²보다 조금 작습니다." },
+  { type:"ox", q:"훈련 데이터로 계산한 R²는 아무 의미 없는 변수를 추가해도 줄어들지 않는다.",
+    answer:true, explain:"최소제곱 모델은 새 변수의 계수를 0으로 두면 원래 모델과 같아지므로 훈련 R²가 줄어들 수 없습니다. 그래서 변수 선택에는 조정 R²나 테스트 성능을 씁니다." },
+  { type:"mc", q:"기온과 아이스크림 판매량이 ‘너무 추워도, 너무 더워도 줄어드는’ 관계일 때 알맞은 방법은?",
+    choices:["독립 변수를 모두 삭제한다","기온² 항을 추가한 다항 회귀를 쓴다","판매량의 평균만 예측한다","기온을 범주형으로 바꾸어 연관 분석을 한다","상관계수만 계산하면 충분하다"], answer:1,
+    explain:"위로 볼록한 곡선 관계는 기온²을 새 변수로 넣은 다항 회귀로 표현할 수 있습니다. 계수는 여전히 최소제곱법으로 구합니다." },
+  { type:"short", q:"‘기온(℃)’과 ‘체감 온도(℃)’의 상관계수가 0.97이다. 두 변수를 모두 다중 회귀의 독립 변수로 넣을 때 생길 수 있는 문제와 해결 방법을 쓰세요.",
+    model:"두 변수가 거의 같은 정보를 담고 있어 다중공선성 문제가 생긴다. 모델이 두 변수의 영향을 구분하지 못해 계수가 불안정해지고(데이터가 조금만 바뀌어도 크게 변하거나 부호가 바뀜) 해석이 어려워진다. 둘 중 하나만 남기거나, 두 변수를 합친 하나의 변수로 바꾸어 사용한다." },
+]);
+</script>
+</body>
+</html>

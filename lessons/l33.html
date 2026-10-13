@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>k-평균 군집 분석 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* k-평균 단계 실행기 */
+#km-canvas { width:100%; height:auto; background:#fbfcfd; border:1px solid var(--line); cursor:crosshair; touch-action:manipulation; }
+.km-msg { margin-top:10px; padding:9px 14px; border-radius:10px; background:var(--tip-bg); border:1px solid #cbe4f7; font-size:.88rem; font-weight:600; color:#1d4f7a; min-height:2.6em; }
+.km-msg.done { background:#eafaf0; border-color:#ace8c4; color:#127a3c; }
+.km-log { font-size:.8rem; color:var(--ink-soft); margin-top:8px; }
+.km-log span { display:inline-block; background:var(--paper); border:1px solid var(--line); border-radius:7px; padding:1px 8px; margin:2px 3px 2px 0; }
+.km-log span.best { border-color:#ace8c4; background:#eafaf0; color:#127a3c; font-weight:700; }
+.step-table td, .step-table th { text-align:center; }
+.persona { display:grid; grid-template-columns:1fr 1fr; gap:0; border:1.5px solid var(--line); border-radius:10px; overflow:hidden; margin:8px 0; }
+.persona > div { padding:8px 12px; font-size:.86rem; min-height:64px; }
+.persona > div:nth-child(odd) { background:var(--paper); border-right:1px solid var(--line); font-weight:700; }
+.persona > div:nth-child(n+3) { border-top:1px solid var(--line); }
+@media (max-width:600px){ .persona { grid-template-columns:1fr; } .persona > div:nth-child(odd){ border-right:none; } }
+</style>
+</head>
+<body data-unit="3" data-lesson="L33">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>k-평균 군집 분석</h1>
+  <span class="std-badge">성취기준 12데과03-03</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>거리를 이용해 유사한 데이터끼리 묶는 k-평균 알고리즘의 절차를 설명하고 손으로 따라 할 수 있다.</li>
+      <li>단위가 다른 속성을 표준화한 뒤 k-평균 군집 분석을 수행할 수 있다.</li>
+      <li>군집별 특징을 요약하여 각 군집의 의미를 해석하고 이름을 붙일 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과03-03] 데이터의 속성에 대한 유사성을 측정하고 분석하여 군집을 형성하고, 군집 분석 결과의 의미를 해석한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span>수집</span><span class="on">전처리</span><span>탐색</span><span class="on">모델링</span><span class="on">평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  동네 문구점 사장님이 회원 200명에게 할인 쿠폰을 보내려고 합니다. 모두에게 같은 쿠폰을 보내면
+  자주 오는 학생에게는 필요 없는 할인이 되고, 오랜만에 오는 손님에게는 관심 없는 상품 쿠폰이 될 수 있습니다.
+  “비슷한 손님끼리 몇 무리로 나누어 무리마다 다른 쿠폰을 보내면 어떨까?”
+  그런데 회원 명단에는 <b>‘이 손님은 A형 손님’</b> 같은 정답이 적혀 있지 않습니다.
+  정답 없이 데이터만 보고 무리를 나누는 방법, 오늘 배울 <b>k-평균 군집 분석</b>입니다.
+</div>
+
+<h2><span class="sec-no">1</span>군집 분석: 정답 없이 무리 짓기 <i class="pub-c">공통</i></h2>
+
+<p><span class="keyterm">군집 분석(clustering)</span>은 속성이 비슷한 데이터끼리 같은 무리(<span class="keyterm">군집</span>)로 묶는 분석입니다.
+미리 정해진 정답(레이블)이 없으므로 <b>비지도 학습</b>에 속합니다. 좋은 군집은 두 가지 조건을 만족합니다.</p>
+<div class="cards">
+  <div class="cardbox"><h4>군집 내 유사성 ↑</h4><p>같은 군집 안의 데이터끼리는 서로 <b>가까워야</b> 합니다.</p></div>
+  <div class="cardbox"><h4>군집 간 상이성 ↑</h4><p>서로 다른 군집은 <b>멀리 떨어져</b> 있어야 합니다.</p></div>
+</div>
+
+<p>‘비슷하다’를 숫자로 재는 가장 흔한 방법은 <span class="keyterm">유클리드 거리</span>입니다.
+두 데이터를 좌표평면의 점으로 보고, 두 점 사이의 직선 거리를 구합니다.</p>
+<span class="formula">d(P, Q) = √[(x₁ − x₂)² + (y₁ − y₂)²]
+<small>속성이 3개 이상이면 각 속성 차이의 제곱을 모두 더한 뒤 제곱근을 씌웁니다.</small></span>
+
+<div class="box box-warn">
+  <span class="box-label">분류와 헷갈리지 마세요</span>
+  <b>분류</b>는 ‘사과/배/귤’처럼 정답이 붙은 데이터로 배운 뒤 새 데이터의 정답을 맞히는 <b>지도 학습</b>입니다(L37).
+  <b>군집</b>은 정답 없이 데이터가 스스로 모이는 구조를 찾습니다. 그래서 군집에는 이름이 없고, 이름은 분석가가 해석해서 붙입니다.
+</div>
+
+<h2><span class="sec-no">2</span>k-평균 알고리즘의 절차 <i class="pub-c">공통</i></h2>
+
+<p><span class="keyterm">k-평균(k-means)</span>은 데이터를 k개의 군집으로 나누는 가장 대표적인 방법입니다.
+각 군집은 <span class="keyterm">중심점(centroid)</span> 하나로 대표되고, 중심점은 그 군집에 속한 점들의 <b>평균 위치</b>입니다. 그래서 이름이 ‘k-평균’입니다.</p>
+
+<ol>
+  <li><b>k 정하기</b> — 몇 개의 군집으로 나눌지 분석가가 정합니다.</li>
+  <li><b>초기 중심 놓기</b> — 중심점 k개를 임의의 위치(보통 데이터 중 무작위 k개)에 놓습니다.</li>
+  <li><b>할당</b> — 모든 점을 가장 가까운 중심점의 군집에 배정합니다.</li>
+  <li><b>갱신</b> — 각 군집에 속한 점들의 평균 위치로 중심점을 옮깁니다.</li>
+  <li><b>반복</b> — 할당 결과가 더 이상 바뀌지 않을 때까지 3~4를 반복합니다(수렴).</li>
+</ol>
+
+<h3>손으로 따라 하기 (k = 2)</h3>
+<p>점 6개 A(1, 1), B(2, 1), C(1, 2), D(6, 5), E(7, 5), F(6, 6)을 두 군집으로 나눕니다.
+일부러 서로 가까운 A와 B를 초기 중심으로 골라 보겠습니다.</p>
+
+<div class="table-wrap"><table class="step-table">
+  <thead><tr><th>단계</th><th>중심 ①</th><th>중심 ②</th><th>군집 ①</th><th>군집 ②</th></tr></thead>
+  <tbody>
+    <tr><td>초기</td><td>(1, 1)</td><td>(2, 1)</td><td>—</td><td>—</td></tr>
+    <tr><td>1회 할당</td><td>(1, 1)</td><td>(2, 1)</td><td>A, C</td><td>B, D, E, F</td></tr>
+    <tr><td>1회 갱신</td><td>(1, 1.5)</td><td>(5.25, 4.25)</td><td>A, C</td><td>B, D, E, F</td></tr>
+    <tr><td>2회 할당</td><td>(1, 1.5)</td><td>(5.25, 4.25)</td><td>A, B, C</td><td>D, E, F</td></tr>
+    <tr><td>2회 갱신</td><td>(1.33, 1.33)</td><td>(6.33, 5.33)</td><td>A, B, C</td><td>D, E, F</td></tr>
+    <tr><td>3회 할당</td><td colspan="4">변화 없음 → <b>수렴, 종료</b></td></tr>
+  </tbody>
+</table></div>
+
+<ul>
+  <li>1회 할당: C(1, 2)는 중심 ①까지 1, 중심 ②까지 √2 ≈ 1.41이라 ①로 갑니다. D·E·F는 ②가 더 가깝습니다(예: D는 ①까지 √41 ≈ 6.40, ②까지 √32 ≈ 5.66).</li>
+  <li>1회 갱신: 중심 ② = ((2+6+7+6)/4, (1+5+5+6)/4) = (5.25, 4.25). 멀리 있는 점들에 끌려 크게 이동합니다.</li>
+  <li>2회 할당: B(2, 1)는 중심 ①까지 √(1² + 0.5²) ≈ 1.12, 중심 ②까지 √(3.25² + 3.25²) ≈ 4.60이므로 군집 ①로 옮겨 갑니다.</li>
+  <li>2회 갱신: 중심 ① = (4/3, 4/3) ≈ (1.33, 1.33), 중심 ② = (19/3, 16/3) ≈ (6.33, 5.33).</li>
+</ul>
+
+<details class="reveal"><summary>생각해 보기: 초기 중심을 A와 D로 골랐다면 몇 번 만에 끝날까요? (정답 확인)</summary>
+<div class="reveal-body">
+첫 할당에서 바로 {A, B, C}와 {D, E, F}로 나뉘고, 갱신 후 다시 할당해도 바뀌지 않으므로 <b>2회 할당</b>(1회 갱신) 만에 끝납니다.
+초기 중심을 어디에 두느냐에 따라 반복 횟수가 달라지고, 데이터에 따라서는 <b>최종 결과 자체가 달라지기도</b> 합니다.
+</div></details>
+
+<h2><span class="sec-no">3</span>k-평균 단계 실행기 <i class="pub-c">공통</i></h2>
+
+<div class="sim">
+  <div class="sim-head">k-평균 단계 실행기 — 할당과 갱신을 한 단계씩</div>
+  <div class="sim-body">
+    <div class="sim-controls">
+      <label>k <select id="km-k"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select></label>
+      <button id="km-new" class="gray">🎲 새 데이터</button>
+      <button id="km-clear" class="gray">🧹 모두 지우기</button>
+      <button id="km-init" class="ghost">📍 중심 무작위 배치</button>
+      <button id="km-assign">① 할당</button>
+      <button id="km-update">② 중심 이동</button>
+      <button id="km-auto" class="ghost">▶ 끝까지 자동</button>
+    </div>
+    <canvas id="km-canvas" width="640" height="400"></canvas>
+    <div class="sim-stats">
+      <div class="stat-chip">점 개수 <b id="km-n">0</b></div>
+      <div class="stat-chip">반복(갱신) 횟수 <b id="km-iter">0</b></div>
+      <div class="stat-chip">군집 내 제곱합(SSE) <b id="km-sse">—</b></div>
+    </div>
+    <div class="km-msg" id="km-msg"></div>
+    <div class="km-log" id="km-log"></div>
+    <p class="widget-hint">빈 곳을 클릭하면 점이 추가됩니다. 같은 데이터에서 ‘중심 무작위 배치’를 여러 번 해 보며 최종 SSE가 달라지는지 기록을 비교해 보세요. SSE가 작을수록 군집이 촘촘합니다.</p>
+  </div>
+</div>
+
+<div class="box box-tip">
+  <span class="box-label">초기값에 민감하다</span>
+  k-평균은 시작 위치에 따라 <b>나쁜 결과에 갇힐 수</b> 있습니다(예: 큰 무리 하나를 두 중심이 나눠 갖고, 떨어진 두 무리를 한 중심이 떠안는 경우).
+  그래서 실제로는 시작 위치를 여러 번 바꿔 실행한 뒤 SSE가 가장 작은 결과를 고릅니다. scikit-learn의 <code>n_init</code>이 바로 ‘몇 번 다시 시작할지’이고,
+  <code>random_state</code>는 무작위 시작을 고정해 누가 실행해도 같은 결과가 나오게 합니다.
+</div>
+
+<h2><span class="sec-no">4</span>파이썬으로 고객 군집 만들기 — 표준화가 먼저 <i class="pub-c">공통</i></h2>
+
+<p><code>customers.csv</code>는 가상의 문구점 회원 200명의 나이, 연소득(만원), 월방문수, 소비점수(1~100) 데이터입니다.
+먼저 속성들의 크기(단위)를 비교해 봅시다.</p>
+
+<div class="pycell" data-title="고객 데이터 살펴보기"><textarea>
+import pandas as pd
+import matplotlib.pyplot as plt
+
+df = load_csv("customers.csv")
+print(df.head())
+print(df[["나이", "연소득", "월방문수", "소비점수"]].describe().round(1))
+
+plt.scatter(df["연소득"], df["소비점수"], s=15)
+plt.xlabel("연소득(만원)"); plt.ylabel("소비점수"); plt.title("회원 200명")
+plt.show()
+
+# ✏️ x축을 "나이"로 바꾸어 그려 보세요. 어떤 무리가 보이나요?
+</textarea></div>
+
+<p>연소득의 표준편차는 약 <b>2229</b>, 소비점수의 표준편차는 약 <b>26.4</b>입니다. 연소득이 약 84배 넓게 퍼져 있습니다.
+이대로 거리를 재면 어떻게 될까요? 소득이 1000만원 차이 나는 것과 소비점수가 1000점 차이 나는 것(불가능!)을 똑같이 취급하게 됩니다.</p>
+
+<div class="pycell" data-title="표준화 없이 vs 표준화 후 k-평균"><textarea>
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+
+X = df[["연소득", "소비점수"]]
+
+# (1) 원래 단위 그대로
+km_raw = KMeans(n_clusters=5, n_init=10, random_state=0).fit(X)
+df["군집_원본"] = km_raw.labels_
+print("[표준화 없이] 군집별 범위")
+print(df.groupby("군집_원본")[["연소득", "소비점수"]].agg(["min", "max"]))
+
+# (2) 표준화(평균 0, 표준편차 1) 후
+X_s = StandardScaler().fit_transform(X)
+km = KMeans(n_clusters=5, n_init=10, random_state=0).fit(X_s)
+df["군집"] = km.labels_
+print("[표준화 후] 군집별 범위")
+print(df.groupby("군집")[["연소득", "소비점수"]].agg(["min", "max"]))
+
+fig, ax = plt.subplots(1, 2, figsize=(10, 4))
+ax[0].scatter(df["연소득"], df["소비점수"], c=df["군집_원본"], cmap="tab10", s=15)
+ax[0].set_title("표준화 없이"); ax[0].set_xlabel("연소득"); ax[0].set_ylabel("소비점수")
+ax[1].scatter(df["연소득"], df["소비점수"], c=df["군집"], cmap="tab10", s=15)
+ax[1].set_title("표준화 후"); ax[1].set_xlabel("연소득")
+plt.show()
+
+# ✏️ StandardScaler 대신 MinMaxScaler(정규화)를 써도 비슷한 군집이 나오는지 확인해 보세요.
+</textarea></div>
+
+<p>표준화 없이 나눈 결과를 보면, 다섯 군집이 연소득 구간(1500~2920, 2960~4330, 4410~6120, 6210~7730, 7780~9370)으로만 잘려 있고
+각 군집 안의 소비점수는 7~92점, 11~98점처럼 거의 전 범위에 퍼져 있습니다. <b>소비점수는 거리 계산에서 사실상 무시</b>된 것입니다.
+표준화 후에는 ‘소득 낮고 소비점수 높은 무리’, ‘소득 높고 소비점수 낮은 무리’처럼 두 속성이 모두 반영된 군집이 나타납니다.</p>
+
+<div class="box box-warn">
+  <span class="box-label">거리 기반 분석은 표준화부터</span>
+  k-평균처럼 거리를 재는 방법은 <b>숫자 범위가 큰 속성이 결과를 독차지</b>합니다. 단위가 다른 속성을 함께 쓸 때는
+  L19에서 배운 표준화(Z-점수)나 정규화(최소-최대)를 먼저 해야 모든 속성이 공평하게 거리에 반영됩니다.
+</div>
+
+<p>이제 네 속성을 모두 표준화해 5개 군집을 만들고, 시작 위치에 따라 결과가 어떻게 달라지는지도 확인해 봅시다.</p>
+
+<div class="pycell" data-title="네 속성으로 군집 만들고 해석하기"><textarea>
+cols = ["나이", "연소득", "월방문수", "소비점수"]
+X4 = StandardScaler().fit_transform(df[cols])
+
+# 시작 위치를 한 번만 뽑으면? (init="random", n_init=1)
+for s in range(10):
+    km1 = KMeans(n_clusters=5, init="random", n_init=1, random_state=s).fit(X4)
+    print("시작", s, "→ SSE", round(km1.inertia_, 1))
+
+# 10번 시작해 가장 좋은 결과 선택
+km5 = KMeans(n_clusters=5, n_init=10, random_state=0).fit(X4)
+print("n_init=10 → SSE", round(km5.inertia_, 1))
+
+df["군집4"] = km5.labels_
+print(df.groupby("군집4")[cols].mean().round(1))      # 군집별 평균(원래 단위)
+print(df["군집4"].value_counts().sort_index())
+
+# ✏️ n_clusters를 4로 바꾸면 어떤 두 군집이 합쳐지나요?
+</textarea></div>
+
+<p>시작 위치를 한 번만 뽑았을 때 10번 중 9번은 SSE가 <b>122.1</b>이었지만, 시작 3에서는 <b>220.8</b>로 훨씬 나쁜 결과에 갇혔습니다.
+<code>n_init=10</code>으로 여러 번 시작하면 가장 좋은 122.1을 얻습니다. 군집별 평균(원래 단위)은 다음과 같습니다.</p>
+
+<div class="table-wrap"><table class="data" style="max-width:640px">
+  <thead><tr><th>군집</th><th>인원</th><th>나이</th><th>연소득</th><th>월방문수</th><th>소비점수</th></tr></thead>
+  <tbody>
+    <tr><td>0</td><td>50</td><td>37.7</td><td>5288</td><td>4.7</td><td>50.0</td></tr>
+    <tr><td>1</td><td>44</td><td>25.0</td><td>3304</td><td>8.5</td><td>76.0</td></tr>
+    <tr><td>2</td><td>32</td><td>53.5</td><td>2860</td><td>1.6</td><td>20.1</td></tr>
+    <tr><td>3</td><td>36</td><td>28.9</td><td>8301</td><td>7.6</td><td>84.1</td></tr>
+    <tr><td>4</td><td>38</td><td>44.8</td><td>7659</td><td>2.5</td><td>22.6</td></tr>
+  </tbody>
+</table></div>
+<p style="font-size:.88rem;color:var(--ink-soft)">군집 번호(0~4)는 알고리즘이 임의로 붙인 것으로, 번호 자체에는 순서나 의미가 없습니다.</p>
+
+<h3>군집에 이름 붙이기 <i class="pub">천재</i> <i class="pub">YBM</i></h3>
+<p>군집 분석의 마지막 단계는 <b>해석</b>입니다. 전체 평균(나이 37.2, 연소득 5456, 월방문수 5.1, 소비점수 51.9)과 비교해
+각 군집이 두드러지는 속성을 찾고, 그 특징을 담은 이름과 활용 방안을 붙입니다. 예를 들어 군집 3은 ‘젊고 소득이 높으며 자주 와서 많이 쓰는’ 무리이므로
+<b>‘VIP 단골’</b>이라 부르고 신상품 먼저 알림을 보낼 수 있습니다. 한 사람의 가상 인물(<span class="keyterm">페르소나</span>)로 그려 보면 전략이 더 구체적이 됩니다.</p>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">모둠 활동</span>군집 해석 카드 만들기 <i class="pub">천재</i> <i class="pub">YBM</i></div>
+  <div class="act-body">
+    <ol>
+      <li>위 표에서 군집 하나를 골라 왼쪽 칸의 질문에 답하세요. (모둠마다 서로 다른 군집을 맡습니다.)
+        <div class="persona">
+          <div>관측된 특징<br><small>(전체 평균보다 높은/낮은 속성)</small></div><div></div>
+          <div>군집 이름</div><div></div>
+          <div>페르소나 한 줄<br><small>(예: “27세 대학생 ○○ 씨는…”)</small></div><div></div>
+          <div>쿠폰·마케팅 제안</div><div></div>
+        </div></li>
+      <li>군집 0처럼 모든 속성이 평균에 가까운 군집은 어떤 이름을 붙이기 어렵습니다. 이런 군집을 어떻게 활용할 수 있을지 모둠 의견을 적어 보세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+      <li>군집 이름은 데이터가 정해 주지 않고 분석가가 붙입니다. 같은 군집에 ‘알뜰족’과 ‘구두쇠’ 중 어떤 이름을 붙이느냐에 따라 달라질 수 있는 점을 토의하세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+    </ol>
+  </div>
+</div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  도입은 위젯 없이 칠판에 점 6개를 찍고 학생 두 명이 ‘중심점’이 되어 손으로 할당·갱신을 해 보면 절차가 오래 기억됩니다(10분).
+  Orange를 쓰는 학급은 <b>Paint Data → Normalize(Preprocess) → k-Means → Scatter Plot</b> 순으로 같은 활동을 할 수 있습니다.
+  흔한 오개념: ① “k-평균이 k도 알아서 정해 준다”(k는 분석가가 정하며, 정하는 방법은 다음 차시), ② “군집 번호 0이 가장 좋은 군집이다”(번호는 임의),
+  ③ “표준화는 선택 사항이다”(거리 기반 분석에서는 사실상 필수). 시간 배분: 개념·손계산 15분, 위젯 10분, 파이썬 15분, 해석 활동 10분.
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>군집 분석은 정답 없이 유사한 데이터끼리 묶는 비지도 학습이며, 군집 내 유사성과 군집 간 상이성이 클수록 좋다.</li>
+    <li>k-평균은 k 정하기 → 초기 중심 → 할당 → 중심 갱신(평균) → 변화가 없을 때까지 반복하는 알고리즘이다.</li>
+    <li>초기 중심에 따라 결과가 달라질 수 있어 여러 번 시작해(n_init) SSE가 가장 작은 결과를 고르고, random_state로 재현성을 확보한다.</li>
+    <li>거리를 쓰므로 단위가 다른 속성은 반드시 표준화·정규화한 뒤 군집을 만든다.</li>
+    <li>군집 번호에는 의미가 없고, 군집별 평균을 비교해 분석가가 이름과 활용 방안을 붙인다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- k-평균 단계 실행기 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const cv = $("km-canvas"), ctx = cv.getContext("2d");
+  const W = cv.width, H = cv.height, PAD = 24;
+  const COLORS = ["#e4572e", "#2e86de", "#17a55a", "#9b59b6", "#e0a100", "#16a2b8"];
+  let pts = [], cents = [], trails = [], iter = 0, phase = "empty", timer = null, runs = [];
+
+  const toPx = (x, y) => [PAD + x / 100 * (W - 2 * PAD), H - PAD - y / 100 * (H - 2 * PAD)];
+  const toData = (px, py) => [(px - PAD) / (W - 2 * PAD) * 100, (H - PAD - py) / (H - 2 * PAD) * 100];
+  const d2 = (a, b) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
+  function randn(){ let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+  const clamp = v => Math.max(2, Math.min(98, v));
+
+  function msg(t, done){ const m = $("km-msg"); m.textContent = t; m.className = "km-msg" + (done ? " done" : ""); }
+  function stop(){ if (timer){ clearInterval(timer); timer = null; $("km-auto").textContent = "▶ 끝까지 자동"; } }
+
+  function newData(){
+    stop();
+    const spots = [[22,28],[72,22],[28,76],[76,74],[50,50],[50,15],[15,52]];
+    spots.sort(() => Math.random() - 0.5);
+    const nBlob = 3 + Math.floor(Math.random() * 3);   // 3~5개 무리
+    pts = [];
+    for (let b = 0; b < nBlob; b++){
+      const [cx, cy] = spots[b], sd = 5 + Math.random() * 4, n = 10 + Math.floor(Math.random() * 8);
+      for (let i = 0; i < n; i++) pts.push({ x: clamp(cx + randn() * sd), y: clamp(cy + randn() * sd), c: -1 });
+    }
+    resetCenters(); runs = []; renderLog();
+    msg("새 데이터를 만들었습니다. k를 고르고 ‘중심 무작위 배치’를 누르세요.");
+  }
+  function resetCenters(){ cents = []; trails = []; iter = 0; phase = pts.length ? "data" : "empty"; pts.forEach(p => p.c = -1); draw(); }
+
+  function initCenters(){
+    stop();
+    const k = +$("km-k").value;
+    if (pts.length < k){ msg(`점이 최소 ${k}개 있어야 합니다. 캔버스를 클릭해 점을 추가하세요.`); return; }
+    const idx = [...pts.keys()].sort(() => Math.random() - 0.5).slice(0, k);
+    cents = idx.map(i => ({ x: pts[i].x, y: pts[i].y }));
+    trails = cents.map(c => [{ x: c.x, y: c.y }]);
+    pts.forEach(p => p.c = -1); iter = 0; phase = "init";
+    msg(`중심 ${k}개를 무작위 데이터 위치에 놓았습니다. ‘① 할당’을 눌러 각 점을 가장 가까운 중심에 배정하세요.`);
+    draw();
+  }
+
+  function assign(){
+    if (!cents.length){ initCenters(); if (!cents.length) return; }
+    let changed = 0;
+    pts.forEach(p => {
+      let best = 0, bd = Infinity;
+      cents.forEach((c, j) => { const d = d2(p, c); if (d < bd){ bd = d; best = j; } });
+      if (p.c !== best){ changed++; p.c = best; }
+    });
+    if (changed === 0 && iter > 0){
+      phase = "done"; stop();
+      const sse = SSE();
+      runs.push(sse); renderLog();
+      msg(`할당이 하나도 바뀌지 않았습니다 → 수렴! 중심 이동 ${iter}번 만에 끝났고 최종 SSE는 ${sse.toFixed(0)}입니다.`, true);
+    } else {
+      phase = "assigned";
+      msg(`${changed}개의 점이 군집을 새로 배정받거나 바꿨습니다. 이제 ‘② 중심 이동’으로 각 중심을 자기 군집의 평균 위치로 옮기세요.`);
+    }
+    draw();
+  }
+
+  function update(){
+    if (phase !== "assigned"){ msg("먼저 ‘① 할당’을 해야 중심을 옮길 수 있습니다."); return; }
+    let moved = 0;
+    cents.forEach((c, j) => {
+      const mem = pts.filter(p => p.c === j);
+      if (!mem.length) return;                      // 빈 군집은 제자리
+      const nx = mem.reduce((s, p) => s + p.x, 0) / mem.length;
+      const ny = mem.reduce((s, p) => s + p.y, 0) / mem.length;
+      moved = Math.max(moved, Math.hypot(nx - c.x, ny - c.y));
+      c.x = nx; c.y = ny; trails[j].push({ x: nx, y: ny });
+    });
+    iter++; phase = "updated";
+    msg(`중심이 평균 위치로 이동했습니다(가장 많이 움직인 거리 ${moved.toFixed(1)}). 다시 ‘① 할당’을 눌러 바뀌는 점이 있는지 확인하세요.`);
+    draw();
+  }
+
+  function SSE(){ return pts.reduce((s, p) => s + (p.c >= 0 ? d2(p, cents[p.c]) : 0), 0); }
+
+  function renderLog(){
+    if (!runs.length){ $("km-log").innerHTML = ""; return; }
+    const min = Math.min(...runs);
+    $("km-log").innerHTML = "이 데이터에서의 시도 기록(최종 SSE): " +
+      runs.map((r, i) => `<span class="${r === min ? "best" : ""}">${i + 1}회 ${r.toFixed(0)}</span>`).join("");
+  }
+
+  function draw(){
+    ctx.clearRect(0, 0, W, H);
+    ctx.strokeStyle = "#eef1f5"; ctx.lineWidth = 1;
+    for (let g = 0; g <= 100; g += 10){
+      let [x1, y1] = toPx(g, 0), [x2, y2] = toPx(g, 100);
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+      [x1, y1] = toPx(0, g); [x2, y2] = toPx(100, g);
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    }
+    if (phase === "assigned"){
+      ctx.lineWidth = 1;
+      pts.forEach(p => { const c = cents[p.c]; const [a, b] = toPx(p.x, p.y), [e, f] = toPx(c.x, c.y);
+        ctx.strokeStyle = COLORS[p.c] + "40"; ctx.beginPath(); ctx.moveTo(a, b); ctx.lineTo(e, f); ctx.stroke(); });
+    }
+    pts.forEach(p => {
+      const [x, y] = toPx(p.x, p.y);
+      ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = p.c >= 0 ? COLORS[p.c] : "#aab4c0"; ctx.fill();
+      ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.2; ctx.stroke();
+    });
+    trails.forEach((tr, j) => {
+      ctx.setLineDash([4, 4]); ctx.strokeStyle = COLORS[j]; ctx.lineWidth = 1.5; ctx.beginPath();
+      tr.forEach((q, i) => { const [x, y] = toPx(q.x, q.y); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+      ctx.stroke(); ctx.setLineDash([]);
+    });
+    cents.forEach((c, j) => {
+      const [x, y] = toPx(c.x, c.y);
+      ctx.fillStyle = COLORS[j]; ctx.strokeStyle = "#1e2733"; ctx.lineWidth = 2.5;
+      ctx.fillRect(x - 8, y - 8, 16, 16); ctx.strokeRect(x - 8, y - 8, 16, 16);
+      ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath();
+      ctx.moveTo(x - 4, y - 4); ctx.lineTo(x + 4, y + 4); ctx.moveTo(x + 4, y - 4); ctx.lineTo(x - 4, y + 4); ctx.stroke();
+    });
+    $("km-n").textContent = pts.length;
+    $("km-iter").textContent = iter;
+    $("km-sse").textContent = pts.some(p => p.c >= 0) ? SSE().toFixed(0) : "—";
+    $("km-assign").disabled = !cents.length || phase === "done";
+    $("km-update").disabled = phase !== "assigned";
+  }
+
+  cv.addEventListener("click", e => {
+    const r = cv.getBoundingClientRect();
+    const [x, y] = toData((e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height);
+    if (x < 0 || x > 100 || y < 0 || y > 100) return;
+    stop();
+    pts.push({ x, y, c: -1 });
+    if (cents.length){ phase = "updated"; msg("점이 추가되었습니다. ‘① 할당’을 눌러 새 점이 어느 군집에 들어가는지 보세요."); }
+    else { phase = "data"; msg(`점 ${pts.length}개. 준비되면 ‘중심 무작위 배치’를 누르세요.`); }
+    draw();
+  });
+  $("km-new").addEventListener("click", newData);
+  $("km-clear").addEventListener("click", () => { stop(); pts = []; runs = []; renderLog(); resetCenters(); msg("캔버스를 클릭해 점을 직접 찍어 보세요."); });
+  $("km-init").addEventListener("click", initCenters);
+  $("km-assign").addEventListener("click", () => { stop(); assign(); });
+  $("km-update").addEventListener("click", () => { stop(); update(); });
+  $("km-k").addEventListener("change", () => { stop(); resetCenters(); msg("k가 바뀌었습니다. ‘중심 무작위 배치’를 다시 누르세요."); });
+  $("km-auto").addEventListener("click", () => {
+    if (timer){ stop(); return; }
+    if (!cents.length || phase === "done") initCenters();
+    if (!cents.length) return;
+    $("km-auto").textContent = "⏸ 멈춤";
+    timer = setInterval(() => {
+      if (phase === "done"){ stop(); return; }
+      if (phase === "assigned") update(); else assign();
+    }, 650);
+  });
+  newData();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"k-평균 알고리즘의 절차를 순서대로 바르게 나열한 것은?",
+    choices:["할당 → k 정하기 → 초기 중심 → 갱신","k 정하기 → 초기 중심 → 할당 → 갱신 → (변화 없을 때까지 반복)","초기 중심 → 갱신 → k 정하기 → 할당","k 정하기 → 갱신 → 할당 → 초기 중심","할당 → 갱신 → 초기 중심 → k 정하기"], answer:1,
+    explain:"k를 정하고 중심을 놓은 뒤, ‘가장 가까운 중심에 할당’과 ‘평균 위치로 중심 갱신’을 할당이 바뀌지 않을 때까지 반복합니다." },
+  { type:"mc", q:"한 군집에 점 (2, 4), (4, 8), (6, 3)이 속해 있다. 갱신 단계에서 이 군집의 새 중심점은?",
+    choices:["(3, 5)","(4, 5)","(4, 8)","(6, 15)","(12, 15)"], answer:1,
+    explain:"중심점은 평균 위치입니다. x = (2+4+6)/3 = 4, y = (4+8+3)/3 = 5 → (4, 5)." },
+  { type:"ox", q:"연소득(만원)과 소비점수(1~100)를 표준화하지 않고 k-평균을 하면, 두 속성이 거리 계산에 비슷한 비중으로 반영된다.",
+    answer:false, explain:"연소득은 숫자 범위가 훨씬 커서 거리를 거의 독차지합니다. 실습에서도 표준화하지 않으면 군집이 연소득 구간으로만 잘렸습니다. 거리 기반 분석은 표준화·정규화를 먼저 해야 합니다." },
+  { type:"mc", q:"k-평균에 대한 설명으로 옳지 않은 것은?",
+    choices:["정답(레이블)이 없는 데이터에 쓰는 비지도 학습이다","초기 중심의 위치에 따라 결과가 달라질 수 있다","n_init을 크게 하면 여러 시작 위치 중 SSE가 가장 작은 결과를 고른다","알고리즘이 군집 수 k를 자동으로 정해 준다","군집 번호 자체에는 순서나 의미가 없다"], answer:3,
+    explain:"k는 분석가가 미리 정합니다. 적당한 k를 고르는 도구(엘보 방법, 실루엣 계수)는 다음 차시에서 배웁니다." },
+  { type:"short", q:"한 군집의 평균이 ‘나이 53세, 연소득 2860만원, 월방문수 1.6회, 소비점수 20’이었다(전체 평균: 37세, 5456만원, 5.1회, 52점). 이 군집에 이름을 붙이고, 문구점이 이 군집에게 할 수 있는 마케팅을 한 가지 제안하세요.",
+    model:"이름 예시: ‘가끔 들르는 장년 실속파’. 나이는 많고 소득·방문수·소비점수가 모두 전체 평균보다 낮으므로 필요한 물건만 가끔 사는 손님으로 해석할 수 있다. 제안: 사무용품·생활용품 등 필수품 위주의 할인 쿠폰을 보내거나, 방문 주기가 길므로 ‘재방문 시 할인’ 쿠폰으로 방문을 유도한다.",
+    explain:"전체 평균과 비교해 두드러진 속성(높은 나이, 낮은 방문·소비)을 근거로 이름을 붙이는 것이 핵심입니다." },
+]);
+</script>
+</body>
+</html>

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>정형·반정형·비정형 데이터 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 데이터 카드 분류 게임 */
+.dc-stage { display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
+@media (max-width:760px){ .dc-stage { grid-template-columns:1fr; } }
+.dc-card { background:#fff; border:2px solid var(--line); border-radius:14px; padding:18px; text-align:center; min-height:170px; display:flex; flex-direction:column; justify-content:center; }
+.dc-card .emo { font-size:2.4rem; line-height:1; }
+.dc-card .ttl { font-weight:800; font-size:1.05rem; margin-top:8px; }
+.dc-card .ex { font-family:var(--font-mono); font-size:.76rem; color:var(--ink-soft); background:var(--paper); border-radius:8px; padding:6px 8px; margin-top:8px; text-align:left; white-space:pre-wrap; word-break:break-all; }
+.dc-btns { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:10px; }
+.dc-btns button { padding:9px 4px; font-size:.86rem; }
+.dc-fb { margin-top:10px; padding:10px 12px; border-radius:10px; font-size:.86rem; background:var(--paper); border:1px solid var(--line); min-height:46px; line-height:1.55; }
+.dc-fb.ok { background:#eafaf0; border-color:#ace8c4; color:#127a3c; }
+.dc-fb.no { background:#fdeeee; border-color:#f3b9b9; color:#b32424; }
+.dc-bins { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+.dc-bin { border:2px dashed var(--line); border-radius:10px; padding:6px; min-height:120px; }
+.dc-bin h5 { margin:0 0 4px; font-size:.8rem; text-align:center; }
+.dc-bin span { display:block; font-size:.72rem; background:var(--accent-soft); border-radius:6px; padding:2px 5px; margin:3px 0; }
+.dc-bin span.wrong { background:#fdeeee; color:#b32424; }
+/* 코드 비교 */
+.code-pair { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media (max-width:760px){ .code-pair { grid-template-columns:1fr; } }
+.code-pair pre.codeblock { margin:0; font-size:.8rem; }
+.code-pair h4 { margin:0 0 6px; font-size:.9rem; }
+</style>
+</head>
+<body data-unit="1" data-lesson="L04">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>정형·반정형·비정형 데이터</h1>
+  <span class="std-badge">성취기준 12데과01-02</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>정형·반정형·비정형 데이터의 특징을 비교하여 설명할 수 있다.</li>
+      <li>생활 속 데이터를 형태에 따라 구분할 수 있다.</li>
+      <li>반정형·비정형 데이터를 분석 가능한 표(정형) 형태로 바꾸는 방법을 설명할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과01-02] 정형 데이터와 비정형 데이터를 구분하고, 데이터 속성에서 데이터의 잠재적 가치를 파악한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span class="on">수집</span><span class="on">전처리</span><span>탐색</span><span>모델링</span><span>평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  오늘 점심 급식이 정말 맛있어서 친구가 식판 사진을 찍어 SNS에 올리고 “제육볶음 최고!”라고 적었습니다.
+  같은 시각, 급식실 컴퓨터에는 ‘날짜·메뉴·칼로리’가 칸칸이 정리된 식단표가 저장되어 있고,
+  학교 누리집은 이 식단을 다른 앱에서 가져다 쓸 수 있도록 특별한 형식의 파일로도 제공합니다.
+  모두 ‘오늘 급식’에 관한 데이터인데, 생김새는 전혀 다릅니다. 컴퓨터가 가장 쉽게 분석할 수 있는 것은 어느 것일까요?
+</div>
+
+<h2><span class="sec-no">1</span>데이터의 세 가지 형태 <i class="pub-c">공통</i></h2>
+
+<p>데이터는 <b>구조(정해진 틀)가 얼마나 갖춰져 있는가</b>에 따라 세 가지로 나눕니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:110px">형태</th><th>특징</th><th style="width:30%">예</th></tr></thead>
+  <tbody>
+    <tr><td><b class="keyterm">정형 데이터</b></td><td>행과 열로 이루어진 <b>표</b>에 미리 정한 형식대로 저장된 데이터. 열마다 값의 종류(숫자·날짜 등)가 정해져 있어 바로 계산·검색·정렬할 수 있다.</td><td>성적표, 식단표, 교통카드 승하차 기록, CSV 파일, 데이터베이스 테이블</td></tr>
+    <tr><td><b class="keyterm">반정형 데이터</b></td><td>표처럼 고정된 틀은 아니지만 <b>태그나 이름(키)</b>으로 구조를 표시한 데이터. 데이터 안에 구조 정보가 함께 들어 있다.</td><td>JSON, XML, HTML 문서, 공공데이터 API 응답</td></tr>
+    <tr><td><b class="keyterm">비정형 데이터</b></td><td>정해진 구조가 <b>없는</b> 데이터. 그대로는 계산하기 어려워 분석하려면 특징을 뽑아내는 처리가 필요하다.</td><td>사진, 동영상, 음성, SNS 글, 손글씨, 뉴스 기사</td></tr>
+  </tbody>
+</table></div>
+
+<p>오늘날 만들어지는 데이터의 대부분은 사진·영상·글 같은 <b>비정형 데이터</b>라고 알려져 있습니다. 그래서 비정형 데이터를 분석 가능한 형태로 바꾸는 기술(이미지 인식, 음성 인식, 자연어 처리 등)이 데이터 과학에서 점점 더 중요해지고 있습니다.</p>
+
+<figure>
+<svg viewBox="0 0 560 120" role="img" aria-label="구조화 정도에 따른 데이터 형태 스펙트럼">
+  <defs><linearGradient id="gr" x1="0" x2="1"><stop offset="0" stop-color="#0e7490"/><stop offset="1" stop-color="#e2f4f8"/></linearGradient></defs>
+  <rect x="20" y="40" width="520" height="22" rx="11" fill="url(#gr)"/>
+  <g font-size="13" font-weight="700" text-anchor="middle" fill="#1e2733">
+    <text x="95" y="30">정형</text><text x="280" y="30">반정형</text><text x="465" y="30">비정형</text>
+  </g>
+  <g font-size="11" text-anchor="middle" fill="#4b5a6b">
+    <text x="95" y="82">표 · CSV · DB</text><text x="280" y="82">JSON · XML · HTML</text><text x="465" y="82">사진 · 영상 · 글</text>
+    <text x="95" y="100">바로 계산 가능</text><text x="280" y="100">규칙대로 읽어 표로 변환</text><text x="465" y="100">특징 추출이 필요</text>
+  </g>
+  <text x="20" y="116" font-size="10" fill="#8595a6">구조가 뚜렷함</text>
+  <text x="540" y="116" font-size="10" fill="#8595a6" text-anchor="end">구조가 없음</text>
+</svg>
+<figcaption>데이터 형태는 칼로 자르듯 나뉘기보다 ‘구조화 정도’의 스펙트럼 위에 놓여 있습니다.</figcaption>
+</figure>
+
+<h2><span class="sec-no">2</span>데이터 형태 분류 게임 <i class="pub-c">공통</i></h2>
+
+<div class="sim">
+  <div class="sim-head">데이터 카드 분류 게임 — 정형? 반정형? 비정형?</div>
+  <div class="sim-body">
+    <div class="sim-controls">
+      <button id="dc-restart" class="gray">↺ 카드 섞어 다시 하기</button>
+      <span class="stat-chip">진행 <b id="dc-prog">1</b> / <span id="dc-n">12</span></span>
+      <span class="stat-chip">정답 <b id="dc-score">0</b></span>
+    </div>
+    <div class="dc-stage">
+      <div>
+        <div class="dc-card" id="dc-card"></div>
+        <div class="dc-btns">
+          <button data-a="S">정형</button><button data-a="H">반정형</button><button data-a="U">비정형</button>
+        </div>
+        <div class="dc-fb" id="dc-fb">카드를 보고 알맞은 형태를 고르세요.</div>
+        <button id="dc-next" class="ghost" style="margin-top:8px" disabled>다음 카드 ▶</button>
+      </div>
+      <div>
+        <div style="font-size:.84rem;font-weight:700;color:var(--ink-soft);margin-bottom:6px">내가 분류한 카드 (빨간색은 틀린 것)</div>
+        <div class="dc-bins">
+          <div class="dc-bin"><h5>정형</h5><div id="bin-S"></div></div>
+          <div class="dc-bin"><h5>반정형</h5><div id="bin-H"></div></div>
+          <div class="dc-bin"><h5>비정형</h5><div id="bin-U"></div></div>
+        </div>
+      </div>
+    </div>
+    <p class="widget-hint">판단 요령: ① 행과 열의 표인가? → 정형 ② 표는 아니지만 태그·키 이름으로 구조가 표시되어 있는가? → 반정형 ③ 둘 다 아니면 → 비정형</p>
+  </div>
+</div>
+
+<h2><span class="sec-no">3</span>반정형 데이터: JSON과 XML <i class="pub">삼양</i></h2>
+
+<p>인터넷에서 프로그램끼리 데이터를 주고받을 때는 주로 반정형 형식을 씁니다. 같은 급식 정보를 두 형식으로 나타내 보겠습니다.</p>
+
+<div class="code-pair">
+  <div><h4>JSON (JavaScript Object Notation)</h4>
+<pre class="codeblock">{
+  "날짜": "2025-03-03",
+  "칼로리": 812,
+  "메뉴": ["쌀밥", "미역국",
+           "제육볶음", "배추김치"]
+}</pre></div>
+  <div><h4>XML (eXtensible Markup Language)</h4>
+<pre class="codeblock">&lt;급식&gt;
+  &lt;날짜&gt;2025-03-03&lt;/날짜&gt;
+  &lt;칼로리&gt;812&lt;/칼로리&gt;
+  &lt;메뉴&gt;쌀밥&lt;/메뉴&gt;
+  &lt;메뉴&gt;미역국&lt;/메뉴&gt;
+  &lt;메뉴&gt;제육볶음&lt;/메뉴&gt;
+  &lt;메뉴&gt;배추김치&lt;/메뉴&gt;
+&lt;/급식&gt;</pre></div>
+</div>
+
+<ul>
+  <li><b>JSON</b>은 <code>"이름": 값</code> 쌍으로 구조를 표시합니다. 값으로 목록(<code>[ ]</code>)이나 또 다른 묶음(<code>{ }</code>)을 넣을 수 있어 <b>날마다 메뉴 개수가 달라도</b> 담을 수 있습니다.</li>
+  <li><b>XML</b>은 <code>&lt;태그&gt;값&lt;/태그&gt;</code>처럼 여는 태그와 닫는 태그로 값을 감쌉니다. 웹 페이지를 만드는 HTML도 같은 방식입니다.</li>
+  <li>표(정형)라면 ‘메뉴1, 메뉴2, …’ 칸을 미리 몇 개 만들어야 하지만, 반정형은 <b>구조가 유연</b>합니다. 대신 분석하려면 규칙에 따라 읽어서 표로 바꾸는 과정이 필요합니다.</li>
+</ul>
+
+<p>공공데이터포털 같은 곳에서 제공하는 <b>오픈 API</b>도 대부분 JSON이나 XML로 결과를 보내 줍니다. 파이썬으로 JSON을 표로 바꾸어 봅시다.</p>
+
+<div class="pycell" data-title="JSON 문자열을 표로 바꾸기"><textarea>
+import json
+import pandas as pd
+
+text = """
+[
+ {"날짜": "2025-03-03", "칼로리": 812, "메뉴": ["쌀밥", "미역국", "제육볶음", "배추김치"]},
+ {"날짜": "2025-03-04", "칼로리": 765, "메뉴": ["카레라이스", "계란국", "깍두기", "요구르트"]},
+ {"날짜": "2025-03-05", "칼로리": 798, "메뉴": ["잡곡밥", "된장국", "닭갈비", "배추김치", "사과"]},
+ {"날짜": "2025-03-06", "칼로리": 731, "메뉴": ["쌀밥", "어묵국", "고등어구이", "배추김치"]},
+ {"날짜": "2025-03-07", "칼로리": 854, "메뉴": ["짜장밥", "짬뽕국", "탕수육", "단무지"]}
+]
+"""
+data = json.loads(text)           # JSON 글자 → 파이썬 목록(list)과 사전(dict)
+print(type(data), "→", len(data), "일 치 급식")
+print("첫날 세 번째 메뉴:", data[0]["메뉴"][2])
+
+meal = pd.DataFrame(data)         # 사전의 목록 → 표
+meal["메뉴 수"] = meal["메뉴"].apply(len)
+print(meal)
+print("평균 칼로리:", meal["칼로리"].mean(), "kcal")
+
+# ✏️ 3월 10일 급식(메뉴 4~5개, 칼로리 임의)을 JSON에 한 줄 추가하고 다시 실행해 보세요.
+</textarea></div>
+
+<div class="pycell" data-title="메뉴 목록을 펼쳐 한 줄에 하나씩"><textarea>
+# 한 칸에 목록이 들어 있으면 분석이 어렵다 → 메뉴마다 한 줄로 펼치기(explode)
+long = meal.explode("메뉴")[["날짜", "메뉴"]]
+print(long.head(6))
+print("전체 행 수:", len(long))
+
+# 가장 자주 나온 메뉴는?
+print(long["메뉴"].value_counts().head(3))
+
+# ✏️ "국"으로 끝나는 메뉴만 골라 보세요:  long[long["메뉴"].str.endswith("국")]
+</textarea></div>
+
+<p>5일 치 JSON이 한 줄에 메뉴 하나씩, 모두 <b>21행</b>의 표가 되었습니다. 이제 “가장 자주 나온 메뉴는 배추김치(3회)”처럼 바로 셀 수 있습니다.
+이처럼 반정형 데이터는 <b>구조가 표시되어 있으므로 규칙대로 읽어 정형 데이터로 바꿀</b> 수 있습니다.</p>
+
+<h2><span class="sec-no">4</span>비정형 데이터에서 가치 꺼내기 <i class="pub">씨마스</i> <i class="pub">천재</i></h2>
+
+<h3>급식 사진을 표로</h3>
+<p>식판 사진 한 장은 그대로는 계산할 수 없는 비정형 데이터입니다. 하지만 사진을 보고 <b>어떤 반찬이 있었는지 0과 1로 기록</b>하면 정형 데이터가 됩니다.
+요즘은 사람이 직접 하지 않아도 이미지 인식 인공지능이 사진 속 음식을 찾아 표를 채워 주기도 합니다.</p>
+
+<figure>
+<svg viewBox="0 0 580 170" role="img" aria-label="급식 사진을 0과 1의 표로 바꾸는 과정">
+  <rect x="10" y="20" width="170" height="120" rx="12" fill="#eef1f5" stroke="#b8c2cc"/>
+  <circle cx="55" cy="60" r="24" fill="#fff" stroke="#b8c2cc"/><text x="55" y="64" font-size="11" text-anchor="middle">밥</text>
+  <circle cx="125" cy="60" r="24" fill="#fff" stroke="#b8c2cc"/><text x="125" y="64" font-size="11" text-anchor="middle">국</text>
+  <rect x="25" y="94" width="58" height="36" rx="8" fill="#fde2d2" stroke="#e7a987"/><text x="54" y="116" font-size="10" text-anchor="middle">제육볶음</text>
+  <rect x="98" y="94" width="58" height="36" rx="8" fill="#fbd9d9" stroke="#e59a9a"/><text x="127" y="116" font-size="10" text-anchor="middle">김치</text>
+  <text x="95" y="160" font-size="11" text-anchor="middle" fill="#4b5a6b">식판 사진(비정형)</text>
+  <path d="M195 80 h60" stroke="#0e7490" stroke-width="3" marker-end="url(#ar)"/>
+  <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#0e7490"/></marker></defs>
+  <text x="225" y="70" font-size="10" text-anchor="middle" fill="#0e7490">구조화</text>
+  <g font-size="11" text-anchor="middle">
+    <rect x="270" y="30" width="300" height="100" fill="#fff" stroke="#dde4ec"/>
+    <g fill="#1e2733" font-weight="700"><text x="310" y="50">날짜</text><text x="370" y="50">돼지고기</text><text x="425" y="50">닭고기</text><text x="475" y="50">생선</text><text x="530" y="50">김치</text></g>
+    <line x1="270" y1="58" x2="570" y2="58" stroke="#dde4ec"/>
+    <text x="310" y="76">3/3</text><text x="370" y="76" fill="#0e7490" font-weight="700">1</text><text x="425" y="76">0</text><text x="475" y="76">0</text><text x="530" y="76" fill="#0e7490" font-weight="700">1</text>
+    <text x="310" y="98">3/5</text><text x="370" y="98">0</text><text x="425" y="98" fill="#0e7490" font-weight="700">1</text><text x="475" y="98">0</text><text x="530" y="98" fill="#0e7490" font-weight="700">1</text>
+    <text x="310" y="120">3/6</text><text x="370" y="120">0</text><text x="425" y="120">0</text><text x="475" y="120" fill="#0e7490" font-weight="700">1</text><text x="530" y="120" fill="#0e7490" font-weight="700">1</text>
+  </g>
+  <text x="420" y="160" font-size="11" text-anchor="middle" fill="#4b5a6b">날짜별 반찬 기록표(정형)</text>
+</svg>
+<figcaption>사진을 “있다(1)/없다(0)”로 기록하면, 한 달 동안 고기 반찬이 나온 날수나 잔반량과의 관계를 분석할 수 있습니다.</figcaption>
+</figure>
+
+<h3>사진 속에 숨은 정형 데이터: 메타데이터</h3>
+<p>스마트폰으로 찍은 사진 파일에는 이미지 말고도 <b>촬영 날짜·시각, 위치(위도·경도), 카메라 기종, 해상도</b> 같은 정보가 ‘이름: 값’ 형태로 함께 저장됩니다.
+이렇게 <b>데이터에 대한 데이터</b>를 <span class="keyterm">메타데이터(metadata)</span>라고 합니다. 사진 1,000장의 메타데이터를 모으면
+“어느 계절·장소에서 사진을 많이 찍었는지”를 표로 분석할 수 있습니다. 반대로 위치 정보가 담긴 사진을 그대로 인터넷에 올리면
+<b>집이나 학교 위치가 드러날 수 있으므로</b>, 공유 전에 위치 정보를 지우는 습관이 필요합니다.</p>
+
+<h3>글을 표로: 단어 세기</h3>
+<p>급식 만족도 게시판의 자유로운 후기(비정형 텍스트)도 특정 단어가 몇 번 나오는지 세면 표가 됩니다.</p>
+
+<div class="pycell" data-title="급식 후기에서 단어 세기"><textarea>
+reviews = [
+    "제육볶음 너무 맛있어요 양이 조금 적어요",
+    "국이 좀 짜요 그래도 맛있어요",
+    "닭갈비 맛있어요 매일 나왔으면",
+    "카레가 싱거워요",
+    "탕수육 최고 양도 많아요 맛있어요",
+    "고등어가 좀 짜요",
+    "밥이 딱딱해요",
+    "짜장밥 맛있어요",
+]
+words = ["맛있", "짜요", "싱거", "양"]
+rows = []
+for w in words:
+    n = sum(w in r for r in reviews)          # 그 단어가 들어간 후기 수
+    rows.append((w, n))
+count = pd.DataFrame(rows, columns=["단어", "후기 수"])
+print(count)
+print("전체 후기", len(reviews), "개 중 '맛있'이 들어간 비율:", round(count.loc[0, "후기 수"] / len(reviews) * 100), "%")
+
+# ✏️ 후기를 2개 더 추가하고, 세고 싶은 단어(예: "딱딱")를 words에 넣어 보세요.
+</textarea></div>
+
+<p>후기 8개 중 5개(약 62%)에 ‘맛있’이 들어 있고, ‘짜요’는 2개입니다. 문장 그대로는 비교할 수 없던 의견이 숫자로 바뀌었습니다.
+다만 “맛있지 않아요”처럼 부정 표현이 섞이면 단순 세기는 틀릴 수 있어서, 실제 분석에서는 더 정교한 자연어 처리 방법을 사용합니다.</p>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  흔한 오개념: “숫자면 정형, 글자면 비정형”. 글자로 된 성명·반 이름도 표의 칸에 들어 있으면 정형 데이터이고, 숫자로 된 센서 값도 JSON으로 오면 반정형입니다. <b>형태는 내용이 아니라 구조로 판단한다</b>는 점을 강조하세요.
+  또한 HTML·이메일처럼 구조 부분과 자유로운 본문이 섞인 데이터는 교재마다 분류가 조금 다를 수 있으니, 정답보다 판단 근거를 말하게 하는 것이 좋습니다.
+  코딩이 부담스러운 학급은 공공데이터포털에서 같은 데이터의 CSV와 JSON 파일을 내려받아 메모장으로 열어 비교하는 활동으로 대신할 수 있습니다.
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">모둠 활동</span>우리 학교 데이터 형태 지도 <i class="pub-c">공통</i></div>
+  <div class="act-body">
+    <ol>
+      <li>학교에서 만들어지거나 쓰이는 데이터를 형태별로 두 가지 이상씩 찾아 적으세요.
+        <div class="table-wrap"><table>
+          <thead><tr><th style="width:90px">형태</th><th>데이터 예</th><th>어디에 쓰이나?</th></tr></thead>
+          <tbody>
+            <tr><td>정형</td><td>&nbsp;</td><td></td></tr>
+            <tr><td>반정형</td><td>&nbsp;</td><td></td></tr>
+            <tr><td>비정형</td><td>&nbsp;</td><td></td></tr>
+          </tbody>
+        </table></div></li>
+      <li>비정형 데이터 하나를 골라, 분석할 수 있는 <b>표(정형)로 바꾸는 방법</b>을 설계해 보세요. 표의 열 이름을 3개 이상 정하세요.
+        <div class="table-wrap"><table>
+          <thead><tr><th>열 1</th><th>열 2</th><th>열 3</th><th>열 4</th></tr></thead>
+          <tbody><tr><td>&nbsp;</td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td></tr></tbody>
+        </table></div></li>
+      <li>이렇게 만든 표로 답할 수 있는 질문을 한 가지 쓰세요.
+        <div class="write-lines"><div class="line"></div></div></li>
+    </ol>
+  </div>
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>정형 데이터는 행과 열의 표로 된 데이터, 반정형 데이터는 태그·키로 구조를 표시한 데이터(JSON·XML·HTML), 비정형 데이터는 정해진 구조가 없는 데이터(사진·영상·음성·글)이다.</li>
+    <li>데이터 형태는 내용(숫자/글자)이 아니라 구조로 판단한다.</li>
+    <li>반정형 데이터는 규칙대로 읽어 표로 바꿀 수 있고, 비정형 데이터는 0/1 기록, 단어 세기, 메타데이터 추출 등으로 특징을 뽑아 정형화한다.</li>
+    <li>사진 메타데이터처럼 숨은 데이터에는 가치와 함께 개인정보 위험도 있다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 데이터 카드 분류 게임 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const NAME = { S:"정형", H:"반정형", U:"비정형" };
+  const CARDS = [
+    { e:"📊", t:"반 학생들의 수행평가 점수표(엑셀)", x:"번호 | 이름 | 국어 | 수학\n1    | 김가온 | 18 | 20", a:"S", w:"행과 열로 된 표이고, 열마다 값의 종류가 정해져 있습니다." },
+    { e:"🚌", t:"교통카드 승하차 기록 CSV 파일", x:"카드번호,승차시각,정류장\n8812,07:41,학교앞", a:"S", w:"CSV는 쉼표로 열을 나눈 표 형식 파일입니다." },
+    { e:"🌡️", t:"기상 관측소의 시간별 기온·습도 표", x:"시각 | 기온 | 습도\n09시 | 18.2 | 61", a:"S", w:"같은 항목이 같은 열에 정해진 형식으로 쌓이는 표입니다." },
+    { e:"📚", t:"도서관 관리 프로그램의 대출 테이블", x:"대출번호 | 학번 | 도서번호 | 대출일", a:"S", w:"데이터베이스 테이블은 대표적인 정형 데이터입니다." },
+    { e:"🔗", t:"날씨 앱이 받아 오는 API 응답", x:'{"도시":"서울","기온":18.2,\n "예보":[{"시":12,"하늘":"맑음"}]}', a:"H", w:"키 이름과 값으로 구조를 표시한 JSON이므로 반정형입니다." },
+    { e:"🍱", t:"교육청이 제공하는 급식 식단 XML 파일", x:"<식단><날짜>3/3</날짜>\n<메뉴>쌀밥</메뉴></식단>", a:"H", w:"태그로 값을 감싸 구조를 표시한 XML이므로 반정형입니다." },
+    { e:"🌐", t:"학교 누리집 공지 사항 웹 페이지 소스", x:"<h1>체육 대회 안내</h1>\n<p>일시: 5월 2일</p>", a:"H", w:"HTML은 태그로 제목·문단 등 구조를 표시하므로 반정형으로 분류합니다." },
+    { e:"⌚", t:"스마트워치가 보낸 심박수 기록(키-값)", x:'{"시각":"07:00","심박":72}\n{"시각":"07:01","심박":75}', a:"H", w:"숫자라도 키 이름으로 구조를 표시한 JSON 형태이면 반정형입니다." },
+    { e:"📷", t:"수학여행 때 찍은 사진 파일", x:"(픽셀로 이루어진 이미지)", a:"U", w:"이미지 자체는 정해진 행·열 구조가 없는 비정형 데이터입니다(메타데이터는 별도)." },
+    { e:"🎙️", t:"영어 말하기 수행평가 녹음 파일", x:"(소리의 파형)", a:"U", w:"음성은 정해진 구조가 없어 분석하려면 음성 인식 등 처리가 필요합니다." },
+    { e:"💬", t:"학교 축제 SNS 게시글에 달린 댓글", x:"“부스 너무 재밌었어요ㅋㅋ 내년에도!”", a:"U", w:"자유롭게 쓴 글은 구조가 없는 비정형 텍스트입니다." },
+    { e:"✉️", t:"손으로 쓴 편지를 스캔한 이미지", x:"(손글씨 이미지)", a:"U", w:"스캔 이미지는 비정형입니다. 글자를 인식(OCR)해야 분석할 수 있습니다." },
+  ];
+  let deck, idx, score, answered, placed;
+
+  function shuffle(a){ for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  function start(){
+    deck = shuffle(CARDS.slice()); idx = 0; score = 0; answered = false; placed = [];
+    $("dc-n").textContent = deck.length;
+    show();
+  }
+  function show(){
+    const c = deck[idx];
+    $("dc-card").innerHTML = `<div class="emo">${c.e}</div><div class="ttl">${c.t}</div><div class="ex">${esc(c.x)}</div>`;
+    $("dc-prog").textContent = idx + 1;
+    $("dc-score").textContent = score;
+    $("dc-fb").className = "dc-fb"; $("dc-fb").textContent = "카드를 보고 알맞은 형태를 고르세요.";
+    $("dc-next").disabled = true;
+    answered = false;
+    document.querySelectorAll(".dc-btns button").forEach(b => b.disabled = false);
+    bins();
+  }
+  function bins(){
+    ["S", "H", "U"].forEach(k => {
+      $("bin-" + k).innerHTML = placed.filter(p => p.pick === k).map(p => `<span class="${p.ok ? "" : "wrong"}">${p.e} ${p.t}</span>`).join("");
+    });
+  }
+  document.querySelectorAll(".dc-btns button").forEach(b => b.addEventListener("click", () => {
+    if (answered) return;
+    answered = true;
+    const c = deck[idx], pick = b.dataset.a, ok = pick === c.a;
+    if (ok) score++;
+    placed.push({ e:c.e, t:c.t, pick, ok });
+    $("dc-score").textContent = score;
+    const fb = $("dc-fb");
+    fb.className = "dc-fb " + (ok ? "ok" : "no");
+    fb.textContent = (ok ? "정답! " : `아니에요. 정답은 ‘${NAME[c.a]}’입니다. `) + c.w;
+    document.querySelectorAll(".dc-btns button").forEach(x => x.disabled = true);
+    bins();
+    if (idx < deck.length - 1) $("dc-next").disabled = false;
+    else fb.textContent += ` — 끝! ${deck.length}장 중 ${score}장을 맞혔습니다.`;
+  }));
+  $("dc-next").addEventListener("click", () => { if (idx < deck.length - 1) { idx++; show(); } });
+  $("dc-restart").addEventListener("click", start);
+  start();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"다음 중 반정형 데이터에 해당하는 것은?",
+    choices:["학급 출석부 엑셀 표","CCTV 녹화 영상","오픈 API가 보내 준 JSON 응답","음성 메시지","손으로 그린 그림"], answer:2,
+    explain:"JSON은 ‘이름: 값’ 쌍으로 구조를 표시한 반정형 데이터입니다. ①은 정형, ②④⑤는 비정형입니다." },
+  { type:"ox", q:"값이 모두 숫자로 되어 있으면 항상 정형 데이터이다.",
+    answer:false, explain:"형태는 내용이 아니라 구조로 판단합니다. 숫자로 된 센서 값도 JSON으로 저장되면 반정형이고, 이미지는 픽셀 숫자로 이루어져 있지만 비정형입니다." },
+  { type:"mc", q:"급식 JSON 5일 치에서 날짜별 메뉴 수가 4, 4, 5, 4, 4개였다. 메뉴를 한 줄에 하나씩 펼친(explode) 표의 행 수는?",
+    choices:["5","17","20","21","25"], answer:3,
+    explain:"4 + 4 + 5 + 4 + 4 = 21행입니다. 목록 안의 원소마다 한 행이 만들어집니다." },
+  { type:"mc", q:"사진 파일의 메타데이터에 대한 설명으로 옳지 않은 것은?",
+    choices:["촬영 날짜와 시각이 들어 있을 수 있다","촬영 위치(위도·경도)가 들어 있을 수 있다","‘데이터에 대한 데이터’라고 부른다","많이 모으면 촬영 장소·시기를 표로 분석할 수 있다","사진 속 인물의 이름과 감정이 자동으로 항상 기록된다"], answer:4,
+    explain:"메타데이터에는 촬영 일시, 위치, 기기, 해상도 등 촬영 조건이 기록됩니다. 사진 속 인물의 이름이나 감정은 기본 메타데이터에 자동으로 기록되지 않습니다." },
+  { type:"short", q:"학교 축제에 대한 학생들의 SNS 글 300개(비정형)를 모았습니다. 이것을 분석 가능한 정형 데이터로 바꾸는 방법을 한 가지 설명하고, 만든 표로 알 수 있는 것을 쓰세요.",
+    model:"글마다 한 행을 만들고 ‘작성 날짜’, ‘언급한 부스 이름’, ‘긍정 단어 포함 여부(1/0)’, ‘부정 단어 포함 여부(1/0)’ 열을 채운다. 이 표로 부스별 언급 횟수와 긍정 비율을 계산해 가장 인기 있었던 부스와 개선이 필요한 부스를 알 수 있다." },
+]);
+</script>
+</body>
+</html>

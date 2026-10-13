@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>통계적 회귀: 최소제곱법 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 최소제곱 직선 게임 */
+.ls-grid { display:grid; grid-template-columns:1.5fr 1fr; gap:16px; }
+@media (max-width:760px){ .ls-grid { grid-template-columns:1fr; } }
+#ls-svg { width:100%; height:auto; background:#fff; border:1px solid var(--line); border-radius:10px; touch-action:none; }
+#ls-svg .pt { cursor:grab; }
+.ls-side .rng { margin-bottom:10px; font-size:.88rem; font-weight:700; }
+.ls-side .rng input { width:100%; }
+.ls-side .eq { font-size:1.05rem; font-weight:800; text-align:center; padding:8px; background:var(--paper); border-radius:10px; margin-bottom:10px; }
+.ls-side .toggles { display:flex; flex-direction:column; gap:6px; font-size:.86rem; font-weight:600; margin:10px 0; }
+.ls-side .btns { display:flex; flex-wrap:wrap; gap:6px; }
+.sse-bar { height:14px; background:var(--paper); border:1px solid var(--line); border-radius:999px; overflow:hidden; margin-top:4px; }
+.sse-bar i { display:block; height:100%; background:var(--accent); transition:width .2s; }
+.ls-msg { margin-top:10px; font-size:.86rem; font-weight:700; padding:8px 12px; border-radius:10px; background:var(--accent-soft); }
+</style>
+</head>
+<body data-unit="3" data-lesson="L28">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>통계적 회귀: 최소제곱법</h1>
+  <span class="std-badge">성취기준 12데과03-02</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>오차 제곱합이 가장 작은 직선을 찾는 최소제곱법의 원리를 설명하고, 작은 데이터로 회귀식을 직접 계산할 수 있다.</li>
+      <li>결정계수(R²)가 무엇을 뜻하는지 평균선과 비교하여 설명할 수 있다.</li>
+      <li>회귀 계수와 p값을 해석하여 독립 변수가 종속 변수를 설명하는지 판단할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과03-02] 동일한 데이터를 통계적 회귀 모델과 기계학습을 통한 회귀 모델로 분석하여 결과 해석 내용을 비교한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span>수집</span><span>전처리</span><span>탐색</span><span class="on">모델링</span><span class="on">평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  공부시간과 성적을 나타낸 산점도 위에 자를 대고 “가장 잘 맞는 직선”을 그어 보라고 하면, 친구마다 조금씩 다른 직선을 긋습니다.
+  누구의 직선이 가장 좋은 걸까요? “느낌상 가운데를 지나는 것”으로는 판정할 수 없습니다.
+  오늘은 <b>누가 그어도 똑같이 나오는 단 하나의 직선</b>을 찾는 방법, 곧 최소제곱법을 배웁니다.
+  이것이 통계학에서 200년 넘게 쓰여 온 <b>통계적 회귀</b>의 출발점입니다.
+</div>
+
+<h2><span class="sec-no">1</span>회귀란 무엇인가 <i class="pub-c">공통</i></h2>
+
+<p>‘회귀(regression)’라는 말은 영국의 과학자 <b>프랜시스 골턴</b>에게서 나왔습니다. 골턴은 1886년 발표한 연구에서 부모와 자녀의 키를 비교하다가,
+부모의 키가 아주 큰 경우 자녀는 대체로 부모보다는 작고, 부모의 키가 아주 작은 경우 자녀는 대체로 부모보다는 크다는 것을 발견했습니다.
+자녀의 키가 전체 평균 쪽으로 <b>되돌아가는(회귀하는)</b> 경향이 있다는 뜻에서 ‘평균으로의 회귀’라고 불렀고,
+이때 두 변수의 관계를 직선으로 나타낸 방법이 오늘날 회귀 분석의 이름이 되었습니다.</p>
+
+<p>오늘날 <span class="keyterm">회귀 분석</span>은 독립 변수 x로 종속 변수 y를 설명·예측하는 식을 찾는 방법을 말합니다.
+독립 변수가 하나이고 관계를 직선으로 나타내면 <span class="keyterm">단순 선형 회귀</span>입니다.</p>
+
+<span class="formula">ŷ = a·x + b
+<small>ŷ(와이 햇)은 예측값, a는 기울기(회귀 계수), b는 절편입니다. 실제값 y와 예측값 ŷ의 차이 y − ŷ를 <b>잔차(오차)</b>라고 합니다.</small></span>
+
+<h2><span class="sec-no">2</span>좋은 직선의 기준: 오차 제곱합 <i class="pub">삼양</i></h2>
+
+<p>학생 5명의 공부시간과 성적으로 연습해 봅시다. 두 친구가 다음 직선을 제안했습니다.</p>
+
+<div class="table-wrap"><table class="data" style="max-width:640px">
+  <thead><tr><th>공부시간 x</th><th>성적 y</th><th>직선 A: 10x + 40</th><th>A의 오차</th><th>직선 B: 8x + 45</th><th>B의 오차</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>55</td><td>50</td><td>+5</td><td>53</td><td>+2</td></tr>
+    <tr><td>2</td><td>60</td><td>60</td><td>0</td><td>61</td><td>−1</td></tr>
+    <tr><td>3</td><td>70</td><td>70</td><td>0</td><td>69</td><td>+1</td></tr>
+    <tr><td>4</td><td>75</td><td>80</td><td>−5</td><td>77</td><td>−2</td></tr>
+    <tr><td>5</td><td>90</td><td>90</td><td>0</td><td>85</td><td>+5</td></tr>
+    <tr><td><b>합</b></td><td></td><td></td><td>0</td><td></td><td>+5</td></tr>
+    <tr><td><b>제곱합</b></td><td></td><td></td><td class="hl">50</td><td></td><td class="hl">35</td></tr>
+  </tbody>
+</table></div>
+
+<p>오차를 그냥 더하면 직선 A는 0이 됩니다. +5와 −5가 서로 지워졌기 때문입니다. 그래서 오차를 <b>제곱해서 더한 값</b>,
+곧 <span class="keyterm">오차 제곱합(SSE, Sum of Squared Errors)</span>으로 직선을 평가합니다.
+제곱하면 부호가 사라지고, 큰 오차일수록 더 크게 벌점을 받습니다.
+A는 25 + 0 + 0 + 25 + 0 = <b>50</b>, B는 4 + 1 + 1 + 4 + 25 = <b>35</b>이므로 B가 더 좋은 직선입니다. 그렇다면 35보다 더 작게 만들 수는 없을까요?</p>
+
+<h2><span class="sec-no">3</span>최소제곱법: 오차 제곱합을 가장 작게 <i class="pub">삼양</i> <i class="pub">천재</i> <i class="pub">YBM</i></h2>
+
+<p>오차 제곱합이 <b>가장 작아지는</b> 기울기와 절편을 찾는 방법이 <span class="keyterm">최소제곱법(least squares method)</span>입니다.
+놀랍게도 이 직선은 반복해서 찾아 헤맬 필요 없이 다음 공식으로 <b>한 번에</b> 계산됩니다.</p>
+
+<span class="formula">a = Σ(x − x̄)(y − ȳ) ÷ Σ(x − x̄)²　　b = ȳ − a·x̄
+<small>x̄, ȳ는 x와 y의 평균입니다. 최소제곱 직선은 항상 평균점 (x̄, ȳ)를 지납니다.</small></span>
+
+<div class="table-wrap"><table class="data" style="max-width:560px">
+  <thead><tr><th>x</th><th>y</th><th>x − x̄</th><th>y − ȳ</th><th>(x − x̄)(y − ȳ)</th><th>(x − x̄)²</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>55</td><td>−2</td><td>−15</td><td>30</td><td>4</td></tr>
+    <tr><td>2</td><td>60</td><td>−1</td><td>−10</td><td>10</td><td>1</td></tr>
+    <tr><td>3</td><td>70</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+    <tr><td>4</td><td>75</td><td>1</td><td>5</td><td>5</td><td>1</td></tr>
+    <tr><td>5</td><td>90</td><td>2</td><td>20</td><td>40</td><td>4</td></tr>
+    <tr><td><b>합</b></td><td></td><td></td><td></td><td class="hl">85</td><td class="hl">10</td></tr>
+  </tbody>
+</table></div>
+
+<p>x̄ = 3, ȳ = 70이므로 a = 85 ÷ 10 = <b>8.5</b>, b = 70 − 8.5 × 3 = <b>44.5</b>. 회귀식은 <code>ŷ = 8.5x + 44.5</code>입니다.
+예측값은 53, 61.5, 70, 78.5, 87이고 오차는 +2, −1.5, 0, −3.5, +3이므로
+오차 제곱합 = 4 + 2.25 + 0 + 12.25 + 9 = <b>27.5</b>. 직선 A(50)와 B(35)보다 작고, 어떤 직선을 그어도 이보다 작아질 수 없습니다.</p>
+
+<div class="sim">
+  <div class="sim-head">최소제곱 직선 찾기 게임 — 오차 제곱을 가장 작게!</div>
+  <div class="sim-body">
+    <div class="ls-grid">
+      <div><svg id="ls-svg" viewBox="0 0 560 380" role="img" aria-label="산점도와 직선"></svg></div>
+      <div class="ls-side">
+        <div class="eq" id="ls-eq"></div>
+        <div class="rng">기울기 a = <span id="a-val"></span><input type="range" id="a-rng" min="-5" max="20" step="0.1" value="4"></div>
+        <div class="rng">절편 b = <span id="b-val"></span><input type="range" id="b-rng" min="20" max="80" step="0.5" value="55"></div>
+        <div>내 직선의 오차 제곱합 SSE <b id="ls-sse"></b><div class="sse-bar"><i id="ls-bar"></i></div></div>
+        <div class="toggles">
+          <label><input type="checkbox" id="t-sq" checked> 오차 제곱(정사각형) 보기</label>
+          <label><input type="checkbox" id="t-mean"> 평균선의 오차 제곱 보기 (R² 비교)</label>
+        </div>
+        <div class="sim-stats" style="margin:0 0 10px">
+          <div class="stat-chip">평균선 SST <b id="ls-sst"></b></div>
+          <div class="stat-chip">R² <b id="ls-r2"></b></div>
+        </div>
+        <div class="btns"><button id="ls-best">최소제곱 해 보기</button><button class="ghost" id="ls-reset">데이터 처음으로</button><button class="gray" id="ls-add">점 추가</button></div>
+      </div>
+    </div>
+    <div class="ls-msg" id="ls-msg"></div>
+    <p class="widget-hint">① 슬라이더로 SSE를 최대한 줄여 보세요(목표 27.5). ② 점을 끌어서 옮기면 최소제곱 해가 어떻게 바뀌나요? 한 점을 멀리 떨어뜨리면(이상치) 직선이 얼마나 끌려가는지 확인해 보세요.</p>
+  </div>
+</div>
+
+<h2><span class="sec-no">4</span>결정계수 R²: 평균보다 얼마나 나아졌나 <i class="pub">천재</i></h2>
+
+<p>회귀식을 찾았다면 “이 직선이 데이터를 얼마나 잘 설명하는가?”를 물어야 합니다. 기준은 <b>아무 정보도 쓰지 않는 평균선</b>입니다.
+공부시간을 모른다면 모든 학생의 성적을 평균 70점으로 예측할 수밖에 없고, 이때의 오차 제곱합을 <span class="keyterm">총제곱합(SST)</span>이라고 합니다.</p>
+
+<ul>
+  <li>평균선의 오차 제곱합 SST = 15² + 10² + 0² + 5² + 20² = 225 + 100 + 0 + 25 + 400 = <b>750</b></li>
+  <li>회귀선의 오차 제곱합 SSE = <b>27.5</b></li>
+</ul>
+
+<span class="formula">R² = 1 − SSE ÷ SST = 1 − 27.5 ÷ 750 ≈ 0.963
+<small>위 게임에서 ‘평균선의 오차 제곱 보기’를 켜면 회색 사각형(SST)과 주황 사각형(SSE)의 넓이를 비교할 수 있습니다.</small></span>
+
+<p><span class="keyterm">결정계수 R²</span>는 평균선의 오차(사각형 넓이) 중에서 회귀선이 <b>줄여 준 비율</b>입니다. R² = 0.963은
+“성적의 흩어짐 중 약 96.3%를 공부시간과의 직선 관계로 설명한다”는 뜻입니다. R²는 0에 가까울수록 평균선보다 나을 게 없고, 1에 가까울수록 점들이 직선에 가깝게 모여 있습니다.
+단순 선형 회귀에서는 R²가 상관계수 r의 제곱과 같습니다(이 예에서 r ≈ 0.9815, r² ≈ 0.963).</p>
+
+<div class="box box-warn">
+  <span class="box-label">R²는 ‘정확도’가 아니다</span>
+  R² = 0.96을 “96% 정확하다”고 읽으면 안 됩니다. R²는 평균선과 비교해 오차가 얼마나 줄었는지를 나타내는 비율입니다.
+  또한 R²가 높아도 인과관계를 뜻하지 않으며, 데이터 범위 밖(예: 공부시간 20시간)의 예측까지 보장하지 않습니다.
+</div>
+
+<h2><span class="sec-no">5</span>파이썬으로 통계적 회귀: 계수와 p값 해석 <i class="pub">YBM</i> <i class="pub">씨마스</i></h2>
+
+<p>먼저 손계산 결과를 코드로 확인하고, 이어서 <code>study.csv</code>(학생 120명)로 실제 분석을 해 봅시다.</p>
+
+<div class="pycell" data-title="최소제곱 공식으로 손계산 확인하기"><textarea>
+import numpy as np
+
+x = np.array([1, 2, 3, 4, 5])
+y = np.array([55, 60, 70, 75, 90])
+
+a = np.sum((x - x.mean()) * (y - y.mean())) / np.sum((x - x.mean()) ** 2)
+b = y.mean() - a * x.mean()
+pred = a * x + b
+sse = np.sum((y - pred) ** 2)
+sst = np.sum((y - y.mean()) ** 2)
+print(f"회귀식: y = {a}x + {b}")
+print(f"SSE = {sse}, SST = {sst}, R² = {1 - sse / sst:.4f}")
+print("np.polyfit 결과:", np.polyfit(x, y, 1))   # 같은 답인지 확인
+
+# ✏️ 다섯 번째 학생의 성적을 90 → 70으로 바꾸면 기울기와 R²는 어떻게 변하나요?
+</textarea></div>
+
+<div class="pycell" data-title="study.csv: 공부시간으로 성적 설명하기"><textarea>
+import pandas as pd
+import matplotlib.pyplot as plt
+
+df = load_csv("study.csv")
+x, y = df["공부시간"], df["성적"]
+a, b = np.polyfit(x, y, 1)
+print(f"회귀식: 성적 = {a:.2f} × 공부시간 + {b:.2f}")
+
+plt.figure(figsize=(7, 4))
+plt.scatter(x, y, s=14, alpha=0.6)
+xs = np.linspace(x.min(), x.max(), 50)
+plt.plot(xs, a * xs + b, color="#e8883a", linewidth=2.5, label="최소제곱 회귀선")
+plt.xlabel("공부시간(시간)"); plt.ylabel("성적(점)"); plt.legend()
+plt.title("공부시간과 성적의 단순 선형 회귀")
+plt.show()
+
+# ✏️ x를 df["스마트폰시간"]으로 바꾸면 기울기의 부호는 어떻게 되나요? 그 의미를 말해 보세요.
+</textarea></div>
+
+<p>통계적 회귀는 회귀식을 구하는 데서 끝나지 않고, <b>“이 기울기가 우연히 나온 것은 아닌가?”</b>를 따집니다.
+이때 쓰는 값이 <span class="keyterm">p값</span>입니다. p값은 “만약 x와 y가 사실은 <b>아무 관계가 없다면</b>(진짜 기울기가 0이라면),
+지금 데이터에서 얻은 정도로 큰 기울기가 우연히 나올 확률”입니다. 보통 p값이 <b>0.05보다 작으면</b> 우연으로 보기 어렵다고 판단하여
+“통계적으로 유의하다”고 말합니다.</p>
+
+<div class="pycell" data-title="scipy로 회귀 계수·R²·p값 구하기"><textarea>
+from scipy import stats
+
+for col in ["공부시간", "결석일수"]:
+    res = stats.linregress(df[col], df["성적"])
+    print(f"[{col} → 성적]")
+    print(f"  기울기 {res.slope:.3f}, 절편 {res.intercept:.3f}")
+    print(f"  R² {res.rvalue ** 2:.3f}, p값 {res.pvalue:.3g}")
+
+# ✏️ "수면시간", "스마트폰시간"도 목록에 넣어 보세요. p값이 0.05보다 작은 변수는 무엇인가요?
+</textarea></div>
+
+<div class="pycell" data-title="p값 체험: 관계를 일부러 없애 보기"><textarea>
+# 성적의 순서를 무작위로 섞으면 공부시간과 성적의 관계가 사라진다
+rng = np.random.default_rng(42)
+shuffled = rng.permutation(df["성적"].values)
+res = stats.linregress(df["공부시간"], shuffled)
+print(f"섞은 뒤: 기울기 {res.slope:.3f}, R² {res.rvalue ** 2:.3f}, p값 {res.pvalue:.3f}")
+
+# 여러 번 섞어서 기울기가 우연히 얼마나 커질 수 있는지 보기
+slopes = [stats.linregress(df["공부시간"], rng.permutation(df["성적"].values)).slope for _ in range(1000)]
+print(f"1000번 섞었을 때 기울기의 최댓값 {max(slopes):.2f}, 최솟값 {min(slopes):.2f}")
+
+# ✏️ 실제 기울기(약 7.74)가 섞어서 나온 기울기들 사이에 한 번이라도 나타나나요? 이것이 p값이 매우 작은 이유입니다.
+</textarea></div>
+
+<p>실행 결과를 해석해 봅시다.</p>
+<ul>
+  <li><b>공부시간 → 성적</b>: 기울기 7.739, 절편 47.870, R² 0.569, p값은 약 2.45 × 10<sup>−23</sup>으로 0.05보다 훨씬 작습니다.
+    “공부시간이 1시간 많은 학생은 성적이 <b>평균적으로 약 7.7점 높은 경향</b>이 있고, 이 관계는 우연으로 보기 어렵다.”
+    공부시간이 성적의 흩어짐 중 약 57%를 설명합니다. 절편 47.87은 공부시간 0시간일 때의 예측값이지만, 데이터의 공부시간은 0.4시간부터라 해석에 주의해야 합니다.</li>
+  <li><b>결석일수 → 성적</b>: 기울기 −0.655, R² 0.005, p값 0.443으로 0.05보다 큽니다. 기울기가 음수이기는 하지만 <b>우연으로도 충분히 나올 수 있는 크기</b>이므로 결석일수가 성적을 설명한다고 말하기 어렵습니다.</li>
+  <li>성적을 무작위로 섞으면 기울기가 0 가까이로 떨어지고 p값이 커집니다. 1000번 섞어도 기울기가 실제 값 7.74 근처에 가지 못합니다. p값이 아주 작다는 것은 바로 이런 뜻입니다.</li>
+</ul>
+
+<div class="box box-tip">
+  <span class="box-label">통계적 회귀의 관점</span>
+  통계적 회귀는 <b>데이터 전체</b>로 식을 구하고, 계수의 의미와 p값·R²를 따져 “x가 y를 설명하는가, 얼마나 설명하는가”에 답하는 데 초점을 둡니다.
+  다음 차시에서는 같은 문제를 <b>기계학습</b>의 관점—훈련 데이터로 학습하고 처음 보는 데이터로 예측 성능을 평가—으로 풀어 봅니다.
+  (참고: Python의 <code>statsmodels</code> 라이브러리를 쓰면 OLS 결과 표로 계수·p값·R²를 한꺼번에 볼 수 있습니다. 이 교재의 셀에서는 같은 값을 주는 <code>scipy.stats.linregress</code>를 사용합니다.)
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">개별 활동</span>독서 시간 회귀식 손으로 구하기 <i class="pub">삼양</i></div>
+  <div class="act-body">
+    <p>다음은 학생 4명이 읽은 소설의 쪽수(x, 백 쪽)와 다 읽는 데 걸린 시간(y, 시간)입니다.</p>
+    <div class="table-wrap"><table class="data" style="max-width:520px">
+      <thead><tr><th>x (백 쪽)</th><th>y (시간)</th><th>x − x̄</th><th>y − ȳ</th><th>(x − x̄)(y − ȳ)</th><th>(x − x̄)²</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>2</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td>2</td><td>5</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td>3</td><td>6</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td>4</td><td>7</td><td></td><td></td><td></td><td></td></tr>
+      </tbody>
+    </table></div>
+    <ol>
+      <li>표를 채우고 기울기 a와 절편 b를 구하세요.
+        <div class="write-lines"><div class="line"></div></div></li>
+      <li>오차 제곱합 SSE와 결정계수 R²를 구하세요.
+        <div class="write-lines"><div class="line"></div></div></li>
+      <li>500쪽 소설을 읽는 데 걸릴 시간을 예측하고, 이 예측을 얼마나 믿을 수 있을지 한 문장으로 쓰세요.
+        <div class="write-lines"><div class="line"></div></div></li>
+    </ol>
+    <details class="reveal"><summary>정답 확인</summary>
+    <div class="reveal-body">
+      x̄ = 2.5, ȳ = 5. x − x̄ = −1.5, −0.5, 0.5, 1.5 / y − ȳ = −3, 0, 1, 2.
+      Σ(x − x̄)(y − ȳ) = 4.5 + 0 + 0.5 + 3 = 8, Σ(x − x̄)² = 2.25 + 0.25 + 0.25 + 2.25 = 5.
+      a = 8 ÷ 5 = <b>1.6</b>, b = 5 − 1.6 × 2.5 = <b>1</b> → ŷ = 1.6x + 1.<br>
+      예측값 2.6, 4.2, 5.8, 7.4 → 오차 −0.6, 0.8, 0.2, −0.4 → SSE = 0.36 + 0.64 + 0.04 + 0.16 = <b>1.2</b>.
+      SST = 9 + 0 + 1 + 4 = 14 → R² = 1 − 1.2 ÷ 14 ≈ <b>0.914</b>.<br>
+      500쪽(x = 5) → 1.6 × 5 + 1 = <b>9시간</b>. 다만 데이터가 4명뿐이고 400쪽까지만 있어서 500쪽은 범위 밖 예측(외삽)이므로 조심해야 합니다.
+    </div></details>
+  </div>
+</div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  손계산 → 게임 → 코드 순서가 효과적입니다. 게임에서 학생들이 SSE 27.5에 도달하면 ‘최소제곱 해 보기’로 확인하게 하고, 이어서 점 하나를 멀리 끌어 이상치가 회귀선을 얼마나 끌어당기는지 관찰시키세요(제곱 때문에 큰 오차에 민감함).
+  스프레드시트를 쓰는 학급은 SLOPE·INTERCEPT·RSQ 함수로 같은 값을 확인할 수 있고, 구글 시트의 LINEST 함수는 표준오차까지 보여 줍니다.
+  p값은 ‘관계가 없다고 가정했을 때 이런 결과가 나올 확률’이라는 뜻만 다루고, 가설 검정의 형식적 절차는 깊이 들어가지 않아도 됩니다. “p값이 작다 = 효과가 크다”는 흔한 오개념이므로 기울기(효과의 크기)와 p값(우연 가능성)을 구분시키세요.
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>회귀 분석은 독립 변수로 종속 변수를 설명·예측하는 식을 찾는 방법이며, 이름은 골턴의 ‘평균으로의 회귀’에서 왔다.</li>
+    <li>최소제곱법은 오차 제곱합(SSE)이 가장 작은 직선을 공식 a = Σ(x−x̄)(y−ȳ)/Σ(x−x̄)², b = ȳ − a·x̄로 한 번에 구한다.</li>
+    <li>R² = 1 − SSE/SST는 평균선의 오차를 회귀선이 줄인 비율이다(정확도가 아님).</li>
+    <li>회귀 계수는 x가 1 늘 때 y의 평균적 변화량이고, p값이 0.05보다 작으면 그 관계가 우연으로 보기 어렵다고 판단한다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 최소제곱 직선 찾기 게임 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const svg = $("ls-svg");
+  const W = 560, H = 380, L = 48, R = 14, T = 14, B = 36;
+  const X0 = 0, X1 = 6.5, Y0 = 30, Y1 = 110;
+  const px = x => L + (W - L - R) * (x - X0) / (X1 - X0);
+  const py = y => T + (H - T - B) * (1 - (y - Y0) / (Y1 - Y0));
+  const ix = p => X0 + (p - L) / (W - L - R) * (X1 - X0);
+  const iy = p => Y0 + (1 - (p - T) / (H - T - B)) * (Y1 - Y0);
+  const START = [[1,55],[2,60],[3,70],[4,75],[5,90]];
+  let pts = START.map(p => p.slice());
+  let drag = -1;
+
+  function fit(){
+    const n = pts.length, mx = pts.reduce((s, p) => s + p[0], 0) / n, my = pts.reduce((s, p) => s + p[1], 0) / n;
+    let sxy = 0, sxx = 0;
+    pts.forEach(p => { sxy += (p[0] - mx) * (p[1] - my); sxx += (p[0] - mx) ** 2; });
+    const a = sxx ? sxy / sxx : 0;
+    return { a, b: my - a * mx, my };
+  }
+  const sseOf = (a, b) => pts.reduce((s, p) => s + (p[1] - (a * p[0] + b)) ** 2, 0);
+  const fmt = v => (Math.round(v * 100) / 100).toString();
+
+  function render(){
+    const a = +$("a-rng").value, b = +$("b-rng").value;
+    const best = fit(), sse = sseOf(a, b), minSse = sseOf(best.a, best.b);
+    const sst = pts.reduce((s, p) => s + (p[1] - best.my) ** 2, 0);
+    $("a-val").textContent = a.toFixed(1); $("b-val").textContent = b.toFixed(1);
+    $("ls-eq").textContent = `ŷ = ${a.toFixed(1)}x ${b >= 0 ? "+" : "−"} ${Math.abs(b).toFixed(1)}`;
+    $("ls-sse").textContent = fmt(sse);
+    $("ls-sst").textContent = fmt(sst);
+    $("ls-r2").textContent = sst ? (1 - sse / sst).toFixed(3) : "—";
+    $("ls-bar").style.width = Math.min(100, sse / Math.max(sst, 1) * 100) + "%";
+    const gap = sse - minSse;
+    $("ls-msg").textContent = gap < 0.05
+      ? `🎉 최소! 이 데이터에서 SSE의 최솟값은 ${fmt(minSse)}입니다. 최소제곱 해: ŷ = ${fmt(best.a)}x + ${fmt(best.b)}`
+      : `최솟값까지 SSE를 ${fmt(gap)} 더 줄일 수 있어요. (현재 점 ${pts.length}개)`;
+
+    let ax = "", h = "", dots = "";
+    for (let y = 40; y <= 100; y += 10) {
+      ax += `<line x1="${L}" x2="${W-R}" y1="${py(y)}" y2="${py(y)}" stroke="#eef1f5"/><text x="${L-6}" y="${py(y)+4}" font-size="11" text-anchor="end" fill="#8595a6">${y}</text>`;
+    }
+    for (let x = 0; x <= 6; x++) ax += `<text x="${px(x)}" y="${H-B+16}" font-size="11" text-anchor="middle" fill="#8595a6">${x}</text>`;
+    ax += `<text x="${(W+L)/2}" y="${H-4}" font-size="11" text-anchor="middle" fill="#4b5a6b">공부시간(x)</text>`;
+    ax += `<text x="${L+4}" y="${T+10}" font-size="11" fill="#4b5a6b">성적(y)</text>`;
+    // 평균선과 그 제곱(SST)
+    if ($("t-mean").checked) {
+      h += `<line x1="${L}" x2="${W-R}" y1="${py(best.my)}" y2="${py(best.my)}" stroke="#8595a6" stroke-dasharray="6 4" stroke-width="1.5"/>`;
+      pts.forEach(p => {
+        const s = Math.abs(py(p[1]) - py(best.my));
+        h += `<rect x="${px(p[0]) - s}" y="${Math.min(py(p[1]), py(best.my))}" width="${s}" height="${s}" fill="#8595a6" fill-opacity=".15" stroke="#8595a6" stroke-opacity=".5"/>`;
+      });
+    }
+    // 내 직선의 오차 제곱(SSE)
+    pts.forEach(p => {
+      const yh = a * p[0] + b, y1 = py(p[1]), y2 = py(yh), s = Math.abs(y1 - y2);
+      if ($("t-sq").checked) h += `<rect x="${px(p[0])}" y="${Math.min(y1, y2)}" width="${s}" height="${s}" fill="#e8883a" fill-opacity=".22" stroke="#e8883a" stroke-opacity=".7"/>`;
+      h += `<line x1="${px(p[0])}" x2="${px(p[0])}" y1="${y1}" y2="${y2}" stroke="#d94848" stroke-width="1.5"/>`;
+    });
+    h += `<line x1="${px(X0)}" y1="${py(a * X0 + b)}" x2="${px(X1)}" y2="${py(a * X1 + b)}" stroke="#e8883a" stroke-width="3"/>`;
+    pts.forEach((p, i) => { dots += `<circle class="pt" data-i="${i}" cx="${px(p[0])}" cy="${py(p[1])}" r="8" fill="#3a7bd5" stroke="#fff" stroke-width="2"/>`; });
+    svg.innerHTML = `<defs><clipPath id="ls-clip"><rect x="${L}" y="${T}" width="${W-L-R}" height="${H-T-B}"/></clipPath></defs>` +
+                    ax + `<g clip-path="url(#ls-clip)">${h}</g>` + dots;
+  }
+
+  function toData(evt){
+    const pt = svg.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+    const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+    return [Math.min(6.3, Math.max(0.2, ix(p.x))), Math.min(108, Math.max(32, iy(p.y)))];
+  }
+  svg.addEventListener("pointerdown", e => {
+    const c = e.target.closest ? e.target.closest(".pt") : null;
+    if (!c) return;
+    drag = +c.dataset.i; svg.setPointerCapture(e.pointerId); e.preventDefault();
+  });
+  svg.addEventListener("pointermove", e => {
+    if (drag < 0) return;
+    const d = toData(e); pts[drag] = [Math.round(d[0] * 10) / 10, Math.round(d[1])]; render();
+  });
+  const end = () => { drag = -1; };
+  svg.addEventListener("pointerup", end); svg.addEventListener("pointercancel", end);
+
+  $("a-rng").addEventListener("input", render);
+  $("b-rng").addEventListener("input", render);
+  $("t-sq").addEventListener("change", render);
+  $("t-mean").addEventListener("change", render);
+  $("ls-best").addEventListener("click", () => {
+    const f = fit();
+    // 슬라이더 범위·눈금에 맞춰 표시(정확한 값은 메시지에 표시)
+    $("a-rng").value = f.a; $("b-rng").value = f.b;
+    render();
+    const a = +$("a-rng").value, b = +$("b-rng").value;
+    if (Math.abs(a - f.a) > 1e-9 || Math.abs(b - f.b) > 1e-9)
+      $("ls-msg").textContent = `최소제곱 해는 ŷ = ${fmt(f.a)}x + ${fmt(f.b)} (SSE ${fmt(sseOf(f.a, f.b))})입니다. 슬라이더 눈금 때문에 가장 가까운 값으로 표시했어요.`;
+  });
+  $("ls-reset").addEventListener("click", () => { pts = START.map(p => p.slice()); $("a-rng").value = 4; $("b-rng").value = 55; render(); });
+  $("ls-add").addEventListener("click", () => {
+    if (pts.length >= 12) return;
+    pts.push([Math.round((0.5 + Math.random() * 5.5) * 10) / 10, Math.round(50 + Math.random() * 40)]); render();
+  });
+  render();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"세 점 (1, 2), (2, 4), (3, 3)에 대해 직선 ŷ = x + 1의 오차 제곱합(SSE)은?",
+    choices:["0","1","2","3","4"], answer:2,
+    explain:"예측값은 2, 3, 4이고 오차(실제 − 예측)는 0, +1, −1입니다. 제곱해서 더하면 0 + 1 + 1 = 2입니다." },
+  { type:"mc", q:"x̄ = 4, ȳ = 20, Σ(x − x̄)(y − ȳ) = 30, Σ(x − x̄)² = 10일 때 최소제곱 회귀식은?",
+    choices:["ŷ = 3x + 8","ŷ = 3x + 20","ŷ = 0.33x + 18.7","ŷ = 2x + 12","ŷ = 3x − 8"], answer:0,
+    explain:"기울기 a = 30 ÷ 10 = 3, 절편 b = ȳ − a·x̄ = 20 − 3 × 4 = 8이므로 ŷ = 3x + 8입니다. 이 직선은 평균점 (4, 20)을 지납니다." },
+  { type:"ox", q:"어떤 회귀 모델의 R²가 0.80이면, 이 모델의 예측은 80% 확률로 정확하다는 뜻이다.",
+    answer:false, explain:"R²는 평균선으로 예측할 때의 오차 제곱합 중 회귀선이 줄여 준 비율(설명력)입니다. 예측이 맞을 확률, 곧 정확도가 아닙니다." },
+  { type:"mc", q:"‘하루 운동 시간(분) → 체력 점수’ 회귀 분석 결과가 기울기 0.12, p값 0.003이었다. 가장 알맞은 해석은?",
+    choices:["운동 시간이 1분 늘면 체력 점수가 반드시 0.12점 오른다","운동 시간이 1분 많은 학생은 체력 점수가 평균적으로 0.12점 높은 경향이 있고, 이 관계는 우연으로 보기 어렵다","p값이 작으므로 운동 시간의 효과가 매우 크다","p값이 0.05보다 작으므로 두 변수는 관계가 없다","R²가 0.003이다"], answer:1,
+    explain:"기울기는 x가 1 늘 때 y의 평균적 변화(경향)이고, p값 0.003 < 0.05는 기울기가 0인데 우연히 이런 결과가 나올 가능성이 매우 낮다는 뜻입니다. p값은 효과의 크기가 아니며, 인과관계를 보장하지도 않습니다." },
+  { type:"short", q:"최소제곱법에서 오차를 그냥 더하지 않고 ‘제곱해서’ 더하는 이유를 두 가지 쓰세요.",
+    model:"첫째, 오차에는 양수와 음수가 있어 그냥 더하면 서로 지워져 0이 될 수 있으므로 제곱해서 부호를 없앤다. 둘째, 제곱하면 큰 오차가 더 크게 반영되어 크게 벗어나는 예측을 줄이는 직선을 찾게 된다(또한 공식으로 최솟값을 한 번에 계산하기 쉽다)." },
+]);
+</script>
+</body>
+</html>

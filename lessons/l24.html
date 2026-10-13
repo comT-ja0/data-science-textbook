@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>같은 데이터, 다른 분석 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 어느 지역이 더 나쁜가 */
+.lens-btns { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+.lens-btns button { background:#fff; color:var(--accent); border:1.5px solid var(--accent); font-size:.82rem; padding:6px 11px; }
+.lens-btns button.on { background:var(--accent); color:#fff; }
+#rg-svg { width:100%; height:auto; background:#fff; border:1px solid var(--line); border-radius:10px; }
+.rg-cmp { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
+.rg-card { border:2px solid var(--line); border-radius:10px; padding:8px 12px; background:#fff; }
+.rg-card.worse { border-color:#dc2626; background:#fdeeee; }
+.rg-card h5 { margin:0 0 2px; font-size:.86rem; }
+.rg-card .big { font-size:1.5rem; font-weight:800; font-variant-numeric:tabular-nums; }
+.rg-verdict { margin-top:10px; padding:10px 14px; border-radius:10px; background:var(--accent-soft); font-size:.9rem; font-weight:600; }
+.lens-log { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; font-size:.8rem; }
+.lens-log span { background:var(--paper); border:1px solid var(--line); border-radius:999px; padding:2px 10px; }
+</style>
+</head>
+<body data-unit="2" data-lesson="L24">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>같은 데이터, 다른 분석</h1>
+  <span class="std-badge">성취기준 12데과02-04</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>동일한 데이터에 서로 다른 대푯값·전처리·그래프·집단 구분을 적용하여 결과를 비교할 수 있다.</li>
+      <li>분석 방법에 따라 결과가 달라지는 이유를 데이터의 분포와 구조로 설명할 수 있다.</li>
+      <li>분석 목적에 맞는 방법을 선택하고, 선택한 방법과 그 한계를 함께 보고할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과02-04] 동일한 데이터를 서로 다른 분석 방법을 적용하여 분석 결과를 비교한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span>수집</span><span class="on">전처리</span><span class="on">탐색</span><span>모델링</span><span class="on">평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  환경 동아리 두 모둠이 같은 초미세먼지 측정 자료로 발표를 했습니다.
+  1모둠: “평균을 보면 <b>가 지역</b>이 더 나쁩니다!” 2모둠: “중앙값을 보면 <b>나 지역</b>이 더 나쁩니다!”
+  둘 중 한 모둠은 계산을 틀린 걸까요? 아니요, 둘 다 계산은 맞았습니다. <b>같은 데이터라도 어떤 방법으로 분석하느냐에 따라 결론이 달라질 수 있습니다.</b>
+  오늘은 그 이유를 찾고, 어떤 방법을 골라야 하는지 판단하는 연습을 합니다.
+</div>
+
+<h2><span class="sec-no">1</span>결론을 바꾸는 분석의 선택들 <i class="pub-c">공통</i></h2>
+
+<p>데이터 분석에는 수많은 ‘선택’이 숨어 있습니다. 선택이 달라지면 같은 데이터에서도 다른 결론이 나올 수 있습니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:150px">선택의 종류</th><th>예</th><th style="width:220px">이 차시에서 확인할 곳</th></tr></thead>
+  <tbody>
+    <tr><td><b>대푯값</b></td><td>평균, 중앙값, 최빈값, 기준 초과 비율</td><td>2절 위젯</td></tr>
+    <tr><td><b>전처리</b></td><td>결측치 삭제·대체, 이상치 유지·제거·수정</td><td>3절 파이썬</td></tr>
+    <tr><td><b>시각화</b></td><td>히스토그램, 상자그림, 구간의 수</td><td>4절 파이썬</td></tr>
+    <tr><td><b>집단 구분</b></td><td>전체로 볼까, 집단별로 나눠 볼까</td><td>5절 손계산·파이썬</td></tr>
+    <tr><td><b>분석 모델</b></td><td>통계적 회귀 vs 기계학습 회귀, 군집 수 등</td><td>Ⅲ영역에서 계속</td></tr>
+  </tbody>
+</table></div>
+
+<p>결과가 다르다고 해서 한쪽이 ‘틀린’ 것은 아닙니다. 방법마다 데이터의 <b>다른 측면</b>을 보여 주기 때문입니다.
+중요한 것은 ① 여러 방법으로 결과를 비교해 보고, ② 결과가 달라지는 <b>이유</b>를 데이터에서 찾고, ③ <b>분석 목적</b>에 맞는 방법을 골라,
+④ 어떤 방법을 썼는지 <b>밝히는 것</b>입니다.</p>
+
+<h2><span class="sec-no">2</span>평균으로 볼까, 중앙값으로 볼까 <i class="pub">씨마스</i></h2>
+
+<div class="sim">
+  <div class="sim-head">어느 지역이 더 나쁜가? — 분석 기준 바꿔 보기</div>
+  <div class="sim-body">
+    <p style="margin-top:0;font-size:.9rem">두 지역의 30일간 하루 초미세먼지 농도(㎍/㎥, 가상 데이터)입니다. 기준을 바꿀 때마다 ‘더 나쁜 지역’이 어떻게 바뀌는지 보세요.
+    슬라이더로 가 지역에 황사·산불 같은 <b>고농도 날</b>을 늘리거나 줄일 수 있습니다.</p>
+    <div class="lens-btns" id="rg-lens">
+      <button data-l="mean">평균</button>
+      <button data-l="median">중앙값</button>
+      <button data-l="bad">‘나쁨’ 일수 (36 이상)</button>
+      <button data-l="good">‘좋음’ 일수 (15 이하)</button>
+      <button data-l="max">최댓값</button>
+    </div>
+    <div class="sim-controls">
+      <label for="rg-k">가 지역 고농도 날 수</label>
+      <input type="range" id="rg-k" min="0" max="6" value="4" style="flex:1;min-width:150px">
+      <b id="rg-kv">4일</b>
+    </div>
+    <svg id="rg-svg" viewBox="0 0 640 235" role="img" aria-label="두 지역의 하루 농도 점 그래프"></svg>
+    <div class="rg-cmp">
+      <div class="rg-card" id="rg-ca"><h5>가 지역</h5><div class="big" id="rg-va">—</div><small id="rg-sa"></small></div>
+      <div class="rg-card" id="rg-cb"><h5>나 지역</h5><div class="big" id="rg-vb">—</div><small id="rg-sb"></small></div>
+    </div>
+    <div class="rg-verdict" id="rg-verdict"></div>
+    <div class="lens-log" id="rg-log"></div>
+    <p class="widget-hint">관찰 포인트: 가 지역은 대부분 맑지만 가끔 아주 나쁜 날이 있고, 나 지역은 매일 비슷하게 ‘보통’입니다.
+    ‘고농도 날 수’를 몇 일로 바꾸면 평균 기준의 결론이 뒤집히나요? 중앙값은 왜 거의 변하지 않을까요?</p>
+  </div>
+</div>
+
+<p>가 지역은 평소에는 깨끗하지만 드물게 매우 나쁜 날이 있고, 나 지역은 매일 적당히 나쁩니다.
+<b>평균</b>은 극단적인 날의 영향을 크게 받아 가 지역을 더 나쁘게, <b>중앙값</b>은 ‘보통의 하루’를 보여 주어 나 지역을 더 나쁘게 평가합니다.
+그렇다면 어떤 방법을 써야 할까요? <b>목적</b>에 달려 있습니다.
+천식 환자에게 위험한 ‘고농도 날’을 줄이는 것이 목적이라면 ‘나쁨 일수’가, 1년 내내 들이마시는 양(장기 노출)이 관심이라면 평균이 알맞습니다.
+‘보통 날의 공기’를 비교하고 싶다면 중앙값이 알맞습니다.</p>
+
+<h2><span class="sec-no">3</span>전처리 선택에 따라 달라지는 결과 <i class="pub">삼양</i></h2>
+
+<p>L17~L18에서 결측치와 이상치를 처리하는 여러 방법을 배웠습니다. 방법을 어떻게 조합하느냐에 따라 결과가 얼마나 달라질까요?
+<code>health.csv</code>의 몸무게에 (결측치 처리 3가지) × (이상치 처리 2가지) = 6가지 조합을 모두 적용해 비교해 봅시다.</p>
+
+<div class="pycell" data-title="전처리 조합 6가지의 결과 비교표"><textarea>
+import pandas as pd
+import numpy as np
+
+df = load_csv("health.csv")
+
+def 이상치를_결측으로(s):
+    q1, q3 = s.quantile(0.25), s.quantile(0.75)
+    iqr = q3 - q1
+    return s.where((s >= q1 - 1.5 * iqr) & (s <= q3 + 1.5 * iqr))   # 울타리 밖 → NaN
+
+def 처리(s, 결측, 이상치):
+    if 이상치 == "제거":
+        s = 이상치를_결측으로(s)
+    if 결측 == "삭제":
+        s = s.dropna()
+    elif 결측 == "평균대체":
+        s = s.fillna(s.mean())
+    else:
+        s = s.fillna(s.median())
+    return s
+
+rows = []
+for 이상치 in ["유지", "제거"]:
+    for 결측 in ["삭제", "평균대체", "중앙값대체"]:
+        s = 처리(df["몸무게"], 결측, 이상치)
+        rows.append([이상치, 결측, len(s), round(s.mean(), 2), round(s.median(), 2), round(s.std(), 2)])
+
+비교 = pd.DataFrame(rows, columns=["이상치", "결측치", "개수", "평균", "중앙값", "표준편차"])
+print(비교.to_string(index=False))
+
+# ✏️ "몸무게"를 "수면시간"으로 바꿔 보세요. 어느 조합에서 결과가 가장 크게 달라지나요?
+</textarea></div>
+
+<p>이상치(585kg)를 <b>유지</b>하면 어떤 결측치 처리를 하든 평균이 <b>약 77~79kg</b>으로 터무니없이 크고, 표준편차도 95 이상입니다.
+이상치를 <b>제거</b>하면 평균이 <b>약 60kg</b>으로 내려오고 세 가지 결측치 처리 방법 사이의 차이는 0.2kg 정도로 작아집니다.
+이 데이터에서는 결측치를 어떻게 처리하느냐보다 <b>이상치를 어떻게 처리하느냐</b>가 결과를 훨씬 크게 바꿉니다.
+반면 중앙값은 여섯 조합 모두 약 61~63kg으로 크게 흔들리지 않습니다.</p>
+
+<h2><span class="sec-no">4</span>히스토그램으로 볼까, 상자그림으로 볼까 <i class="pub">YBM</i></h2>
+
+<p>그래프의 종류도 분석 결과를 다르게 보이게 합니다. <code>fruit.csv</code>의 과일 무게 180개를 두 그래프로 그려 봅시다.</p>
+
+<div class="pycell" data-title="같은 데이터, 히스토그램 vs 상자그림"><textarea>
+import matplotlib.pyplot as plt
+
+fruit = load_csv("fruit.csv")
+무게 = fruit["무게"]
+print(무게.describe().round(1))
+
+fig, ax = plt.subplots(1, 3, figsize=(13, 3.8))
+ax[0].boxplot(무게); ax[0].set_title("상자그림")
+ax[1].hist(무게, bins=6, color="#93c5fd", edgecolor="white"); ax[1].set_title("히스토그램 (구간 6개)")
+ax[2].hist(무게, bins=30, color="#2563eb", edgecolor="white"); ax[2].set_title("히스토그램 (구간 30개)")
+for a in ax[1:]:
+    a.set_xlabel("무게(g)")
+plt.tight_layout(); plt.show()
+
+print(fruit.groupby("과일")["무게"].agg(["mean", "min", "max"]).round(1))
+
+# ✏️ bins를 3, 10, 50으로 바꿔 보세요. 봉우리가 몇 개로 보이나요?
+</textarea></div>
+
+<p>상자그림은 중앙값 282.5g을 중심으로 한 커다란 상자 하나로, ‘무게가 넓게 퍼진 과일들’로만 보입니다.
+그런데 구간을 30개로 나눈 히스토그램을 보면 <b>봉우리가 세 개</b>입니다. 귤(평균 약 95g)·사과(약 281g)·배(약 524g)라는 세 집단이 섞여 있기 때문이지요.
+상자그림은 여러 집단의 분포를 <b>요약·비교</b>하는 데 강하고, 히스토그램은 분포의 <b>모양</b>을 보는 데 강합니다.
+구간 수를 너무 적게 잡으면 히스토그램도 봉우리를 뭉개 버린다는 점에 주의하세요.</p>
+
+<h2><span class="sec-no">5</span>집단을 나누면 뒤집히는 결론 <i class="pub">천재</i></h2>
+
+<p>두 학원의 ‘수학 등급이 오른 학생 비율’을 조사했습니다(가상 데이터). 전체로 보면 A 학원이 좋아 보입니다.</p>
+
+<div class="table-wrap"><table class="data" style="max-width:600px">
+  <thead><tr><th>학원</th><th>상위권 학생</th><th>하위권 학생</th><th>전체</th></tr></thead>
+  <tbody>
+    <tr><td><b>A 학원</b></td><td>80 / 100 = <b>80%</b></td><td>20 / 50 = <b>40%</b></td><td>100 / 150 ≈ <b>66.7%</b></td></tr>
+    <tr><td><b>B 학원</b></td><td>36 / 40 = <b>90%</b></td><td>55 / 110 = <b>50%</b></td><td>91 / 150 ≈ <b>60.7%</b></td></tr>
+  </tbody>
+</table></div>
+
+<p>그런데 상위권과 하위권으로 나누어 보면 <b>두 집단 모두 B 학원의 비율이 10%p 높습니다.</b>
+전체에서 A가 앞선 이유는 A 학원에 원래 등급이 잘 오르는 상위권 학생이 많이(150명 중 100명) 다니기 때문입니다.
+이처럼 집단을 합쳤을 때와 나눴을 때 결론이 뒤집히는 것을 <span class="keyterm">심슨의 역설</span>이라고 합니다(L22의 상관 반전과 같은 원리).
+학원을 고르는 학생 입장이라면, 나와 비슷한 수준의 학생들끼리 비교한 <b>집단별 결과</b>가 더 알맞은 근거입니다.</p>
+
+<div class="pycell" data-title="전체 비율 vs 집단별 비율"><textarea>
+학원 = pd.DataFrame({
+    "학원":   ["A", "A", "B", "B"],
+    "수준":   ["상위권", "하위권", "상위권", "하위권"],
+    "학생수": [100, 50, 40, 110],
+    "향상":   [80, 20, 36, 55],
+})
+학원["향상률"] = (학원["향상"] / 학원["학생수"]).round(3)
+print(학원)
+
+전체 = 학원.groupby("학원")[["향상", "학생수"]].sum()
+전체["향상률"] = (전체["향상"] / 전체["학생수"]).round(3)
+print("\n전체로 합친 결과")
+print(전체)
+
+# ✏️ B 학원 상위권 학생 수를 40 → 100, 하위권을 110 → 50으로 바꾸면(비율은 그대로 90%, 50%) 전체 결론은 어떻게 되나요?
+</textarea></div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  이 차시는 성취기준 02-04의 핵심 차시입니다. 모둠마다 <b>서로 다른 방법</b>(평균/중앙값, 삭제/대체, 전체/집단별)을 배정해 같은 질문에 답하게 한 뒤
+  결과를 칠판에 모아 비교하면 “방법이 결론을 바꾼다”는 경험을 강하게 남길 수 있습니다.
+  Orange에서는 Impute·Preprocess 위젯의 설정만 바꿔 여러 갈래로 연결하고 Box Plot/Distributions로 결과를 나란히 비교합니다.
+  흔한 오개념은 “결과가 다르면 둘 중 하나는 틀렸다”입니다. 평가 시에는 결론 자체보다 <b>방법 선택의 근거와 한계 서술</b>을 봅니다.
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">모둠 활동</span>분석 방법 비교 보고서 <i class="pub">삼양</i> <i class="pub">씨마스</i></div>
+  <div class="act-body">
+    <p style="margin-top:0">질문: <b>“공공자전거는 비 온 날 얼마나 덜 이용될까?”</b> (bike.csv) — 모둠별로 서로 다른 방법으로 답하고 비교하세요.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th style="width:26%">방법</th><th style="width:22%">결과 (수치)</th><th>이 방법이 보여 주는 것 / 놓치는 것</th></tr></thead>
+      <tbody>
+        <tr><td>① 비 온 날 vs 안 온 날 <b>평균</b> 대여량 비교</td><td></td><td></td></tr>
+        <tr><td>② 비 온 날 vs 안 온 날 <b>중앙값</b> 대여량 비교</td><td></td><td></td></tr>
+        <tr><td>③ <b>상자그림</b>으로 분포 비교</td><td></td><td></td></tr>
+        <tr><td>④ <b>계절(월)별로 나누어</b> 비 온 날과 안 온 날 비교</td><td></td><td></td></tr>
+      </tbody>
+    </table></div>
+    <p>네 방법의 결론이 같았나요, 달랐나요? 달랐다면 그 이유는 무엇인가요? 시청 담당자에게 보고한다면 어떤 방법의 결과를 대표로 쓰고, 무엇을 함께 밝히겠습니까?</p>
+    <div class="write-lines"><div class="line"></div><div class="line"></div><div class="line"></div></div>
+  </div>
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>같은 데이터라도 대푯값·전처리·그래프·집단 구분 방법에 따라 결론이 달라질 수 있다.</li>
+    <li>평균은 극단값의 영향을 크게 받고 중앙값은 ‘보통의 값’을 보여 준다. 기준 초과 일수 같은 지표는 위험한 사건에 초점을 맞춘다.</li>
+    <li>히스토그램은 분포의 모양(봉우리)을, 상자그림은 요약과 집단 비교를 잘 보여 준다. 집단을 합치면 결론이 뒤집힐 수 있다(심슨의 역설).</li>
+    <li>여러 방법의 결과를 비교하고, 목적에 맞는 방법을 골라 그 방법과 한계를 함께 보고한다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 어느 지역이 더 나쁜가 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const BASE = [12,14,15,16,13,18,17,11,19,16,14,20,15,13,17,18,21,12,16,15,14,19,22,13,16,17,15,18,14,16];
+  const EXTREME = [70, 80, 90, 105, 75, 95];
+  const NA_ = [22,24,26,23,25,27,21,24,28,23,26,25,22,27,24,23,25,26,28,22,24,27,23,25,26,21,24,25,27,23];
+  const BAD = 36, GOOD = 15;
+  let lens = "mean";
+  const seen = {};
+
+  const mean = a => a.reduce((s, x) => s + x, 0) / a.length;
+  const median = a => { const b = [...a].sort((x, y) => x - y), n = b.length; return n % 2 ? b[(n - 1) / 2] : (b[n / 2 - 1] + b[n / 2]) / 2; };
+  const LENS = {
+    mean:   { name:"평균", f:mean, unit:"㎍/㎥", worseIsHigh:true, fmt:v => v.toFixed(2) },
+    median: { name:"중앙값", f:median, unit:"㎍/㎥", worseIsHigh:true, fmt:v => String(v) },
+    bad:    { name:"‘나쁨’ 일수", f:a => a.filter(v => v >= BAD).length, unit:"일", worseIsHigh:true, fmt:v => String(v) },
+    good:   { name:"‘좋음’ 일수", f:a => a.filter(v => v <= GOOD).length, unit:"일", worseIsHigh:false, fmt:v => String(v) },
+    max:    { name:"최댓값", f:a => Math.max(...a), unit:"㎍/㎥", worseIsHigh:true, fmt:v => String(v) },
+  };
+  const EXPLAIN = {
+    mean: "평균은 모든 날의 값을 더해 나누므로 고농도 날 몇 번이 크게 끌어올립니다. ‘한 달 동안 들이마신 총량’에 가까운 관점입니다.",
+    median: "중앙값은 30일을 줄 세웠을 때 가운데 값이라 극단적인 날에 거의 흔들리지 않습니다. ‘보통의 하루’를 비교하는 관점입니다.",
+    bad: "‘나쁨’(36 이상) 일수는 건강에 위험한 날이 며칠인지에 초점을 맞춥니다. 천식 환자나 야외 활동 계획에 중요한 관점입니다.",
+    good: "‘좋음’(15 이하) 일수가 적을수록 더 나쁜 지역으로 봅니다. 맑은 날을 얼마나 누릴 수 있는지의 관점입니다.",
+    max: "최댓값은 가장 나빴던 하루 하나만 봅니다. 극단적인 사건에 대비하는 관점이지만, 하루의 값이라 우연의 영향이 큽니다.",
+  };
+
+  function dataA(k){ return BASE.slice(0, 30 - k).concat(EXTREME.slice(0, k)); }
+
+  function render(){
+    const k = +$("rg-k").value; $("rg-kv").textContent = k + "일";
+    const A = dataA(k), Bv = NA_;
+    const L = LENS[lens];
+    const va = L.f(A), vb = L.f(Bv);
+    $("rg-lens").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.l === lens));
+    $("rg-va").textContent = L.fmt(va) + " " + L.unit;
+    $("rg-vb").textContent = L.fmt(vb) + " " + L.unit;
+    $("rg-sa").textContent = `평균 ${mean(A).toFixed(2)} · 중앙값 ${median(A)}`;
+    $("rg-sb").textContent = `평균 ${mean(Bv).toFixed(2)} · 중앙값 ${median(Bv)}`;
+    let worse = null;
+    if (va !== vb) worse = (L.worseIsHigh ? va > vb : va < vb) ? "가" : "나";
+    $("rg-ca").classList.toggle("worse", worse === "가");
+    $("rg-cb").classList.toggle("worse", worse === "나");
+    $("rg-verdict").textContent = (worse ? `${L.name} 기준으로는 ‘${worse} 지역’이 더 나쁩니다. ` : `${L.name} 기준으로는 두 지역이 같습니다. `) + EXPLAIN[lens];
+    seen[lens + k] = { lens, k, worse };
+    $("rg-log").innerHTML = "지금까지의 결론: " + Object.values(seen).filter(s => s.k === k).map(s => `<span>${LENS[s.lens].name} → ${s.worse ? s.worse + " 지역" : "같음"}</span>`).join("");
+
+    // 점 그래프
+    const X = v => 60 + v / 110 * 560;
+    let s = "";
+    [[GOOD, "좋음 경계 15", "#3b82f6"], [BAD, "나쁨 경계 36", "#dc2626"]].forEach(([v, t, c]) => {
+      s += `<line x1="${X(v)}" y1="10" x2="${X(v)}" y2="195" stroke="${c}" stroke-dasharray="4 4"/><text x="${X(v) + 3}" y="18" font-size="10" fill="${c}">${t}</text>`;
+    });
+    s += `<line x1="60" y1="195" x2="620" y2="195" stroke="#8595a6"/>`;
+    for (let v = 0; v <= 110; v += 10) s += `<text x="${X(v)}" y="212" font-size="10" text-anchor="middle" fill="#4b5a6b">${v}</text>`;
+    s += `<text x="620" y="228" font-size="10" text-anchor="end" fill="#8595a6">초미세먼지(㎍/㎥)</text>`;
+    [["가", A, 72, "#f59e0b"], ["나", Bv, 158, "#2563eb"]].forEach(([nm, arr, y, c]) => {
+      s += `<text x="8" y="${y + 4}" font-size="13" font-weight="800" fill="#1e2733">${nm} 지역</text>`;
+      const cnt = {};
+      arr.forEach(v => { cnt[v] = (cnt[v] || 0) + 1; const dy = (cnt[v] - 1) * 7; s += `<circle cx="${X(v)}" cy="${y + 14 - dy}" r="4" fill="${c}" opacity=".75"/>`; });
+      const m = mean(arr), md = median(arr);
+      s += `<line x1="${X(m)}" y1="${y - 30}" x2="${X(m)}" y2="${y + 22}" stroke="#1e2733" stroke-width="2"/><text x="${X(m) + 3}" y="${y - 22}" font-size="10" fill="#1e2733">평균</text>`;
+      s += `<line x1="${X(md)}" y1="${y - 30}" x2="${X(md)}" y2="${y + 22}" stroke="#16a34a" stroke-width="2" stroke-dasharray="3 2"/><text x="${X(md) - 3}" y="${y - 22}" font-size="10" text-anchor="end" fill="#16a34a">중앙값</text>`;
+    });
+    $("rg-svg").innerHTML = s;
+  }
+
+  $("rg-lens").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; lens = b.dataset.l; render(); });
+  $("rg-k").addEventListener("input", render);
+  render();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"어느 회사 직원 10명의 연봉이 9명은 3천만 원, 1명(대표)은 10억 원이다. ‘이 회사 직원의 일반적인 연봉’을 나타내기에 가장 알맞은 값과 그 값은?",
+    choices:["평균, 약 1억 2,700만 원","중앙값, 3천만 원","최댓값, 10억 원","평균, 3천만 원","중앙값, 약 1억 2,700만 원"], answer:1,
+    explain:"평균 = (3천만 × 9 + 10억) ÷ 10 = (2억 7천만 + 10억) ÷ 10 = 1억 2,700만 원으로, 10명 중 9명의 실제 연봉과 동떨어집니다. 극단값이 있을 때 ‘일반적인 값’은 중앙값(3천만 원)이 더 잘 나타냅니다." },
+  { type:"ox", q:"같은 데이터를 두 가지 방법으로 분석했는데 결론이 서로 다르다면, 둘 중 하나는 반드시 계산이 틀린 것이다.",
+    answer:false, explain:"평균과 중앙값처럼 방법마다 데이터의 다른 측면을 보기 때문에 계산이 모두 맞아도 결론이 다를 수 있습니다. 차이가 나는 이유를 데이터에서 찾고, 목적에 맞는 방법을 선택해 밝히는 것이 중요합니다." },
+  { type:"mc", q:"과일 무게 데이터에 귤·사과·배가 섞여 있다. 이 사실을 가장 잘 드러내는 그래프는?",
+    choices:["전체 무게의 상자그림 하나","구간을 충분히 나눈 전체 무게의 히스토그램","전체 무게 평균의 막대그래프","무게의 최댓값과 최솟값 표","무게 평균을 나타낸 원그래프"], answer:1,
+    explain:"히스토그램은 분포의 모양을 보여 주므로 세 과일에 해당하는 봉우리 세 개가 드러납니다. 상자그림 하나는 이 봉우리들을 하나의 넓은 상자로 요약해 버립니다." },
+  { type:"mc", q:"본문 5절의 학원 표에서 B 학원 상위권 학생을 100명(90명 향상), 하위권을 50명(25명 향상)으로 바꾸면 B 학원의 전체 향상률은?",
+    choices:["약 60.7%","약 66.7%","70.0%","약 76.7%","90.0%"], answer:3,
+    explain:"(90 + 25) ÷ (100 + 50) = 115 ÷ 150 ≈ 76.7%. A 학원(66.7%)보다 높아집니다. 집단별 비율은 그대로인데 학생 구성만 바뀌어도 전체 결론이 뒤집힙니다." },
+  { type:"short", q:"두 모둠이 같은 health.csv로 ‘우리 반 평균 몸무게’를 발표했다. 1모둠은 78.87kg, 2모둠은 60kg 정도라고 했다. 두 결과가 다른 이유를 추론하고, 발표 자료에 어떤 내용을 밝혀야 하는지 쓰세요.",
+    model:"1모둠은 585kg 같은 이상치를 그대로 두고 평균을 구했고, 2모둠은 이상치를 제거(또는 수정)한 뒤 평균을 구했기 때문이다. 결측치를 어떻게 처리했는지(삭제, 평균 대체, 중앙값 대체)에 따라서도 조금 달라질 수 있다. 발표 자료에는 결측치·이상치를 찾은 기준(예: IQR 1.5배), 처리 방법, 처리 후 남은 데이터 수를 밝히고, 이상치의 영향을 덜 받는 중앙값도 함께 제시해야 한다." },
+]);
+</script>
+</body>
+</html>

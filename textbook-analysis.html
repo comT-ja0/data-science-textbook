@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>데이터 과학 교과서 4종 분석</title>
+<meta name="description" content="2022 개정 「데이터 과학」 교과서 4종(삼양미디어·씨마스·YBM·천재교과서)의 구성·도구·성취기준 대응·평가·강점·유의점을 교과서별로 분석하고 비교한 수업 지도용 보고서">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<style>
+:root{
+  --ink:#1e2733; --ink-soft:#4b5a6b; --ink-faint:#8595a6; --paper:#f6f8fa; --card:#fff; --line:#dde4ec;
+  --accent:#0e7490; --accent-soft:#e2f4f8;
+  --sy:#2563eb; --sy-soft:#e8effe;   /* 삼양 */
+  --cm:#059669; --cm-soft:#e3f6ee;   /* 씨마스 */
+  --yb:#d97706; --yb-soft:#fdf1de;   /* YBM */
+  --cj:#7c3aed; --cj-soft:#f1eafd;   /* 천재 */
+  --good:#127a3c; --mid:#b4700a; --weak:#b32424;
+  --radius:12px; --shadow:0 1px 3px rgba(20,33,51,.08),0 4px 14px rgba(20,33,51,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ink:#e6edf5; --ink-soft:#b7c5d3; --ink-faint:#7d8ea0; --paper:#121820; --card:#1a222c; --line:#2c3948;
+    --accent:#22a3b8; --accent-soft:#12303a;
+    --sy:#6b9bff; --sy-soft:#1a2a4a; --cm:#34c38f; --cm-soft:#143328; --yb:#f0a444; --yb-soft:#3a2a12; --cj:#a78bfa; --cj-soft:#2a2144;
+    --good:#4ade80; --mid:#fbbf24; --weak:#f87171;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#e6edf5; --ink-soft:#b7c5d3; --ink-faint:#7d8ea0; --paper:#121820; --card:#1a222c; --line:#2c3948;
+  --accent:#22a3b8; --accent-soft:#12303a;
+  --sy:#6b9bff; --sy-soft:#1a2a4a; --cm:#34c38f; --cm-soft:#143328; --yb:#f0a444; --yb-soft:#3a2a12; --cj:#a78bfa; --cj-soft:#2a2144;
+  --good:#4ade80; --mid:#fbbf24; --weak:#f87171;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Pretendard Variable",Pretendard,-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;line-height:1.75;font-size:16px;word-break:keep-all}
+.wrap{display:flex;min-height:100vh}
+nav.toc{width:250px;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;padding:22px 14px 40px;border-right:1px solid var(--line);background:var(--card)}
+nav.toc .brand{font-weight:800;font-size:1rem;line-height:1.35;padding:0 8px 12px;border-bottom:2px solid var(--ink);margin-bottom:10px}
+nav.toc .brand small{display:block;font-weight:600;font-size:.72rem;color:var(--ink-faint)}
+nav.toc a{display:block;color:var(--ink-soft);text-decoration:none;font-size:.85rem;padding:4px 8px;border-radius:7px}
+nav.toc a:hover{background:var(--paper);color:var(--ink)}
+nav.toc a.sub{padding-left:20px;font-size:.8rem}
+nav.toc .back{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+main{flex:1;min-width:0;max-width:1040px;margin:0 auto;padding:34px clamp(16px,4vw,56px) 80px}
+h1{font-size:clamp(1.6rem,3.6vw,2.2rem);line-height:1.3;margin:0 0 8px;letter-spacing:-.01em}
+h2{font-size:1.45rem;margin:56px 0 14px;padding-bottom:10px;border-bottom:2px solid var(--line)}
+h2 .no{display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;border-radius:8px;background:var(--accent);color:#fff;font-size:1rem;margin-right:10px;padding:0 8px;vertical-align:-3px}
+h3{font-size:1.14rem;margin:30px 0 10px}
+h4{font-size:1rem;margin:18px 0 6px}
+p{margin:8px 0}
+a{color:var(--accent)}
+.lead{color:var(--ink-soft);font-size:1.02rem;max-width:760px}
+.meta{font-size:.84rem;color:var(--ink-faint);margin-top:10px}
+table{border-collapse:collapse;width:100%;margin:14px 0;font-size:.9rem;background:var(--card)}
+th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+th{background:var(--accent-soft);font-weight:700}
+.tw{overflow-x:auto}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:16px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);border-top:5px solid var(--c,var(--accent))}
+.card h4{margin:0 0 4px;font-size:1.05rem}
+.card .tag{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--cs,var(--accent-soft));color:var(--c,var(--accent));margin:2px 3px 2px 0}
+.card p{font-size:.88rem;color:var(--ink-soft);margin:6px 0 0}
+.sy{--c:var(--sy);--cs:var(--sy-soft)} .cm{--c:var(--cm);--cs:var(--cm-soft)} .yb{--c:var(--yb);--cs:var(--yb-soft)} .cj{--c:var(--cj);--cs:var(--cj-soft)}
+th.sy,td.sy-h{background:var(--sy-soft);color:var(--sy)} th.cm{background:var(--cm-soft);color:var(--cm)} th.yb{background:var(--yb-soft);color:var(--yb)} th.cj{background:var(--cj-soft);color:var(--cj)}
+.mx td.m{text-align:center;font-weight:800;font-size:1.05rem;width:12%}
+.m.g{color:var(--good)} .m.o{color:var(--mid)} .m.w{color:var(--weak)}
+.bars{display:grid;gap:10px;margin:14px 0}
+.bar-row{display:grid;grid-template-columns:78px 1fr 58px;align-items:center;gap:10px;font-size:.86rem}
+.bar{display:flex;height:26px;border-radius:7px;overflow:hidden;border:1px solid var(--line)}
+.bar span{display:flex;align-items:center;justify-content:center;color:#fff;font-size:.72rem;font-weight:700;white-space:nowrap;overflow:hidden}
+.u1{background:#0e7490}.u2{background:#2563eb}.u3{background:#d97706}.u4{background:#7c3aed}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.8rem;color:var(--ink-soft)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.book{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:6px clamp(16px,3vw,30px) 22px;margin:26px 0;box-shadow:var(--shadow);border-left:6px solid var(--c)}
+.book h2{border-bottom-color:var(--line);margin-top:24px}
+.book h2 .no{background:var(--c)}
+.pill{display:inline-block;background:var(--cs);color:var(--c);font-weight:700;font-size:.78rem;padding:2px 10px;border-radius:999px;margin:2px 4px 2px 0}
+.box{border-radius:var(--radius);padding:12px 16px;margin:14px 0;font-size:.93rem}
+.box b.l{display:block;font-size:.82rem;margin-bottom:2px}
+.box.good{background:color-mix(in srgb,var(--good) 9%,var(--card));border:1px solid color-mix(in srgb,var(--good) 35%,var(--line))}
+.box.good b.l{color:var(--good)}
+.box.warn{background:color-mix(in srgb,var(--mid) 10%,var(--card));border:1px solid color-mix(in srgb,var(--mid) 35%,var(--line))}
+.box.warn b.l{color:var(--mid)}
+.box.info{background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line))}
+.box.info b.l{color:var(--accent)}
+ul,ol{padding-left:22px} li{margin:3px 0}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:820px){.two{grid-template-columns:1fr}}
+.small{font-size:.84rem;color:var(--ink-soft)}
+footer{margin-top:60px;padding-top:16px;border-top:1px solid var(--line);font-size:.8rem;color:var(--ink-faint)}
+#menu{display:none;position:fixed;top:12px;left:12px;z-index:30;width:42px;height:42px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:1.15rem;box-shadow:var(--shadow);cursor:pointer}
+@media (max-width:900px){
+  #menu{display:block}
+  nav.toc{position:fixed;z-index:25;left:0;top:0;transform:translateX(-105%);transition:transform .2s;box-shadow:0 0 30px rgba(0,0,0,.2)}
+  nav.toc.open{transform:none}
+  main{padding-top:64px}
+}
+@media print{
+  nav.toc,#menu{display:none!important}
+  body{background:#fff;font-size:10.5pt}
+  main{max-width:none;padding:0}
+  .book,.card{box-shadow:none;break-inside:avoid-page}
+  h2{break-after:avoid}
+}
+</style>
+</head>
+<body>
+<button id="menu" aria-label="목차 열기">☰</button>
+<div class="wrap">
+<nav class="toc" id="toc">
+  <div class="brand">교과서 4종 분석<small>2022 개정 「데이터 과학」</small></div>
+  <a href="#s1">1. 분석 개요</a>
+  <a href="#s2">2. 한눈에 비교</a>
+  <a class="sub" href="#s2-1">도구·환경·코드 수준</a>
+  <a class="sub" href="#s2-2">단원별 분량</a>
+  <a class="sub" href="#s2-3">구성 체제와 평가</a>
+  <a href="#s3">3. 성취기준 대응 매트릭스</a>
+  <a href="#s4">4. 교과서별 분석</a>
+  <a class="sub" href="#sy">④-1 삼양미디어</a>
+  <a class="sub" href="#cm">④-2 씨마스</a>
+  <a class="sub" href="#yb">④-3 와이비엠(YBM)</a>
+  <a class="sub" href="#cj">④-4 천재교과서</a>
+  <a href="#s5">5. 주제별 교차 비교</a>
+  <a href="#s6">6. 오류·정오 모음</a>
+  <a href="#s7">7. 수업 설계 시사점</a>
+  <a href="#s8">8. 통합 교재 반영 내역</a>
+  <div class="back"><a href="index.html">← 데이터 과학 온라인 교과서</a></div>
+</nav>
+<main>
+
+<header>
+  <h1>「데이터 과학」 교과서 4종 분석 보고서</h1>
+  <p class="lead">2022 개정 교육과정 고등학교 진로 선택 과목 「데이터 과학」 교과서 4종의 구성, 분석 도구, 성취기준 대응, 평가 체계,
+  강점과 유의점을 교과서별로 분석하고 주제별로 비교했습니다. 수업 설계와 교과서 병행 지도에 쓰도록 쪽수를 함께 적었습니다.</p>
+  <div class="meta">분석 대상: 삼양미디어 · 씨마스 · 와이비엠(YBM) · 천재교과서 (가나다순) · 기준: 교육부 고시 2022 개정 정보과 교육과정 「데이터 과학」 성취기준 19개 · 작성 2026. 9.</div>
+</header>
+
+<!-- ======================= 1 ======================= -->
+<h2 id="s1"><span class="no">1</span>분석 개요</h2>
+
+<div class="cards">
+  <div class="card sy"><h4>삼양미디어</h4>
+    <span class="tag">Python · Colab</span><span class="tag">코드 중상급</span><span class="tag">241쪽</span>
+    <p>정웅열 외 7인. 성취기준 순서를 소단원 제목까지 그대로 따르는 <b>코드 중심 실습형</b>. scikit-learn 모델 비교·교차검증·분류 평가지표까지 가장 깊게 다룹니다.</p></div>
+  <div class="card cm"><h4>씨마스</h4>
+    <span class="tag">Orange → Python</span><span class="tag">SQL</span><span class="tag">249쪽</span>
+    <p>강신천 외 8인. Orange로 먼저 하고 같은 분석을 Python으로 재현하는 <b>이중 트랙</b>. SQL 실습, 보충/심화 분기형 평가 등 구성이 가장 촘촘합니다.</p></div>
+  <div class="card yb"><h4>와이비엠(YBM)</h4>
+    <span class="tag">Python · Colab</span><span class="tag">손계산→코드</span><span class="tag">254쪽</span>
+    <p>서인순 외 5인. 모든 활동에 성취기준 요소·역량을 태깅. <b>손으로 먼저, 코드는 나중</b> 흐름과 Ⅲ단원 3모델 ↔ Ⅳ단원 3프로젝트 대칭 구조가 특징입니다.</p></div>
+  <div class="card cj"><h4>천재교과서</h4>
+    <span class="tag">Orange3 · 시트</span><span class="tag">비코딩</span><span class="tag">232쪽</span>
+    <p>김현철 외 5인. Orange 위젯으로 끝까지 가는 <b>비코딩 실습형</b>. 모델링(Ⅲ) 비중 35%로 회귀·군집·연관을 원리→손계산→도구→실데이터로 반복합니다.</p></div>
+</div>
+
+<div class="tw"><table>
+  <thead><tr><th style="width:120px">항목</th><th class="sy">삼양미디어</th><th class="cm">씨마스</th><th class="yb">YBM</th><th class="cj">천재교과서</th></tr></thead>
+  <tbody>
+    <tr><th>대표 저자</th><td>정웅열(백신중) 외 7인</td><td>강신천(국립공주대) 외 8인</td><td>서인순((전)화성반월고) 외 5인</td><td>김현철(고려대) 외 5인</td></tr>
+    <tr><th>분량</th><td>PDF 241쪽</td><td>PDF 249쪽</td><td>PDF 254쪽(본문 9~219)</td><td>232쪽</td></tr>
+    <tr><th>주 도구</th><td>Python + Google Colab 단일</td><td>Orange + Python(Colab) 이중 트랙, SQL·스프레드시트·R</td><td>Python + Google Colab 단일</td><td>Orange3 + 구글 시트, CODAP 1회</td></tr>
+    <tr><th>핵심 라이브러리</th><td>pandas, seaborn, scikit-learn, mlxtend, yellowbrick, ydata-profiling</td><td>pandas, seaborn, sklearn, statsmodels, mlxtend, plotly, folium</td><td>pandas, seaborn, sklearn, statsmodels, mlxtend, apyori, yellowbrick</td><td>(코드 없음) Orange 위젯 약 30종 + Associate·Text 애드온</td></tr>
+    <tr><th>문제 해결 틀</th><td>6단계(문제 정의→수집→전처리·탐색→모델링→평가→활용)</td><td>프로젝트 6단계 아이콘</td><td>4단계 의사결정 / 프로젝트 5단계(…→일반화 및 공유)</td><td>6단계(문제 정의→수집→전처리→EDA→모델링→해석·공유)</td></tr>
+    <tr><th>한 줄 성격</th><td>비교·판단 활동과 평가지표가 강한 코드형</td><td>체험→재현, 평가 설계가 촘촘한 표준형</td><td>성취기준 태깅·손계산 중심의 코드형</td><td>진입 장벽 낮은 GUI형, 방법 비교표 풍부</td></tr>
+  </tbody>
+</table></div>
+
+<!-- ======================= 2 ======================= -->
+<h2 id="s2"><span class="no">2</span>한눈에 비교</h2>
+
+<h3 id="s2-1">도구·환경·코드 수준</h3>
+<div class="tw"><table>
+  <thead><tr><th style="width:130px">구분</th><th class="sy">삼양</th><th class="cm">씨마스</th><th class="yb">YBM</th><th class="cj">천재</th></tr></thead>
+  <tbody>
+    <tr><th>코딩 필요도</th><td>높음 — Ⅱ-04부터 반복문·subplot·불리언 인덱싱, Ⅳ는 SVM·RF·교차검증</td><td>선택 — Orange만으로 수업 가능, Python은 재현·심화</td><td>높음 — Ⅱ 후반부터 거의 모든 쪽에 코드, Ⅳ는 중상급</td><td>없음 — 스프레드시트 함수(SUMPRODUCT·RSQ·CORREL) 정도</td></tr>
+    <tr><th>설치 부담</th><td>없음(Colab). 일부 패키지 pip 설치</td><td>Orange 설치 + 애드온(Associate·Text·Geo)</td><td>없음(Colab). yellowbrick·mlxtend·apyori 설치</td><td>Orange 설치 + 애드온</td></tr>
+    <tr><th>크롬북 적합성</th><td>◎</td><td>○ (Python 트랙)</td><td>◎</td><td>△ (CODAP·시트로 대체 필요)</td></tr>
+    <tr><th>실습 데이터</th><td>32종: 체력측정, 스마트팜 토마토, 여가생활, 초미세먼지, 해양부이 등 국내 공공 데이터 가공본</td><td>34종: 수면·건강, Airbnb, housing, Mall Customers, 국가 데이터 등 캐글 중심</td><td>24종: 붓꽃, 타이타닉, 자전거, ECOS 물가, 미세먼지 배출량, 생활 이동 등</td><td>25종: 행복 보고서, 사과 품질, FIFA, Spotify, 해빙, 블루베리, 노인실태조사 등</td></tr>
+    <tr><th>DB·SQL</th><td>DB 설계 워크시트(개념)</td><td><b>SQL CRUD 실습</b>, VLOOKUP</td><td>카드 게임, 설문→시트 통합(개념)</td><td>Orange Merge 3방식(개념)</td></tr>
+    <tr><th>분류 모델</th><td>로지스틱·SVM·RF, 정밀도·재현율·F1</td><td>의사결정나무(지표 소개)</td><td>부록 소개만</td><td>로지스틱 개념만</td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="s2-2">단원별 분량(쪽)</h3>
+<div class="legend"><span><i class="u1"></i>Ⅰ 데이터 과학의 이해</span><span><i class="u2"></i>Ⅱ 데이터 준비와 분석</span><span><i class="u3"></i>Ⅲ 데이터 모델링과 평가</span><span><i class="u4"></i>Ⅳ 데이터 과학 프로젝트</span></div>
+<div class="bars">
+  <div class="bar-row"><b>삼양</b><div class="bar"><span class="u1" style="width:17.3%">36</span><span class="u2" style="width:27.9%">58</span><span class="u3" style="width:31.7%">66</span><span class="u4" style="width:23.1%">48</span></div><span>208쪽</span></div>
+  <div class="bar-row"><b>씨마스</b><div class="bar"><span class="u1" style="width:22%">48</span><span class="u2" style="width:28.4%">62</span><span class="u3" style="width:23.9%">52</span><span class="u4" style="width:25.7%">56</span></div><span>218쪽</span></div>
+  <div class="bar-row"><b>YBM</b><div class="bar"><span class="u1" style="width:23.6%">49</span><span class="u2" style="width:20.7%">43</span><span class="u3" style="width:30.3%">63</span><span class="u4" style="width:25.5%">53</span></div><span>208쪽</span></div>
+  <div class="bar-row"><b>천재</b><div class="bar"><span class="u1" style="width:13%">28</span><span class="u2" style="width:26%">56</span><span class="u3" style="width:38.1%">82</span><span class="u4" style="width:22.8%">49</span></div><span>215쪽</span></div>
+</div>
+<p class="small">본문 대단원 쪽수 기준(부록 제외, 반올림). 네 교과서 모두 Ⅲ 모델링 또는 Ⅱ 준비·분석에 가장 많은 지면을 씁니다. 천재는 Ⅲ(38%), 씨마스는 Ⅱ(28%)가 가장 두껍습니다.</p>
+
+<h3 id="s2-3">구성 체제와 평가</h3>
+<div class="tw"><table>
+  <thead><tr><th style="width:130px">구분</th><th class="sy">삼양</th><th class="cm">씨마스</th><th class="yb">YBM</th><th class="cj">천재</th></tr></thead>
+  <tbody>
+    <tr><th>도입</th><td>핵심 아이디어, 만화형 생각 열기(아이스크림·급식 잔반·측우기 등)</td><td>'세상을 바꾸는 데이터' 이야기(마시멜로·통신사 보고·머니볼) + 점검 퀴즈</td><td>'단원을 여는 이야기'(나이팅게일·김정호·세종·존 스노)</td><td>'생각에 날개 달기' 만화 + 영상 QR</td></tr>
+    <tr><th>활동 코너</th><td>해 보기(유형 라벨), 탐구 활동, 알고 가기, 1분 요약, 지식 충전소</td><td>스스로/함께 해결하기, 파이썬으로 해 보기, 디지털 샘의 Tip</td><td>활동(성취기준 요소·역량 태그), 더 나아가기, 데이터 And I</td><td>해 보기, 실습, 선택 활동 1~4, 더 알아보기, 정보로 통하는 세상</td></tr>
+    <tr><th>형성평가</th><td>손계산 해 보기(별도 문항 세트 없음)</td><td>소단원 성취도 자기점검 + QR 형성평가</td><td>스스로 점검(성취기준 문장), 중단원 빈칸 정리</td><td><b>문항형 없음</b>(지도서에 수록)</td></tr>
+    <tr><th>단원평가</th><td>마인드맵 + 선택·단답·서술(코드 작성 포함), 정답 해설</td><td>O·X·빈칸·선 긋기·서술 + 역량 Check!</td><td>선택 6 + 서술 1~2 + 논술 1, 복습 쪽 점검표</td><td>빈칸 요약, 모델 선택 가이드, 스스로 점검하기</td></tr>
+    <tr><th>수준별 지도</th><td>—</td><td><b>역량 키우기 보충/심화 분기</b></td><td>—</td><td>선택 활동</td></tr>
+    <tr><th>루브릭</th><td>프로젝트 상·중·하 5항목, 대단원 프로젝트 자기·동료</td><td>협력 활동 5점 척도, 프로젝트 3수준, 부록 활동지 4종</td><td>역량 쑥쑥 8개 3점 척도(과정·기능 3 + 가치·태도 2)</td><td><b>6영역×3수준 루브릭</b> + 포스터 양식</td></tr>
+  </tbody>
+</table></div>
+
+<!-- ======================= 3 ======================= -->
+<h2 id="s3"><span class="no">3</span>성취기준 대응 매트릭스</h2>
+<p><b class="m g" style="color:var(--good)">◎</b> 충실 · <b style="color:var(--mid)">○</b> 보통 · <b style="color:var(--weak)">△</b> 보완 필요 — 각 교과서 분석에서 판정한 대응 강도입니다. 괄호는 주요 쪽수입니다.</p>
+<div class="tw"><table class="mx">
+  <thead><tr><th>성취기준</th><th class="sy" style="text-align:center">삼양</th><th class="cm" style="text-align:center">씨마스</th><th class="yb" style="text-align:center">YBM</th><th class="cj" style="text-align:center">천재</th><th>비고</th></tr></thead>
+  <tbody>
+    <tr><td>[01-01] 데이터 과학 개념·의사 결정</td><td class="m g">◎</td><td class="m g">◎</td><td class="m g">◎</td><td class="m g">◎</td><td class="small">모두 충실</td></tr>
+    <tr><td>[01-02] 정형·비정형, 잠재적 가치</td><td class="m g">◎</td><td class="m g">◎</td><td class="m g">◎</td><td class="m o">○</td><td class="small">천재는 비정형 분석이 워드 클라우드 1회</td></tr>
+    <tr><td>[01-03] 데이터베이스·데이터셋 통합</td><td class="m o">○</td><td class="m g">◎</td><td class="m o">○</td><td class="m o">○</td><td class="small">SQL 실습은 씨마스만</td></tr>
+    <tr><td>[01-04] 사회 변화·진로</td><td class="m g">◎</td><td class="m o">○</td><td class="m g">◎</td><td class="m g">◎</td><td class="small">씨마스는 직업 카드 중심</td></tr>
+    <tr><td>[02-01] 편향 없는 수집·특성 분석</td><td class="m g">◎</td><td class="m g">◎</td><td class="m o">○</td><td class="m g">◎</td><td class="small">표본 설계 활동은 대부분 약함</td></tr>
+    <tr><td>[02-02] 결측·이상치·정규화·시각화</td><td class="m g">◎</td><td class="m g">◎</td><td class="m g">◎</td><td class="m g">◎</td><td class="small">모두 IQR 1.5배 규칙 사용</td></tr>
+    <tr><td>[02-03] 속성 간 관계·통합</td><td class="m g">◎</td><td class="m g">◎</td><td class="m o">○</td><td class="m g">◎</td><td class="small"></td></tr>
+    <tr><td>[02-04] 같은 데이터, 다른 분석 비교</td><td class="m g">◎</td><td class="m o">○</td><td class="m w">△</td><td class="m o">○</td><td class="small">삼양 스마트팜 비교가 대표 사례</td></tr>
+    <tr><td>[03-01] 데이터 모델·분석 도구</td><td class="m g">◎</td><td class="m g">◎</td><td class="m o">○</td><td class="m g">◎</td><td class="small">YBM은 도구 소개만</td></tr>
+    <tr><td>[03-02] 통계적 회귀 vs 기계학습 회귀</td><td class="m g">◎</td><td class="m g">◎</td><td class="m g">◎</td><td class="m g">◎</td><td class="small">천재는 비교 공정성 주의</td></tr>
+    <tr><td>[03-03] 유사성·군집</td><td class="m g">◎</td><td class="m g">◎</td><td class="m g">◎</td><td class="m g">◎</td><td class="small">삼양은 스케일링 누락</td></tr>
+    <tr><td>[03-04] 연관 분석</td><td class="m g">◎</td><td class="m g">◎</td><td class="m g">◎</td><td class="m g">◎</td><td class="small">씨마스 향상도 해석 과장</td></tr>
+    <tr><td>[03-05] 모델 결과 비교·평가</td><td class="m g">◎</td><td class="m g">◎</td><td class="m w">△</td><td class="m o">○</td><td class="small">분류 지표는 삼양만 충실</td></tr>
+    <tr><td>[03-06] 목적에 맞는 방법 적용</td><td class="m w">△</td><td class="m o">○</td><td class="m w">△</td><td class="m o">○</td><td class="small"><b>4종 공통 약점</b> — 전용 차시 필요</td></tr>
+    <tr><td>[04-01] 적용 사례·주제 적합성</td><td class="m g">◎</td><td class="m g">◎</td><td class="m o">○</td><td class="m g">◎</td><td class="small">삼양 플로차트, 천재 7기준</td></tr>
+    <tr><td>[04-02] 탐색적 분석·창의적 방법</td><td class="m o">○</td><td class="m g">◎</td><td class="m g">◎</td><td class="m g">◎</td><td class="small">삼양은 데이터가 미리 가공됨</td></tr>
+    <tr><td>[04-03] 2개 이상 방법 비교</td><td class="m g">◎</td><td class="m g">◎</td><td class="m o">○</td><td class="m g">◎</td><td class="small"></td></tr>
+    <tr><td>[04-04] 끝까지 해결하는 자세·해석</td><td class="m w">△</td><td class="m o">○</td><td class="m o">○</td><td class="m w">△</td><td class="small">태도는 평가표 항목 수준</td></tr>
+    <tr><td>[04-05] 성찰·사회적 영향·활용</td><td class="m w">△</td><td class="m w">△</td><td class="m g">◎</td><td class="m w">△</td><td class="small">YBM '일반화 및 공유' 체크리스트</td></tr>
+  </tbody>
+</table></div>
+<div class="box info"><b class="l">매트릭스에서 읽히는 것</b>
+네 교과서가 모두 강한 곳은 02-02(전처리)·03-02(회귀 비교)·03-03(군집)·03-04(연관)입니다.
+반대로 <b>03-06(목적에 맞는 분석 방법 선택)</b>, <b>04-04(끝까지 해결하는 태도)</b>, <b>04-05(사회적 영향 성찰)</b>은 대부분 약해
+교사가 별도 차시나 활동으로 보강해야 합니다. 02-04는 삼양이, 04-05는 YBM이, 01-03은 씨마스가 가장 좋은 참고 자료입니다.</div>
+
+<!-- ======================= 4 ======================= -->
+<h2 id="s4"><span class="no">4</span>교과서별 분석</h2>
+<p>각 교과서의 구성, 단원별 핵심 내용, 도구와 코드 수준, 평가, 강점과 유의점, 다른 수업에 빌려 쓸 만한 아이디어를 정리했습니다.
+쪽수는 <b>삼양은 PDF 쪽</b>(인쇄 쪽+1), <b>씨마스·YBM·천재는 인쇄 쪽</b>입니다.</p>
+
+<!-- ---------- 삼양 ---------- -->
+<section class="book sy" id="sy">
+<h2><span class="no">④-1</span>삼양미디어</h2>
+<p><span class="pill">Python·Colab 단일</span><span class="pill">성취기준 순서 충실</span><span class="pill">평가지표·교차검증</span><span class="pill">비교·판단 활동</span></p>
+<p>정웅열(연구·집필 책임) 외 7인, 광주광역시교육감 인정(2024.8.30). 집필진이 단원을 나눠 맡아 Ⅱ단원은 pandas 전처리 중심의 친절한 설명,
+Ⅲ단원은 개념+sklearn 흐름과 손계산, Ⅳ단원은 프로젝트 워크플로와 교차검증 중심으로 문체와 코드 스타일이 조금씩 다릅니다.</p>
+
+<h3>단원 구성</h3>
+<div class="tw"><table>
+  <thead><tr><th style="width:170px">대단원(PDF 쪽)</th><th>중단원</th><th style="width:34%">핵심 실습·데이터</th></tr></thead>
+  <tbody>
+    <tr><td>Ⅰ 데이터 과학의 이해 (9–44)</td><td>01 데이터 과학과 문제 해결 / 02 데이터의 형태와 속성 / 03 데이터셋과 데이터베이스 / 04 세상을 바꾸는 데이터 과학</td><td>아이스크림 생산량 회의로 6단계, 도서관 속성, 도서관 테이블 연결·CRUD, 쇼핑몰 DB 설계(코드 없음)</td></tr>
+    <tr><td>Ⅱ 데이터 준비와 분석 (45–102)</td><td>01 수집 및 특성 분석 / 02 전처리 / 03 속성 간 관계 파악 / 04 동일한 데이터의 다양한 분석·비교</td><td>bike-sharing, chipotle 결측 27%, 기온·강수 상관 히트맵, 빵집 concat·날씨+검색량 merge, <b>스마트팜 토마토 전처리 비교</b></td></tr>
+    <tr><td>Ⅲ 데이터 모델링과 평가 (103–168)</td><td>01 데이터 모델과 모델링 / 02 회귀 분석(선형·로지스틱) / 03 군집 분석 / 04 연관 분석</td><td>유방암 sklearn 3단계, <b>체력측정 polyfit vs LinearRegression</b>, 10행 과대적합, 드라마 장르 분류, Mall Customers, 여가생활 apriori</td></tr>
+    <tr><td>Ⅳ 데이터 과학 프로젝트 (169–216)</td><td>01 적용과 데이터 적합성 / 02 슬기로운 의사 생활 / 03 지혜로운 어부 생활 / 대단원 프로젝트</td><td>주제 판단 플로차트, 초미세먼지→환자 수 회귀 3모델, 해양부이 조업 분류 3모델 + 교차검증</td></tr>
+  </tbody>
+</table></div>
+
+<h3>단원별 핵심</h3>
+<ul>
+  <li><b>Ⅰ</b> — 데이터 과학을 통계·데이터 분석·기계학습의 통합 학문으로 정의하고, 6단계 문제 해결 과정을 아이스크림 회사 회의 대화 하나로 끝까지 보여 줍니다(p.15–17). 문제 상황마다 중요한 속성이 달라지는 도서관 예시(p.22–23), 책 목록–대출 기록–회원 테이블 연결(p.26–31), 쇼핑몰 DB 설계 탐구(p.32)가 있습니다.</li>
+  <li><b>Ⅱ</b> — 페트병 분류 AI로 좋은 데이터 5조건(p.49–50), 모둠 간 수집 데이터 상호 검증(p.51). chipotle 결측치 1,246개(27%)를 두고 행 삭제 대신 열 제거를 고르는 판단(p.58–60). min-max 정규화 직접 코딩(p.62–63). 상관 기준표와 상관≠인과 3사례(p.70–73). <b>스마트팜 토마토 데이터로 결측 대체값·IQR·merge 방식을 바꿔 가며 결과를 비교</b>하는 02-04 대표 실습(p.87–99).</li>
+  <li><b>Ⅲ</b> — 소설 쪽수–독서 시간 5점으로 오차 비교와 최소제곱 손계산(p.121–122). 체력측정 7,102행에 <code>np.polyfit</code>과 <code>LinearRegression</code>을 나란히 적용해 같은 계수(y=2.081x+93.312)를 얻고 비교표로 정리(p.125–128). 처음 10행만 학습하면 train 0.81 / test 0.38로 과대적합(p.132–135). 오분류표·정밀도·재현율·F1, 스팸 vs 감염병 지표 선택(p.139–142). 실루엣과 yellowbrick(p.154–155). 개나리 마트 10건 손계산 → mlxtend → <b>앱 수익 구조에 따라 규칙 선택</b> 토의(p.159–165).</li>
+  <li><b>Ⅳ</b> — 데이터 충분성·목적 적합성·법적 윤리성 플로차트(p.175). 초미세먼지 프로젝트에서 R²가 가장 높은 결정트리를 <b>학습 범위 밖 예측 한계 때문에 버리고</b> 다항 회귀를 택함(p.186–195). 해양부이 로지스틱·SVM·RF를 5겹 교차검증으로 비교(p.205–211).</li>
+</ul>
+
+<div class="two">
+  <div class="box good"><b class="l">강점</b><ul>
+    <li>소단원 제목이 성취기준과 거의 같아 진도·평가 계획이 쉬움</li>
+    <li>02-04·03-02를 정면으로 구현(스마트팜 비교, polyfit vs LR)</li>
+    <li>회귀·분류·군집·연관 평가지표 + 교차검증까지 가장 촘촘</li>
+    <li>지표만 보고 고르지 않는 판단 장면(27% 손실, 외삽 한계, 수익 구조)</li>
+    <li>[실행 결과 분석] 박스와 측면 함수 해설</li>
+  </ul></div>
+  <div class="box warn"><b class="l">유의점</b><ul>
+    <li>코드 난도가 높아 '복사해 실행하기' 수업이 될 위험 — 빈칸 노트북·Orange 병행 권장</li>
+    <li>k-평균·SVM에 스케일링 누락(p.152, 206)</li>
+    <li>03-06 전용 차시 없음, 프로젝트 데이터가 미리 가공됨</li>
+    <li>04-04·04-05 태도·사회적 영향 성찰이 짧음</li>
+    <li>개념·코드 오류 다수(6장 참조)</li>
+  </ul></div>
+</div>
+<h4>빌려 쓸 만한 아이디어</h4>
+<ol class="small">
+  <li>아이스크림 생산량 회의 스토리로 6단계 과정 역할극·카드 정렬 (p.15–17)</li>
+  <li>쇼핑몰 DB 설계 워크시트: 속성명·자료형·제약 조건 (p.32)</li>
+  <li>좋은 데이터 5조건 → 모둠 간 상호 검증 체크리스트 (p.49–51)</li>
+  <li>결측치 27% 손실 딜레마 토론 (p.58–60)</li>
+  <li>concat vs merge, how 옵션별 행 수 먼저 예측하기 (p.80–83, 97)</li>
+  <li>스마트팜 '전처리 선택지 비교' 모둠 수업 (p.87–99)</li>
+  <li>회귀선 두 개 오차 비교 → 최소제곱 손계산 → 코드 대조 (p.121–122)</li>
+  <li>10행 학습 과대적합 체험 (p.132–135)</li>
+  <li>스팸 vs 감염병 진단: 정밀도·재현율 선택 토의 (p.140–141)</li>
+  <li>연관 규칙을 사업 목적에 따라 고르기 (p.164–165)</li>
+  <li>R² 최고 모델을 버리는 이유(외삽 한계) 토론 (p.186–195)</li>
+  <li>로지스틱 vs 의사결정트리: 정확도와 해석 가능성 트레이드오프 (p.222–224)</li>
+</ol>
+</section>
+
+<!-- ---------- 씨마스 ---------- -->
+<section class="book cm" id="cm">
+<h2><span class="no">④-2</span>씨마스</h2>
+<p><span class="pill">Orange → Python 이중 트랙</span><span class="pill">SQL CRUD</span><span class="pill">보충/심화 분기</span><span class="pill">연속형 실습</span></p>
+<p>강신천(국립공주대, 집필 총괄) 외 8인. "Orange로 먼저 해 보고 같은 분석을 Python으로 다시 해 보는" 실습 중심 표준형 교과서입니다.
+역사 이야기(다산 정약용·나이팅게일·머니볼)와 직업인 인터뷰 4편, '세계 데이터 여행'(p.8–9)이 곳곳에 있고, 평가 코너가 가장 촘촘합니다.</p>
+
+<h3>단원 구성</h3>
+<div class="tw"><table>
+  <thead><tr><th style="width:170px">대단원(인쇄 쪽)</th><th>중단원·소단원</th><th style="width:34%">핵심 실습·데이터</th></tr></thead>
+  <tbody>
+    <tr><td>Ⅰ 데이터 과학의 이해 (10–57)</td><td>1. 데이터 과학과 데이터(개념 / 형태와 속성) · 2. 데이터의 저장과 활용(데이터베이스 / 미래 사회)</td><td>급식 사진→0/1 표, 형태 판별 Q1–Q6, 정약용 식수 기록, 테이블 분해, <b>VLOOKUP 통합·SQL CRUD</b>, Gapminder</td></tr>
+    <tr><td>Ⅱ 데이터 준비와 분석 (58–119)</td><td>1. 데이터 준비(수집과 선택 / 전처리와 시각화) · 2. 데이터 분석(방법 / 실제)</td><td>편향 3유형, 비만 데이터, 해수면 이상치, <b>수면·건강 연속 실습</b>, 직업별 스트레스 평균 vs 중앙값, Airbnb+생활비 통합</td></tr>
+    <tr><td>Ⅲ 데이터 모델링과 평가 (120–171)</td><td>1. 데이터 모델과 회귀분석 · 2. 군집 분석과 연관분석</td><td>같은 5개 값 4도구 비교, <b>housing OLS vs LR·RF·MLP</b>, Mall Customers k=5, 삼겹살 7건 손계산·Apriori 표 추적·mlxtend</td></tr>
+    <tr><td>Ⅳ 데이터 과학 프로젝트 (172–227)</td><td>1. 문제 해결(스트레스 지수 예측) · 2. 프로젝트 실제(영화 관객 수[선택] / 국가 군집[선택])</td><td>설문 설계→회귀 4모델, 크롤링·워드 클라우드, 복합 지표→k-평균 vs 병합 군집·choropleth</td></tr>
+  </tbody>
+</table></div>
+
+<h3>단원별 핵심</h3>
+<ul>
+  <li><b>Ⅰ</b> — 과학의 4패러다임과 케플러–브라헤(p.14–16), 나이팅게일 데이터로 의사결정 4단계, 설명·진단·예측·처방(p.19–20). 급식 사진을 표로 구조화(p.23–25)하고 Q1–Q6 흐름으로 척도를 판별(p.27). 정약용 기록으로 데이터→데이터셋 사다리(p.34–35), 중복이 많은 영화 테이블 분해로 기본키·외래키(p.40–41), VLOOKUP 통합(p.42–43), mycompiler.io SQL 실습(p.45–47).</li>
+  <li><b>Ⅱ</b> — 선택·확증·사회적 편향 3유형과 최소화 방법(p.64–66). 이상치 포함/제외 시 2050년 해수면 예측이 17.65 vs 16.39로 달라짐(p.72–73). 시각화 4유형(시간·분포·관계·공간). 수면 데이터를 Impute → 이상치 제거 → 표준화 → Merge로 처리한 파일을 다음 차시 대푯값·상관 분석에 계속 사용(p.78–101). "평균 50점인데 51점이 탈락" 퀴즈, 의사·간호사에서 평균과 중앙값 결론이 뒤집히는 쌍봉 분포(p.90–93), 간호사·회계사 상관 반전(p.98).</li>
+  <li><b>Ⅲ</b> — 정답 유무와 목표값 형태로 모델 선택(p.125). 통계 vs ML 대화문(p.133), housing OLS summary(R² 0.64, p값) vs LR 0.61·RF 0.81·MLP 0.61(p.134–139). 실루엣 공식과 k=5(0.555)(p.147–150). A~E 4건 Apriori 7단계 표(p.160). 고교학점제 과목 데이터로 '빈칸은 0점이 아니다' → 데이터 특성에 맞는 모델 선택(p.168–169).</li>
+  <li><b>Ⅳ</b> — 좋은 데이터 4조건·사용할 수 없는 데이터(p.180), 설문 문항 좋은 예/나쁜 예(p.183), 직접 수집한 83건으로 회귀 4모델 비교(p.185–192), 영화 관객 수(텍스트 마이닝), NGO 국가 군집: 엘보·실루엣, k-평균 vs 병합 군집(p.210–224).</li>
+</ul>
+
+<div class="two">
+  <div class="box good"><b class="l">강점</b><ul>
+    <li>이중 트랙으로 코딩 수준 차가 큰 학급에 유리</li>
+    <li>데이터셋을 이어 쓰는 연속형 실습(전처리 결과가 다음 분석의 입력)</li>
+    <li>01-03 DB·SQL, 03-02 OLS vs ML, 03-04 연관 3단 검증</li>
+    <li>보충/심화 분기, QR 형성평가, 부록 수행평가 활동지 4종</li>
+    <li>프로젝트 계단식 구성(뒤 두 개는 선택)</li>
+  </ul></div>
+  <div class="box warn"><b class="l">유의점</b><ul>
+    <li>Orange Dispersion(변동계수)을 '분산'으로 해석(p.68, 80)</li>
+    <li>향상도 1.05를 "연관성 높다"로 과장(p.159), R²를 '정확도'로 부름(p.207)</li>
+    <li>영화 프로젝트 데이터 누수(개봉 후 정보), 크롤링 차단 회피 코드</li>
+    <li>생태 주제 프로젝트·사회적 영향 토론·협업 기록 설계 부족</li>
+    <li>부록 정답과 본문 수치 불일치(p.243)</li>
+  </ul></div>
+</div>
+<h4>빌려 쓸 만한 아이디어</h4>
+<ol class="small">
+  <li>마시멜로 실험 재해석으로 표본 편향 도입 (p.12–13)</li>
+  <li>급식 사진 → 0/1 구조화 표 (p.23–25), 형태 판별 Q1–Q6 (p.27)</li>
+  <li>정약용 기록 → 데이터셋 → DB 개념 사다리 (p.34–36)</li>
+  <li>중복 테이블 분해 + SQL CRUD (p.40–47)</li>
+  <li>"평균 50점, 51점 탈락" 퀴즈 + 평균·중앙값·바이올린 플롯 (p.91–93)</li>
+  <li>하위집단 상관 반전(간호사 vs 회계사) (p.98)</li>
+  <li>두 데이터 통합 → 정규화 히트맵·지도로 여행지 결정 (p.102–113)</li>
+  <li>통계 vs ML 회귀 대화문 역할극 (p.133)</li>
+  <li>Apriori 7단계 빈칸 워크시트 (p.160)</li>
+  <li>'빈칸은 0점이 아니다' — 데이터 특성에 맞는 모델 고르기 (p.168–169)</li>
+  <li>설문 문항 좋은 예/나쁜 예 (p.183)</li>
+  <li>k-평균 vs 병합 군집 — "군집에는 정답이 없다" (p.220–224)</li>
+</ol>
+</section>
+
+<!-- ---------- YBM ---------- -->
+<section class="book yb" id="yb">
+<h2><span class="no">④-3</span>와이비엠(YBM)</h2>
+<p><span class="pill">Python·Colab 단일</span><span class="pill">성취기준 요소 태깅</span><span class="pill">손계산 → 코드</span><span class="pill">Ⅲ↔Ⅳ 대칭</span></p>
+<p>서인순(대표 집필) 외 5인. 모든 활동 머리에 성취기준 요소(지식·이해 / 과정·기능 / 가치·태도)와 역량 태그를 달고, 소단원 끝 '스스로 점검'에서
+성취기준 문장으로 달성 여부를 확인하게 합니다. 중단원마다 '역량 쑥쑥' 모둠 프로젝트(총 8개)와 '데이터 And I' 읽기 자료가 있습니다.</p>
+
+<h3>단원 구성</h3>
+<div class="tw"><table>
+  <thead><tr><th style="width:170px">대단원(인쇄 쪽)</th><th>중단원·소단원</th><th style="width:34%">핵심 실습·데이터</th></tr></thead>
+  <tbody>
+    <tr><td>Ⅰ 데이터 과학의 이해 (9–57)</td><td>01 개념(정의 / 의사 결정) · 02 데이터(형태와 속성 / 데이터베이스) · 03 사회(사회 변화 / 진로)</td><td>DIKW, 네이버 데이터랩 판매 전략, 반달가슴곰 속성, 학번 통합, <b>DB 카드 게임</b>, 우리 반 DB(Forms→Sheets), 채용 공고문</td></tr>
+    <tr><td>Ⅱ 데이터 준비와 분석 (59–101)</td><td>01 준비(수집과 특성 / 전처리) · 02 분석(EDA 이해 / 적용)</td><td>붓꽃 결측→IQR→MinMax 파이프라인, <b>K-pop 점수 정규화</b>, 평균의 함정, 다이아몬드, 타이타닉 Family 파생 속성</td></tr>
+    <tr><td>Ⅲ 데이터 모델링과 평가 (103–165)</td><td>01 회귀 · 02 군집 · 03 연관 (각각 개념 / 실제)</td><td><b>자전거 OLS vs LinearRegression</b>, 성적 10명 손 군집 → k-평균·실루엣, 편의점 6건 손계산(0.5/0.75/1.125) → mlxtend</td></tr>
+    <tr><td>Ⅳ 데이터 과학 프로젝트 (167–219)</td><td>01 개요(전력 수요 예측 예시) · 02 실제(물가 회귀 / 대기 오염 군집 / 생활권 연관)</td><td>기상+전력: 선형 R² 0.054 → 랜덤 포레스트, ECOS 로그 변환, 미세먼지 배출량 엘보, 생활 이동 apyori</td></tr>
+  </tbody>
+</table></div>
+
+<h3>단원별 핵심</h3>
+<ul>
+  <li><b>Ⅰ</b> — 빵집 날씨 수요 예측으로 정의, DIKW와 필요한 능력 4가지(p.12–14), 의사 결정 4단계(p.17–18). 정형·비정형 비교와 척도 분류, 반달가슴곰 속성의 잠재적 가치(p.27–30). 파일 시스템의 중복·종속 문제와 DB 4특징(p.32–33), 학번으로 인적 사항과 성적을 통합해 '동아리별 국어 점수'를 얻는 과정(p.34), 개체·참조 무결성(p.36), DB 구축 카드 게임(p.37). 사회 변화 4가지와 필터 버블(p.46–47), 워크넷·커리어넷 채용 공고문(p.52–53).</li>
+  <li><b>Ⅱ</b> — 수집 방법 5가지, 텍사스 명사수 오류와 AI 채용 편향(p.62–63). 붓꽃 데이터에 심어 둔 결측 5개를 평균 대치 → IQR로 4행 제거 → MinMaxScaler로 이어 처리(p.69–74). K-pop 심사위원 4명의 기준이 다른 점수를 정규화해 우승자 찾기(p.75). 존 튜키의 EDA, 히스토그램 vs 막대그래프, 타이타닉 891행으로 SibSp+Parch → Family 파생 속성과 생존자 비교(p.82–95).</li>
+  <li><b>Ⅲ</b> — 통계적 회귀(설명·R²) vs 기계학습 회귀(예측·분할·MSE) 대비표(p.113). 자전거 데이터에 statsmodels OLS(R² 0.444, windspeed p=0.966)와 sklearn LR(MSE≈1.07)을 나란히 적용(p.114–121). 손으로 군집 → 중심점 수정 → k=2~6 실루엣(최대 0.514, k=5) → 군집별 과목 평균 선그래프 해석(p.129–141). 편의점 6건 손계산과 코드 결과가 같은지 확인, 임계값을 0.1/0.05/0.01로 낮추며 비교(p.151–161).</li>
+  <li><b>Ⅳ</b> — 기상자료개방포털·전력통계정보시스템에서 받은 2022년 자료로, 여름·겨울 모두 전력이 높아 선형 회귀 R² 0.054에 그치는 이유를 설명하고 비선형 모델로 개선(p.173–181). ECOS 물가 로그 변환(R² 0.981), 시도별 배출량 엘보·실루엣, 생활 이동 연관 규칙 → 정책 제안. 매 프로젝트 끝 '일반화 및 공유' 체크리스트(편향·오류·상호 존중)(p.195, 205, 215).</li>
+</ul>
+
+<div class="two">
+  <div class="box good"><b class="l">강점</b><ul>
+    <li>성취기준·역량 태깅으로 평가 계획 수립이 쉬움</li>
+    <li>03-02를 가장 정면으로 구현(OLS summary 주석 해석)</li>
+    <li>손계산 → 코드 대조가 일관됨</li>
+    <li>Ⅲ 3모델 ↔ Ⅳ 3프로젝트 대칭, 국내 공공 데이터 메뉴 경로까지 안내</li>
+    <li>실패→개선을 보여 주는 전력 예제, 04-05 체크리스트</li>
+  </ul></div>
+  <div class="box warn"><b class="l">유의점</b><ul>
+    <li>코드 오타·실행 오류가 많음(6장) — 사전 검증 필수</li>
+    <li>랜덤 포레스트 예제가 전체 데이터로 학습(데이터 누수, p.181)</li>
+    <li>표준화·로그 변환까지 '정규화'로 부름, "기울기가 클수록 강한 상관"(p.112) 오류</li>
+    <li>02-04·03-05·03-06 전용 소단원 없음, 분류·RMSE 없음</li>
+    <li>블록·노코드 대안 없어 코딩 경험 적은 학급은 부담</li>
+  </ul></div>
+</div>
+<h4>빌려 쓸 만한 아이디어</h4>
+<ol class="small">
+  <li>데이터베이스 구축 카드 게임 (p.37, 부록 243–247)</li>
+  <li>우리 반 데이터베이스: 설문(학번 필수) → 시트 → 학번으로 통합 (p.38–39)</li>
+  <li>결측치를 심어 둔 전처리 파이프라인 (p.65–74)</li>
+  <li>심사위원 점수 정규화로 순위가 바뀌는 경험 (p.75)</li>
+  <li>평균의 함정 읽기 자료 (p.78)</li>
+  <li>OLS summary 해석지 + train/test·MSE 흐름 병렬 배치 (p.114–121)</li>
+  <li>손으로 군집 → 중심점 수정 → k-평균 코드 3단계 (p.129–141)</li>
+  <li>군집 해석 2칸 서식: 관측값 특징 / 결과의 활용 (p.141)</li>
+  <li>임계값 민감도 실험 (p.160–161)</li>
+  <li>실패하는 선형 모델에서 출발하기(누수 수정 후) (p.180–181)</li>
+  <li>EDA 질문 만들기 ↔ 답하기 짝 활동 (p.199→201)</li>
+  <li>'일반화 및 공유' 3문항 체크리스트 (p.195, 205, 215)</li>
+</ol>
+</section>
+
+<!-- ---------- 천재 ---------- -->
+<section class="book cj" id="cj">
+<h2><span class="no">④-4</span>천재교과서</h2>
+<p><span class="pill">Orange3 비코딩</span><span class="pill">구글 시트 수식</span><span class="pill">방법 비교표</span><span class="pill">6영역 루브릭</span></p>
+<p>김현철(고려대, 집필 총괄) 외 5인, 지도서 기준 연간 64차시. 표지 바로 뒤 '오렌지 알아보기'(p.8–9)에서 위젯 체계를 먼저 익히고
+모든 실습을 이 체계로 진행합니다. Ⅰ단원 만화의 6단계가 Ⅳ단원 프로젝트 체크리스트와 같은 틀이어서 과정이 일관됩니다.</p>
+
+<h3>단원 구성</h3>
+<div class="tw"><table>
+  <thead><tr><th style="width:170px">대단원(쪽)</th><th>중단원</th><th style="width:34%">핵심 실습·데이터</th></tr></thead>
+  <tbody>
+    <tr><td>Ⅰ 데이터 과학의 이해 (10–37)</td><td>01 데이터 과학의 개념 / 02 데이터의 형태와 속성 / 03 데이터셋과 데이터베이스</td><td>직관 vs 데이터 만화, 사진 메타데이터, <b>조인 3종(inner/left/outer)</b> 손으로→Orange Merge, 진로 워드 클라우드</td></tr>
+    <tr><td>Ⅱ 데이터 준비와 분석 (38–93)</td><td>01 데이터 수집 / 02 전처리와 시각화 / 03 데이터 분석 방법</td><td>서울 기온 1907–2024(전쟁기 결측), 국민체력측정 메타데이터, EV 이상치, 행복 보고서, <b>Datasaurus</b>, 사과 품종별 상관 반전</td></tr>
+    <tr><td>Ⅲ 데이터 모델링과 평가 (94–175)</td><td>01 모델 개념 / 02 회귀 / 03 군집 / 04 연관 / 05 다양한 모델 분석</td><td><b>시트 수식 회귀 vs Orange 트리·kNN</b>, R² 사각형, FIFA 모델×변수 R² 매트릭스, Paint Data·Spotify 군집, 영수증→마트→과목 선택 연관</td></tr>
+    <tr><td>Ⅳ 데이터 과학 프로젝트 (176–224)</td><td>00 시작 / 01 해빙–해수면 / 02 블루베리 / 03 고령화 정책 / 04 수행하기</td><td>방법 수 1→2→3개로 늘리는 예시 프로젝트, SDGs 주제 선정 7기준, 포스터, <b>6영역×3수준 루브릭</b></td></tr>
+  </tbody>
+</table></div>
+
+<h3>단원별 핵심</h3>
+<ul>
+  <li><b>Ⅰ</b> — 데이터 과학의 정의와 도메인 지식, 9개 분야 사례와 SDGs(p.14–15), 데이터 과학자·분석가·공학자 비교(p.17–18). 스마트폰 사진 메타데이터의 잠재적 가치(p.24). 영화 데이터로 통합 3방식(공통 값만 / 기준 데이터셋 / 전체)을 설명하고 시트→Orange Merge Data로 확인(p.28, 32–33). DB는 SQL 없이 개념 중심.</li>
+  <li><b>Ⅱ</b> — 문제 영역별 필요한 데이터, 기상 포털 csv 수집(p.42–45). 국민체력측정 파일 설계서(메타데이터)와 성별 인원 비교로 편향 점검, 데이터 문해력 4요소, 1936 대선 여론조사·생존자 편향(p.47–49). 서울 기온의 한국전쟁기 공백(p.53–54), 논리적 vs 통계적 이상치 기준(p.55), min-max vs 표준화(p.57). 시각화 4유형(비교·구성·관계·분포)(p.59–61). Datasaurus로 EDA 도입(p.66), 행복 6요인 상관(p.70), 사과 산도–당도가 전체 0.05 / 후지 0.47 / 홍로 −0.44로 뒤집힘(p.86).</li>
+  <li><b>Ⅲ</b> — 최소제곱 공식과 SUMPRODUCT, 트리 회귀(구간 평균)·kNN 회귀 원리, <b>R²를 평균선 대비 오차 사각형 면적 감소율로 설명</b>(p.114–119). 공부 시간–점수 25건: 시트 y=9.78x+2.48(R² 0.953), MAE·MSE·RMSE 함수 계산 vs Orange 트리·kNN(R² 0.905/0.907)(p.120–126). FIFA 17,660명 단순/다중 × 선형/트리/kNN R² 매트릭스(p.131). 7단계 k-평균 그림, SSE·실루엣(p.133–141), Spotify 군집(p.143–147). 패스트푸드 영수증 손계산 → 마트 → 과목 선택 346명 연관(향상도 0.836 규칙 해석)(p.150–171). 통신사 사례 모델 선택 가이드(p.174–175).</li>
+  <li><b>Ⅳ</b> — 해빙–해수면(회귀, r=−0.91), 블루베리(회귀+군집, 3방법 비교표 p.202), 노인실태조사(회귀+군집+연관, 군집 페르소나·정책 제안). 주제 선정 기준 7가지·SDGs·6단계 체크·포스터·루브릭(p.218–224).</li>
+</ul>
+
+<div class="two">
+  <div class="box good"><b class="l">강점</b><ul>
+    <li>Orange 하나로 전 과정 — 진입 장벽이 가장 낮음</li>
+    <li>방법 비교 표가 많음(p.89, 131, 163, 202)</li>
+    <li>연관 분석 나선형 설계, 행복 데이터로 단원 관통</li>
+    <li>R² 사각형 그림, 스프레드시트로 오차 지표 해부</li>
+    <li>Ⅳ단원 평가 패키지(주제 기준·체크·포스터·루브릭) 완비</li>
+  </ul></div>
+  <div class="box warn"><b class="l">유의점</b><ul>
+    <li><b>통계 R²(전체 적합 0.953) vs ML R²(30% 테스트)를 비교</b> — 공정하지 않음(p.126)</li>
+    <li>해빙–해수면 r=−0.91은 공통 시간 추세가 만든 상관일 수 있음</li>
+    <li>블루베리 fruitset 등 결과에 가까운 변수 사용(누수)</li>
+    <li>분류 평가지표·엘보 실습 없음, 문항형 형성평가 없음</li>
+    <li>Python 트랙 부재, Orange 설치형(크롬북 불리)</li>
+  </ul></div>
+</div>
+<h4>빌려 쓸 만한 아이디어</h4>
+<ol class="small">
+  <li>Datasaurus로 EDA 도입 (p.66)</li>
+  <li>소형 표로 조인 3종을 손으로 → 도구로 확인 (p.28, 32–33)</li>
+  <li>서울 기온 전쟁기 결측 추론 (p.53–54)</li>
+  <li>층화하면 상관이 뒤집히는 사과 사례(심슨의 역설) (p.86)</li>
+  <li>스프레드시트 함수로 회귀·오차 지표 해부 — 공정 비교로 보완 (p.121–123)</li>
+  <li>R² 사각형 면적 그림 (p.119)</li>
+  <li>모델×변수 R² 매트릭스와 변수 바꾸기 탐구 (p.131)</li>
+  <li>연관 분석 나선형: 영수증 → 마트 → 우리 학교 과목 선택 (p.150–171)</li>
+  <li>군집 페르소나 이름 붙이기와 정책 제안 (p.211–216)</li>
+  <li>해빙–해수면을 허위 상관 토론 교재로 (p.187–188)</li>
+  <li>SDGs 주제 선정 + 6단계 체크 + 포스터 + 3수준 루브릭 (p.218–224)</li>
+  <li>도구 없이 공공 시각화를 읽는 데이터 문해력 활동 (p.90–91)</li>
+</ol>
+</section>
+
+<!-- ======================= 5 ======================= -->
+<h2 id="s5"><span class="no">5</span>주제별 교차 비교</h2>
+
+<h3>통계적 회귀 vs 기계학습 회귀 [12데과03-02]</h3>
+<div class="tw"><table>
+  <thead><tr><th style="width:90px"></th><th>데이터</th><th>통계적 회귀</th><th>기계학습 회귀</th><th>비교 방식의 특징·주의</th></tr></thead>
+  <tbody>
+    <tr><th class="sy">삼양</th><td>청소년 체력측정 7,102행</td><td><code>np.polyfit</code></td><td>경사하강법 설명 + <code>LinearRegression</code></td><td>같은 계수가 나옴을 확인. 단, LR은 경사하강이 아니라 최소제곱 해를 바로 구함 — SGDRegressor로 대비 권장</td></tr>
+    <tr><th class="cm">씨마스</th><td>California housing</td><td>statsmodels OLS summary(p값, R² 0.64)</td><td>LR 0.61 · RF 0.81 · MLP 0.61</td><td>가설검정 유무를 대비. 해석(화이트박스) vs 예측(블랙박스) 대화문</td></tr>
+    <tr><th class="yb">YBM</th><td>자전거 대여 10,886행</td><td>statsmodels OLS(R² 0.444, 계수·p값)</td><td>LR + 분할 + MSE≈1.07</td><td>설명 vs 예측 목적 대비가 가장 명확. 변수 집합이 서로 달라 직접 비교는 어려움</td></tr>
+    <tr><th class="cj">천재</th><td>공부 시간–점수 25건 / FIFA</td><td>구글 시트 수식·추세선(R² 0.953)</td><td>Orange 트리·kNN(R² 0.905/0.907)</td><td>전체 적합 R² vs 테스트 R² 비교는 불공정 — 같은 테스트셋으로 비교하도록 지도</td></tr>
+  </tbody>
+</table></div>
+
+<h3>군집 분석 [12데과03-03]</h3>
+<div class="tw"><table>
+  <thead><tr><th style="width:90px"></th><th>데이터</th><th>k 결정</th><th>평가·해석</th><th>주의</th></tr></thead>
+  <tbody>
+    <tr><th class="sy">삼양</th><td>Mall Customers, penguins</td><td>산점도 눈대중(k=5)</td><td>실루엣 0.44, yellowbrick</td><td>스케일링 없이 인코딩한 성별까지 투입</td></tr>
+    <tr><th class="cm">씨마스</th><td>Mall Customers, 국가 데이터</td><td>실루엣 k=2~8(k=5, 0.555), 엘보(QR·프로젝트)</td><td>군집 이름 붙이기, 병합 군집과 비교</td><td>복합 지표의 방향 보정 없음(비판 소재로 활용)</td></tr>
+    <tr><th class="yb">YBM</th><td>성적 10명, 배출량</td><td>실루엣 k=2~6(0.514), 엘보</td><td>군집별 평균 선그래프, 2칸 해석 서식</td><td>labels_가 마지막 k=6 결과로 남는 코드 오류</td></tr>
+    <tr><th class="cj">천재</th><td>Paint Data, Spotify, GDP–행복</td><td>From X to Y 실루엣, SSE·엘보(개념)</td><td>실루엣 플롯으로 경계 데이터 찾기, 페르소나</td><td>엘보 실습 없음</td></tr>
+  </tbody>
+</table></div>
+
+<h3>연관 분석 [12데과03-04]</h3>
+<div class="tw"><table>
+  <thead><tr><th style="width:90px"></th><th>손계산 예시</th><th>도구 실습</th><th>해석 활동</th></tr></thead>
+  <tbody>
+    <tr><th class="sy">삼양</th><td>개나리 마트 10건: 지지도 0.5, 신뢰도 5/6, 향상도 1.67</td><td>여가생활.csv + mlxtend</td><td>수익 구조(향상도 vs 지지도)에 따라 규칙 선택</td></tr>
+    <tr><th class="cm">씨마스</th><td>삼겹살→콜라 7건: 0.43 / 0.6 / 1.05(과장 해석 주의)</td><td>Apriori 7단계 표 → Orange → mlxtend</td><td>임계값 조정 발표, 선택과목 연관</td></tr>
+    <tr><th class="yb">YBM</th><td>편의점 6건: 0.5 / 0.75 / 1.125</td><td>mlxtend(Ⅲ), apyori(Ⅳ)</td><td>손계산과 코드 결과 대조, 임계값 민감도</td></tr>
+    <tr><th class="cj">천재</th><td>패스트푸드 10건: 0.4 / 0.8 / 1.143</td><td>Orange Association Rules</td><td>과목 선택 346명, 향상도 &lt; 1 규칙 해석, 설문 이산화</td></tr>
+  </tbody>
+</table></div>
+
+<h3>전처리와 '다른 분석 비교' [12데과02-02·02-04]</h3>
+<ul>
+  <li><b>결측치</b> — 삼양(대량 결측 27% 딜레마), 씨마스(미응답 대체의 함정), YBM(0은 결측이 아니다), 천재(전쟁기 공백 추론). 네 가지를 모으면 '삭제 vs 대체 판단' 수업이 완성됩니다.</li>
+  <li><b>이상치</b> — 네 교과서 모두 IQR 1.5배 규칙. 천재의 '논리적 vs 통계적 기준', YBM의 '평균의 함정(지우면 안 되는 이상치)', 씨마스의 '포함/제외 시 예측값 차이'가 서로 보완적입니다.</li>
+  <li><b>정규화</b> — 용어 혼용 주의: YBM은 표준화·로그 변환까지 '정규화'로 부릅니다. 수업에서는 정규화(최소-최대)와 표준화(Z-점수)를 구분합니다.</li>
+  <li><b>02-04</b> — 삼양 스마트팜 비교가 가장 직접적이고, 씨마스(평균 vs 중앙값 결론 차이), 천재(품종별 상관 반전), YBM(히스토그램 vs 상자그림)이 보조 소재입니다.</li>
+</ul>
+
+<h3>Ⅳ단원 프로젝트</h3>
+<div class="tw"><table>
+  <thead><tr><th style="width:90px"></th><th>예시 프로젝트</th><th>SDGs·생태 주제</th><th>04-05 성찰 장치</th></tr></thead>
+  <tbody>
+    <tr><th class="sy">삼양</th><td>초미세먼지→환자 수(회귀 3모델), 해양부이 조업(분류 3모델), '지금 우리 지구는'</td><td>○ 대단원 프로젝트가 기후·환경·에너지</td><td>△ 자기평가 항목 수준</td></tr>
+    <tr><th class="cm">씨마스</th><td>스트레스 지수(직접 설문, 회귀 4모델), 영화 관객 수[선택], NGO 국가 군집[선택]</td><td>△ 생태 주제 본 프로젝트 없음</td><td>△ 사용 불가 데이터·설문 윤리만</td></tr>
+    <tr><th class="yb">YBM</th><td>전력 수요 예시, 물가(회귀), 대기 오염(군집), 생활권(연관)</td><td>◎ SDG 7 전력, 대기 오염</td><td>◎ '일반화 및 공유' 체크리스트 반복</td></tr>
+    <tr><th class="cj">천재</th><td>해빙–해수면(1방법), 블루베리(2방법), 고령화(3방법)</td><td>◎ 해빙, 기후와 수분</td><td>△~○ 체크 사항·루브릭</td></tr>
+  </tbody>
+</table></div>
+
+<!-- ======================= 6 ======================= -->
+<h2 id="s6"><span class="no">6</span>오류·정오 모음</h2>
+<p>수업 전에 확인하면 좋은 내용·코드 오류입니다. 학생에게 '오류 찾기' 활동 소재로 쓰기도 좋습니다.</p>
+<div class="tw"><table>
+  <thead><tr><th style="width:80px">교과서</th><th style="width:90px">쪽</th><th>내용</th><th style="width:34%">바로잡기</th></tr></thead>
+  <tbody>
+    <tr><td class="sy-h" rowspan="8">삼양</td><td>p.129–130</td><td>다중 회귀를 두 단순 회귀식의 평균처럼 설명</td><td>다중 회귀 계수는 모든 변수를 동시에 최소제곱으로 추정</td></tr>
+    <tr><td>p.77</td><td>상관계수 0.72를 '매우 강함'</td><td>책 기준표(p.71)로도 '강함'</td></tr>
+    <tr><td>p.94–95</td><td>IQR로 거른 범위를 '중간 50%'라 부름</td><td>Q1−1.5IQR ~ Q3+1.5IQR(수염 범위)</td></tr>
+    <tr><td>p.180</td><td>초미세먼지 '0.1μm 이하'</td><td>PM2.5는 지름 2.5μm 이하</td></tr>
+    <tr><td>p.125–128</td><td>LinearRegression을 경사하강법으로 설명</td><td>LR은 최소제곱 해석해. 경사하강은 SGDRegressor</td></tr>
+    <tr><td>p.190 · 209</td><td><code>pred_lr2</code>, SVM 셀의 <code>lr_clf</code></td><td><code>pred2</code>, <code>svm</code></td></tr>
+    <tr><td>p.229</td><td><code>import ydata-profiling</code></td><td><code>import ydata_profiling</code></td></tr>
+    <tr><td>p.227</td><td>결측 처리 기준 해설이 본문 논리와 반대</td><td>채점 시 본문(p.60, 92) 기준 적용</td></tr>
+    <tr><td style="background:var(--cm-soft);color:var(--cm)" rowspan="6">씨마스</td><td>p.68, 80</td><td>Orange Dispersion을 '분산'으로 해석</td><td>Dispersion은 변동계수(표준편차/평균)</td></tr>
+    <tr><td>p.159</td><td>향상도 1.05를 "연관성 높다"</td><td>1에 가까워 사실상 독립</td></tr>
+    <tr><td>p.164</td><td>신뢰도 1을 "10% 확률", conviction 해석 반대</td><td>신뢰도 1 = 100%</td></tr>
+    <tr><td>p.128</td><td>회귀를 "인과관계를 찾는 방법"</td><td>회귀는 관계를 모형화할 뿐 인과를 보장하지 않음</td></tr>
+    <tr><td>p.207</td><td>R²를 '정확도'로 부름</td><td>결정계수(설명력)</td></tr>
+    <tr><td>p.243</td><td>부록 정답 수치가 본문과 다름(영화 R², 스트레스 프로젝트)</td><td>본문 기준으로 정답 수정</td></tr>
+    <tr><td style="background:var(--yb-soft);color:var(--yb)" rowspan="6">YBM</td><td>p.112</td><td>"기울기가 클수록 강한 상관"</td><td>상관의 강도는 점이 직선 주위에 모인 정도</td></tr>
+    <tr><td>p.181</td><td>RF를 전체 X, y로 학습 후 테스트 평가</td><td><code>fit(X_train, y_train)</code> — 데이터 누수</td></tr>
+    <tr><td>p.138–139</td><td>반복문 뒤 <code>labels_</code>가 k=6 결과</td><td>선택한 k=5로 다시 학습</td></tr>
+    <tr><td>p.178, 193</td><td>표준화·로그 변환을 '정규화'로 부름</td><td>용어 구분</td></tr>
+    <tr><td>p.66 · 73 · 120 · 156</td><td><code>descrive()</code>, <code>iris.new</code>, <code>sktrain</code>, <code>from matplotlib.pyplot as plt</code></td><td><code>describe()</code>, <code>iris_new</code>, <code>smtrain</code>, <code>import matplotlib.pyplot as plt</code></td></tr>
+    <tr><td>p.180 · 210</td><td><code>y_pred</code> 미정의, <code>pie['count]</code></td><td>예측 후 평가, 따옴표 짝 맞추기</td></tr>
+    <tr><td style="background:var(--cj-soft);color:var(--cj)" rowspan="5">천재</td><td>p.126</td><td>전체 적합 R² 0.953 vs 30% 테스트 R² 비교</td><td>같은 테스트셋으로 비교</td></tr>
+    <tr><td>p.187–188</td><td>해빙–해수면 r=−0.91을 인과처럼 해석</td><td>공통 시간 추세 → 추세 제거 후 비교</td></tr>
+    <tr><td>p.49</td><td>'리더스 다이제스트'</td><td>Literary Digest(1936 대선 여론조사)</td></tr>
+    <tr><td>p.196 · 201</td><td>osmia 해석과 군집 설명이 결과와 반대</td><td>상관·군집 결과에 맞게 해석</td></tr>
+    <tr><td>p.134 · 200</td><td>means를 '평균 거리'로 설명, '16809^0.44' 오기</td><td>k-means의 means는 군집 중심(평균)</td></tr>
+  </tbody>
+</table></div>
+
+<!-- ======================= 7 ======================= -->
+<h2 id="s7"><span class="no">7</span>수업 설계 시사점</h2>
+
+<h3>학교 여건별 교과서 활용 가이드</h3>
+<div class="cards">
+  <div class="card cj"><h4>코딩 경험이 적은 학급</h4><p><b>천재</b>(Orange 비코딩) 또는 <b>씨마스</b>의 Orange 트랙을 주교재로. Python은 씨마스 '파이썬으로 해 보기'를 선택 심화로 운영합니다. 분류 지표·엘보는 보충합니다.</p></div>
+  <div class="card sy"><h4>정보 과목을 이수한 코딩 학급</h4><p><b>삼양</b> 또는 <b>YBM</b>. 삼양은 평가지표·교차검증까지 깊고, YBM은 손계산→코드 흐름이 친절합니다. 코드 오류를 사전에 검증하고 빈칸 노트북으로 비계를 둡니다.</p></div>
+  <div class="card yb"><h4>크롬북·설치 제한 환경</h4><p>Colab 기반 <b>삼양·YBM</b>이 유리합니다. Orange 교과서를 쓴다면 CODAP·구글 시트·브라우저 파이썬(본 온라인 교과서)으로 대체합니다.</p></div>
+  <div class="card cm"><h4>과정중심평가 중시</h4><p><b>씨마스</b>(보충/심화 분기, 자기점검), <b>천재</b>(6영역 루브릭), <b>YBM</b>(성취기준 태깅)의 평가 장치를 조합합니다.</p></div>
+</div>
+
+<h3>4종 공통으로 보강해야 할 것</h3>
+<ol>
+  <li><b>03-06 목적에 맞는 분석 방법 선택</b> — 전용 차시가 있는 교과서가 없습니다. 상황 카드 → 방법 선택 → 두 방법 비교 → 목적에 따른 최종 선택 흐름의 차시를 따로 둡니다.</li>
+  <li><b>공정한 모델 비교</b> — 같은 테스트 데이터, 같은 변수, 고정한 무작위 시드로 비교하는 습관. 데이터 누수 점검.</li>
+  <li><b>스케일링과 거리</b> — k-평균·k-NN 전에 정규화/표준화를 하고, 전후 결과를 비교합니다.</li>
+  <li><b>상관≠인과, 허위 상관</b> — 시간 추세가 같은 두 변수, 하위집단 반전(심슨의 역설)을 명시적으로 다룹니다.</li>
+  <li><b>04-04·04-05</b> — 끝까지 해결하는 태도(오류 기록·재시도 일지)와 사회적 영향·윤리 토론, 온라인 협업 기록을 프로젝트에 구조적으로 넣습니다.</li>
+  <li><b>자가 채점 형성평가</b> — 천재·삼양은 소단원 문항 세트가 없어 차시별 퀴즈가 필요합니다.</li>
+</ol>
+
+<!-- ======================= 8 ======================= -->
+<h2 id="s8"><span class="no">8</span>통합 교재 반영 내역</h2>
+<p>이 분석을 바탕으로 <a href="index.html">「데이터 과학」 온라인 교과서</a>(3학점 40차시 / 4학점 56차시)를 새로 집필했습니다.
+각 교과서의 강점은 소재·구성 아이디어로 재구성하고(본문 옆 출판사 태그로 표시), 공통 약점은 별도 차시로 보강했습니다.</p>
+<div class="tw"><table>
+  <thead><tr><th style="width:36%">보강·통합 지점</th><th>온라인 교과서 차시</th><th style="width:26%">참고 교과서</th></tr></thead>
+  <tbody>
+    <tr><td>SQL로 데이터베이스 질의(브라우저 sqlite3)</td><td><a href="lessons/l08.html">8차시</a></td><td>씨마스</td></tr>
+    <tr><td>조인 3종 시각화 + 불일치 키 발견</td><td><a href="lessons/l07.html">7차시</a></td><td>천재 · YBM · 씨마스</td></tr>
+    <tr><td>표본 편향 시뮬레이터(온라인 설문 vs 무작위 표본)</td><td><a href="lessons/l13.html">13차시</a></td><td>씨마스 · 천재 · YBM</td></tr>
+    <tr><td>같은 데이터, 다른 전처리·분석 → 다른 결론</td><td><a href="lessons/l24.html">24차시</a></td><td>삼양 · 씨마스 · YBM</td></tr>
+    <tr><td>최소제곱 드래그 게임 · 경사 하강법 단계 실행</td><td><a href="lessons/l28.html">28</a> · <a href="lessons/l29.html">29차시</a></td><td>삼양 · 천재 · YBM</td></tr>
+    <tr><td>같은 테스트셋으로 공정한 회귀 모델 비교</td><td><a href="lessons/l31.html">31차시</a></td><td>천재(보완) · 씨마스</td></tr>
+    <tr><td>스케일링 전후 군집 비교, 엘보·실루엣·병합 군집</td><td><a href="lessons/l33.html">33</a> · <a href="lessons/l34.html">34차시</a></td><td>삼양(보완) · 씨마스 · YBM</td></tr>
+    <tr><td>분류 모델과 혼동 행렬·정밀도·재현율</td><td><a href="lessons/l37.html">37</a> · <a href="lessons/l38.html">38차시</a></td><td>삼양</td></tr>
+    <tr><td>과대적합·교차 검증·데이터 누수</td><td><a href="lessons/l39.html">39차시</a></td><td>삼양 · YBM(보완)</td></tr>
+    <tr><td><b>목적에 맞는 분석 방법 선택(03-06 전용)</b></td><td><a href="lessons/l40.html">40차시</a></td><td>천재 · 씨마스 · 삼양</td></tr>
+    <tr><td>학교 전력 사용량 예시 프로젝트(SDG 7·13), 선형 실패 → 비선형</td><td><a href="lessons/l45.html">45</a>~<a href="lessons/l50.html">50차시</a></td><td>YBM · 천재</td></tr>
+    <tr><td>허위 상관과 추세 제거</td><td><a href="lessons/l50.html">50차시</a></td><td>천재(보완)</td></tr>
+    <tr><td><b>사회적 영향·데이터 윤리 성찰(04-05)</b></td><td><a href="lessons/l52.html">52차시</a></td><td>YBM · 씨마스</td></tr>
+    <tr><td>6영역×3수준 루브릭 채점 보드</td><td><a href="lessons/l54.html">54차시</a></td><td>천재 · 삼양 · 씨마스</td></tr>
+  </tbody>
+</table></div>
+
+<footer>
+본 보고서는 각 교과서 PDF의 본문을 직접 분석해 작성한 요약·평가이며, 교과서 문장이나 그림을 옮겨 싣지 않았습니다. 쪽수는 교과서별 표기 기준(삼양 PDF 쪽, 그 외 인쇄 쪽)을 따릅니다.
+성취기준 원문은 교육부 고시 「2022 개정 정보과 교육과정」에 따릅니다. 판정(◎○△)과 오류 지적은 분석자의 검토 의견이므로 수업 적용 전 교과서 최신 쇄와 지도서를 함께 확인하세요.
+</footer>
+</main>
+</div>
+<script>
+(function(){
+  var btn=document.getElementById('menu'), toc=document.getElementById('toc');
+  btn.addEventListener('click',function(){toc.classList.toggle('open');});
+  toc.addEventListener('click',function(e){ if(e.target.tagName==='A') toc.classList.remove('open'); });
+})();
+</script>
+</body>
+</html>

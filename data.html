@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>실습 데이터 안내 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="assets/css/style.css?v=20260930">
+<style>
+.ds-card { background:#fff; border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); margin:18px 0; overflow:hidden; }
+.ds-card .ds-head { display:flex; flex-wrap:wrap; gap:8px 14px; align-items:baseline; padding:12px 18px; border-bottom:1px solid var(--line); background:linear-gradient(0deg,var(--paper),#fff); }
+.ds-card .ds-head b { font-size:1.02rem; }
+.ds-card .ds-head code { font-size:.82rem; }
+.ds-card .ds-head .dl { margin-left:auto; font-size:.84rem; font-weight:700; }
+.ds-card .ds-body { padding:6px 18px 14px; font-size:.9rem; }
+.ds-card .lessons { font-size:.8rem; color:var(--ink-faint); }
+</style>
+</head>
+<body data-page="data">
+<div id="app">
+<main>
+  <header class="lesson-head">
+    <div class="crumbs">부록</div>
+    <h1>🗂️ 실습 데이터 안내</h1>
+    <p>교재의 파이썬 실습에 쓰는 데이터 13종입니다. 모두 수업을 위해 <b>새로 만든 교육용 가상 데이터</b>로,
+    실제 현상과 비슷한 경향을 띠도록 설계했지만 실제 관측값은 아닙니다. 프로젝트에서는 공공데이터포털 등의 실제 데이터를 사용하세요.</p>
+  </header>
+
+  <div class="box box-tip"><span class="box-label">불러오는 방법</span>
+  교재의 파이썬 셀에서는 <code>df = load_csv("study.csv")</code> 한 줄이면 됩니다.
+  구글 코랩·주피터·엑셀·Orange에서 쓰려면 오른쪽 <b>⬇ 내려받기</b>로 CSV 파일을 저장하세요(UTF-8 인코딩).</div>
+
+  <div id="list"></div>
+
+  <footer class="site-foot">모든 데이터는 교육용 가상 데이터이며 수업 목적으로 자유롭게 활용할 수 있습니다.</footer>
+</main>
+</div>
+<script src="assets/js/common.js?v=20260930"></script>
+<script>
+const DATASETS = [
+  ["health.csv", "학급 건강 기록", "30명의 키·몸무게·수면시간·걸음수. 일부러 넣은 결측치 5칸과 이상치 4개(키 1712, 몸무게 585, 수면 42, 걸음수 41250)가 있습니다.", "17·18차시 전처리"],
+  ["study.csv", "공부 습관과 성적", "학생 120명의 공부시간·수면시간·스마트폰시간·결석일수·성적. 성적과 공부시간의 상관계수는 약 0.75입니다.", "15·22·28~31차시"],
+  ["bike.csv", "공공자전거 대여량", "2025년 365일의 기온·습도·풍속·강수량·휴일 여부와 하루 대여량. 기온과는 곡선 관계, 비와 휴일에는 줄어듭니다.", "20·24·29~31·40차시"],
+  ["customers.csv", "쇼핑몰 고객", "고객 200명의 나이·연소득(만원)·월방문수·소비점수. 5개 고객 집단이 숨어 있습니다.", "32~34차시 군집"],
+  ["basket.csv", "학교 매점 거래", "거래 300건의 품목 기록(거래번호, 품목). 함께 잘 팔리는 조합이 숨어 있습니다.", "35·36차시 연관"],
+  ["air.csv", "지역별 미세먼지", "8개 지역 2023~2025년 월별 미세먼지·초미세먼지 농도.", "20·21차시 시각화"],
+  ["school_students.csv", "학생 명단 (학교 DB)", "학번·이름·반·동아리코드. 동아리코드 결측 2명, 존재하지 않는 코드(C9) 1명이 있습니다.", "6~8·23차시"],
+  ["school_clubs.csv", "동아리 목록 (학교 DB)", "동아리코드·동아리명·활동장소 5개.", "6~8·23차시"],
+  ["school_reading.csv", "월별 독서 기록 (학교 DB)", "학번·월·독서권수. 명단에 없는 학번(20399)이 1건 섞여 있습니다.", "7·8·23차시"],
+  ["fruit.csv", "과일 측정값", "사과·배·귤 각 60개의 무게·당도·지름·붉은정도. 단위가 달라 정규화가 필요합니다.", "19·37~39차시 분류"],
+  ["energy.csv", "학교 전력 사용량", "2025년 3~12월 날짜별 수업일 여부·평균기온·냉난방시간·전력사용량(kWh).", "Ⅳ단원 프로젝트 예시"],
+  ["climate.csv", "연평균 기온과 폭염일수", "1975~2025년 연평균기온과 폭염일수(가상, 상승 추세 포함).", "28·42차시, 프로젝트"],
+  ["survey_population.csv", "급식 만족도 모집단", "학생 1000명 전원의 학년·통학시간·동아리참여·온라인설문응답 여부·급식만족도. 표본 편향 실험용입니다.", "13차시 편향"],
+];
+function parseCSV(t){ return t.trim().split(/\r?\n/).map(l => l.split(",")); }
+(async () => {
+  const host = document.getElementById("list");
+  for (const [file, name, desc, used] of DATASETS) {
+    let preview = "";
+    try {
+      const rows = parseCSV(await (await fetch("assets/data/" + file)).text());
+      const head = rows[0], body = rows.slice(1, 6);
+      preview = `<div class="table-wrap"><table class="data"><thead><tr>${head.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>` +
+        body.map(r => `<tr>${r.map(v => v === "" ? '<td class="na">NaN</td>' : `<td>${v}</td>`).join("")}</tr>`).join("") +
+        `</tbody></table></div><div class="lessons">전체 ${rows.length - 1}행 × ${head.length}열 · 위는 처음 5행</div>`;
+    } catch (e) { preview = "<p>미리보기를 불러오지 못했습니다(로컬 서버로 열어 주세요).</p>"; }
+    host.insertAdjacentHTML("beforeend", `<div class="ds-card"><div class="ds-head"><b>${name}</b><code>${file}</code>
+      <a class="dl" href="assets/data/${file}" download>⬇ 내려받기</a></div>
+      <div class="ds-body"><p>${desc}</p>${preview}<div class="lessons">주요 사용 차시: ${used}</div></div></div>`);
+  }
+})();
+</script>
+</body>
+</html>

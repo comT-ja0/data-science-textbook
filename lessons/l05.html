@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>데이터 속성과 잠재적 가치 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 속성 유형 판별 플로차트 */
+.fc-item { background:#fff; border:2px solid var(--accent); border-radius:12px; padding:10px 14px; margin-bottom:12px; display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; }
+.fc-item .nm { font-size:1.15rem; font-weight:800; color:var(--accent); }
+.fc-item .vals { font-family:var(--font-mono); font-size:.8rem; background:var(--paper); border-radius:6px; padding:3px 8px; color:var(--ink-soft); }
+.fc-tree { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; text-align:center; }
+.fc-node { border:1.5px solid var(--line); border-radius:10px; padding:8px 8px; font-size:.8rem; background:#fff; color:var(--ink-faint); line-height:1.4; }
+.fc-node.q1 { grid-column:1 / span 4; justify-self:center; max-width:440px; }
+.fc-node.q2 { grid-column:1 / span 2; }
+.fc-node.q3 { grid-column:3 / span 2; }
+.fc-node.leaf { font-weight:800; font-size:.86rem; }
+.fc-node.leaf small { display:block; font-weight:500; font-size:.72rem; }
+.fc-node.path { border-color:var(--accent); color:var(--ink); background:var(--accent-soft); }
+.fc-node.cur { border-color:var(--accent); color:var(--ink); box-shadow:0 0 0 3px var(--accent-soft); }
+.fc-node.right { border-color:var(--ok); background:#eafaf0; color:#127a3c; }
+.fc-node.wrongleaf { border-color:var(--no); background:#fdeeee; color:#b32424; }
+.fc-node .yn { display:flex; gap:6px; justify-content:center; margin-top:6px; }
+.fc-node .yn button { padding:4px 14px; font-size:.8rem; }
+.fc-lbl { font-size:.72rem; color:var(--ink-faint); font-weight:700; }
+@media (max-width:560px){ .fc-tree { grid-template-columns:repeat(2,1fr); } .fc-node.q1 { grid-column:1 / span 2; } .fc-node.q2, .fc-node.q3 { grid-column:auto / span 1; } }
+.fc-fb { margin-top:10px; padding:10px 12px; border-radius:10px; font-size:.87rem; background:var(--paper); border:1px solid var(--line); min-height:44px; line-height:1.55; }
+.fc-fb.ok { background:#eafaf0; border-color:#ace8c4; color:#127a3c; }
+.fc-fb.no { background:#fdeeee; border-color:#f3b9b9; color:#b32424; }
+/* 표 강조 */
+table.anat td.rec { background:#fef6e7; }
+table.anat th.attr { background:#e2f4f8; }
+</style>
+</head>
+<body data-unit="1" data-lesson="L05">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>데이터 속성과 잠재적 가치</h1>
+  <span class="std-badge">성취기준 12데과01-02</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>속성·속성값·레코드의 뜻을 표에서 찾아 설명할 수 있다.</li>
+      <li>속성을 수치형(연속형·이산형)과 범주형(명목형·순서형)으로 구분할 수 있다.</li>
+      <li>해결하려는 문제에 따라 필요한 속성을 고르고, 속성에 담긴 잠재적 가치를 찾을 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과01-02] 정형 데이터와 비정형 데이터를 구분하고, 데이터 속성에서 데이터의 잠재적 가치를 파악한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span class="on">문제 정의</span><span class="on">수집</span><span>전처리</span><span class="on">탐색</span><span>모델링</span><span>평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  보건 선생님이 학생 건강 기록표를 보여 주며 말씀하십니다. “여기 번호, 성별, 키, 몸무게, 수면 시간, 걸음 수가 있어.
+  그런데 번호의 평균을 구하는 건 의미가 없겠지? 키의 평균은 의미가 있고.”
+  같은 숫자인데 왜 어떤 것은 평균을 내도 되고 어떤 것은 안 될까요? 그리고 이 기록표로 보건실은 어떤 새로운 도움을 줄 수 있을까요?
+</div>
+
+<h2><span class="sec-no">1</span>속성, 속성값, 레코드 <i class="pub-c">공통</i></h2>
+
+<p>정형 데이터의 표를 뜯어 보면 다음과 같은 부분으로 이루어져 있습니다. 아래는 교재 데이터 <code>health.csv</code>(수업용 가상 데이터)의 앞부분입니다.</p>
+
+<div class="table-wrap"><table class="data anat" style="max-width:620px">
+  <thead><tr><th class="attr">번호</th><th class="attr">성별</th><th class="attr">키</th><th class="attr">몸무게</th><th class="attr">수면시간</th><th class="attr">걸음수</th></tr></thead>
+  <tbody>
+    <tr><td class="rec">1</td><td class="rec">여</td><td class="rec">164.6</td><td class="rec">60.9</td><td class="rec">6.8</td><td class="rec">11630</td></tr>
+    <tr><td>2</td><td>남</td><td>170.8</td><td>62.8</td><td>6.6</td><td>8860</td></tr>
+    <tr><td>3</td><td>남</td><td>176.0</td><td class="na">(빈칸)</td><td>7.1</td><td>10940</td></tr>
+    <tr><td>4</td><td>여</td><td>173.8</td><td>74.1</td><td>7.0</td><td>4820</td></tr>
+  </tbody>
+</table></div>
+
+<ul>
+  <li><span class="keyterm">속성(attribute)</span> — 표의 <b>열</b>. 대상의 특징을 나타내는 항목입니다(파란 머리글). 분야에 따라 <b>변수</b>, <b>특성(feature)</b>, 필드, 칼럼이라고도 부릅니다.</li>
+  <li><span class="keyterm">속성값</span> — 각 칸에 들어 있는 구체적인 값입니다(예: 키 164.6). 3번 학생의 몸무게처럼 값이 빠진 칸을 <b>결측치</b>라고 합니다.</li>
+  <li><span class="keyterm">레코드(record)</span> — 표의 <b>행</b>. 한 대상(학생 한 명)에 대한 속성값의 묶음입니다(노란 줄). 관측값, 데이터 포인트, 튜플이라고도 합니다.</li>
+</ul>
+
+<h2><span class="sec-no">2</span>속성의 유형: 수치형과 범주형 <i class="pub-c">공통</i> <i class="pub">씨마스</i></h2>
+
+<p>속성은 값의 성격에 따라 크게 둘, 작게 넷으로 나눕니다. 유형에 따라 <b>쓸 수 있는 계산과 그래프가 달라지므로</b> 분석 전에 반드시 확인해야 합니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:90px">큰 분류</th><th style="width:90px">작은 분류</th><th>뜻</th><th style="width:28%">예</th></tr></thead>
+  <tbody>
+    <tr><td rowspan="2"><b>수치형</b><br><small>(양적 데이터)</small></td><td><b>연속형</b></td><td>재어서(측정해서) 얻는 값. 두 값 사이에 무수히 많은 값이 있을 수 있다.</td><td>키, 몸무게, 기온, 수면 시간</td></tr>
+    <tr><td><b>이산형</b></td><td>세어서 얻는 값. 0, 1, 2, …처럼 띄엄띄엄 떨어진 값만 가진다.</td><td>걸음 수, 형제 수, 결석 일수</td></tr>
+    <tr><td rowspan="2"><b>범주형</b><br><small>(질적 데이터)</small></td><td><b>명목형</b></td><td>이름표처럼 구분만 하는 값. 순서가 없다.</td><td>성별, 혈액형, 학번, 버스 번호</td></tr>
+    <tr><td><b>순서형</b></td><td>구분하면서 순서(높낮이)도 있는 값. 하지만 간격은 같다고 볼 수 없다.</td><td>만족도(매우 불만~매우 만족), 옷 사이즈(S·M·L), 메달(금·은·동)</td></tr>
+  </tbody>
+</table></div>
+
+<div class="box box-warn">
+  <span class="box-label">숫자라고 모두 수치형은 아니다</span>
+  학번 20113, 우편번호, 버스 번호 146은 숫자로 적혀 있지만 <b>이름표 역할</b>만 합니다. 평균을 내거나 더해도 의미가 없으므로 <b>명목형(범주형)</b>입니다.
+  판단 기준은 “이 값으로 <b>더하기·평균</b>이 의미가 있는가?”입니다.
+</div>
+
+<p>헷갈릴 때는 아래 질문을 차례로 던져 보세요. 질문에 답하며 따라가면 속성의 유형이 정해집니다.</p>
+
+<div class="sim">
+  <div class="sim-head">속성 유형 판별 플로차트 — 질문을 따라가 보세요</div>
+  <div class="sim-body">
+    <div class="sim-controls">
+      <button id="fc-next" class="ghost">다음 속성 ▶</button>
+      <button id="fc-restart" class="gray">↺ 처음부터</button>
+      <span class="stat-chip">문제 <b id="fc-no">1</b> / <span id="fc-total">10</span></span>
+      <span class="stat-chip">정답 <b id="fc-score">0</b></span>
+    </div>
+    <div class="fc-item" id="fc-item"></div>
+    <div class="fc-tree" id="fc-tree"></div>
+    <div class="fc-fb" id="fc-fb">맨 위 질문부터 [예]/[아니요]를 눌러 내려가세요.</div>
+    <p class="widget-hint">관찰 포인트: 학번·버스 번호처럼 숫자로 된 속성이 어느 길로 가는지 주의 깊게 보세요.</p>
+  </div>
+</div>
+
+<h3>파이썬으로 속성 살펴보기</h3>
+<p>pandas는 각 열의 <b>자료형(dtype)</b>을 알려 줍니다. 자료형은 컴퓨터가 값을 저장하는 방식일 뿐이므로, 속성 유형은 사람이 한 번 더 판단해야 합니다.</p>
+
+<div class="pycell" data-title="자료형과 고유값 개수 확인"><textarea>
+df = load_csv("health.csv")
+print(df.head(4))
+print("레코드 수:", len(df), "/ 속성 수:", len(df.columns))
+print()
+print(df.dtypes)          # object = 문자, int64 = 정수, float64 = 실수
+print()
+print(df.nunique())       # 속성마다 서로 다른 값이 몇 종류인지
+
+# ✏️ df["성별"].value_counts() 를 실행해 범주별 레코드 수를 세어 보세요.
+</textarea></div>
+
+<p>출력을 보면 레코드 30개, 속성 6개입니다. 몇 가지를 해석해 봅시다.</p>
+<ul>
+  <li><b>번호</b>는 <code>int64</code>(정수)로 저장되었지만 학생을 구분하는 이름표이므로 <b>명목형</b>입니다. 고유값이 30개, 즉 모든 레코드마다 다릅니다.</li>
+  <li><b>성별</b>은 <code>object</code>(문자)이고 고유값이 2개인 <b>명목형</b>입니다.</li>
+  <li><b>걸음수</b>는 세어서 얻는 <b>이산형</b>인데 <code>float64</code>(실수)로 저장되었습니다. 빈칸(결측치)이 있으면 pandas가 정수 열을 실수로 바꾸기 때문입니다. 이처럼 자료형만 보고 판단하면 안 됩니다.</li>
+</ul>
+
+<div class="pycell" data-title="유형에 맞는 요약 방법"><textarea>
+# 수치형 속성: 평균·최솟값·최댓값 같은 계산이 의미 있음
+print(df[["키", "몸무게", "수면시간", "걸음수"]].describe().round(1))
+
+# 범주형 속성: 범주별 개수(빈도)를 센다
+print(df["성별"].value_counts())
+
+# 범주별로 수치형 속성 비교
+print(df.groupby("성별")["수면시간"].median())
+
+# ✏️ df["번호"].mean() 을 계산해 보세요. 계산은 되지만 이 값은 어떤 의미가 있나요?
+</textarea></div>
+
+<p>요약표에서 키의 최댓값이 <b>1712.0</b>, 몸무게 <b>585.0</b>, 수면시간 <b>42.0</b>, 걸음수 <b>41250</b>으로 나옵니다. 사람 키가 17m일 리 없으니 171.2를 잘못 입력한 것으로 보입니다.
+이 값 하나 때문에 키의 평균은 220.4cm로 부풀려졌지만, 중앙값(50%)은 167.4cm로 자연스럽습니다.
+속성의 뜻을 알고 있으면 이런 <b>이상한 값</b>을 바로 알아챌 수 있습니다. 결측치와 이상치를 다루는 방법은 Ⅱ영역에서 자세히 배웁니다.
+평균이 아니라 <b>중앙값</b>으로 성별 수면시간을 비교한 것도 이상치의 영향을 줄이기 위해서입니다.</p>
+
+<h2><span class="sec-no">3</span>문제에 따라 중요한 속성이 달라진다 <i class="pub">삼양</i></h2>
+
+<p>학교 도서관의 대출 데이터에는 다음 속성들이 있다고 합시다.</p>
+<p style="font-family:var(--font-mono);font-size:.86rem;background:var(--paper);padding:8px 12px;border-radius:8px">학번 · 학년 · 도서명 · 분야 · 쪽수 · 대출일 · 반납 예정일 · 실제 반납일 · 대출 시각</p>
+<p>같은 데이터라도 <b>어떤 문제를 풀려고 하느냐</b>에 따라 필요한 속성이 달라집니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th>해결하려는 문제</th><th style="width:36%">핵심 속성</th><th style="width:28%">덜 중요한 속성</th></tr></thead>
+  <tbody>
+    <tr><td>연체를 줄이려면 반납 알림을 언제 보내야 할까?</td><td>반납 예정일, 실제 반납일, 학번</td><td>도서명, 쪽수</td></tr>
+    <tr><td>어떤 분야의 책을 더 사야 할까?</td><td>분야, 대출일, 학년</td><td>대출 시각</td></tr>
+    <tr><td>도서관 운영 시간을 언제로 늘려야 할까?</td><td>대출 시각, 대출일(요일)</td><td>분야, 쪽수</td></tr>
+    <tr><td>두꺼운 책은 반납이 늦어질까?</td><td>쪽수, 대출일, 실제 반납일</td><td>대출 시각</td></tr>
+  </tbody>
+</table></div>
+
+<p>마지막 문제처럼 <b>두 속성을 조합</b>(실제 반납일 − 대출일 = 대출 기간)하면 원래 표에 없던 새 속성을 만들 수 있습니다. 이런 속성을 <span class="keyterm">파생 속성</span>이라고 합니다.</p>
+
+<h2><span class="sec-no">4</span>속성에 숨은 잠재적 가치 <i class="pub">YBM</i></h2>
+
+<p>데이터의 <span class="keyterm">잠재적 가치</span>란 처음 수집한 목적 말고도 <b>다른 문제를 해결하는 데 쓰일 수 있는 가능성</b>을 말합니다.
+예를 들어 멸종 위기 야생동물을 산에 풀어 준 뒤 위치 추적 목걸이로 다음 속성을 기록한다고 합시다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:26%">속성</th><th>처음 목적</th><th>새롭게 발견할 수 있는 가치</th></tr></thead>
+  <tbody>
+    <tr><td>시각, 위도, 경도</td><td>개체가 살아 있는지, 어디 있는지 확인</td><td>자주 다니는 길을 알아내 <b>도로 위 생태 통로</b> 설치 위치 결정</td></tr>
+    <tr><td>활동량(가속도)</td><td>건강 상태 확인</td><td>겨울잠을 시작·끝내는 시기를 기록해 <b>기후 변화의 영향</b> 연구</td></tr>
+    <tr><td>위치 + 등산로 지도</td><td>(다른 기관의 데이터)</td><td>동물과 사람이 마주칠 위험이 큰 구간에 <b>탐방객 안전 안내</b></td></tr>
+  </tbody>
+</table></div>
+
+<p>보건실의 건강 기록도 마찬가지입니다. 수면시간과 걸음수 속성을 함께 보면 “많이 걷는 학생이 잠을 더 잘 자는가?”를 조사할 수 있고,
+학년별 수면시간을 비교해 <b>시험 기간 건강 캠페인</b>을 계획할 수도 있습니다. 이렇게 잠재적 가치는 <b>속성 하나</b>보다 <b>속성들의 관계</b>나 <b>다른 데이터와의 결합</b>에서 발견되는 경우가 많습니다.
+다만 개인의 위치·건강처럼 민감한 속성은 가치가 큰 만큼 <b>개인정보 보호</b>에 더 주의해야 합니다.</p>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  연속형/이산형 구분에서 “나이”는 자주 논쟁이 됩니다. 실제로는 연속적인 시간이지만 보통 정수로 세어 기록하므로 이산형으로 다루는 경우가 많다고 설명하고, <b>분석 목적에 따라 다르게 다룰 수 있다</b>는 점을 인정해 주세요.
+  또한 순서형(만족도 1~5점)의 평균을 내는 것은 엄밀히는 조심해야 하지만 실무에서는 흔히 쓰인다는 점도 심화 토론 소재가 됩니다.
+  파이썬 대신 Orange의 File 위젯(속성 유형 표시: numeric/categorical)이나 스프레드시트의 열 서식으로 같은 확인을 할 수 있습니다.
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">모둠 활동</span>우리 반 설문 데이터 설계하기</div>
+  <div class="act-body">
+    <ol>
+      <li>“우리 반 학생들의 생활 습관”을 조사하는 설문을 만든다고 할 때, 넣고 싶은 속성 6개를 정하고 유형을 판별하세요. 네 유형이 모두 한 번 이상 들어가게 하세요.
+        <div class="table-wrap"><table>
+          <thead><tr><th>속성 이름</th><th>속성값 예시</th><th>유형(연속·이산·명목·순서)</th><th>판단 근거</th></tr></thead>
+          <tbody><tr><td>&nbsp;</td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td></tr></tbody>
+        </table></div></li>
+      <li>두 속성을 조합해 만들 수 있는 파생 속성을 하나 제안하고, 그 속성으로 해결할 수 있는 문제를 쓰세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+      <li>이 설문 데이터의 <b>잠재적 가치</b>(처음 목적 외의 활용)와 그때 주의할 개인정보 문제를 한 가지씩 쓰세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+    </ol>
+  </div>
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>속성은 표의 열(특징 항목), 속성값은 각 칸의 값, 레코드는 표의 행(한 대상의 값 묶음)이다.</li>
+    <li>수치형은 연속형(재는 값)과 이산형(세는 값), 범주형은 명목형(구분만)과 순서형(순서 있음)으로 나뉜다.</li>
+    <li>숫자로 적혀 있어도 더하기·평균이 의미 없으면 범주형이다. 컴퓨터의 자료형(dtype)과 속성 유형은 다를 수 있다.</li>
+    <li>필요한 속성은 해결하려는 문제에 따라 달라지며, 속성 간 관계와 다른 데이터와의 결합에서 잠재적 가치가 발견된다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 속성 유형 판별 플로차트 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  // 노드: q1 → (예) q2 / (아니요) q3 ; q2 → (예) cont / (아니요) disc ; q3 → (예) ord / (아니요) nom
+  const Q = {
+    q1:{ text:"이 값들로 더하기·평균을 내는 것이 의미가 있나요? (값이 ‘양’을 나타내나요?)", yes:"q2", no:"q3" },
+    q2:{ text:"두 값 사이에 소수점 아래까지 얼마든지 다른 값이 있을 수 있나요? (재는 값인가요?)", yes:"cont", no:"disc" },
+    q3:{ text:"값들 사이에 높고 낮은 순서가 있나요?", yes:"ord", no:"nom" },
+  };
+  const LEAF = { cont:["연속형","수치형"], disc:["이산형","수치형"], ord:["순서형","범주형"], nom:["명목형","범주형"] };
+  const ITEMS = [
+    { n:"키", v:"164.6, 170.8, 176.0 (cm)", a:"cont", w:"키는 자로 재는 값이고 164.6과 164.7 사이에도 값이 있으므로 연속형입니다." },
+    { n:"하루 걸음 수", v:"11630, 8860, 4820 (걸음)", a:"disc", w:"걸음은 하나, 둘 세는 값이라 8860.5걸음은 없으므로 이산형입니다." },
+    { n:"학번", v:"20101, 20113, 20207", a:"nom", w:"숫자이지만 학생을 구분하는 이름표일 뿐, 평균이나 순서에 의미가 없으므로 명목형입니다." },
+    { n:"급식 만족도", v:"매우 불만, 불만, 보통, 만족, 매우 만족", a:"ord", w:"만족 정도의 순서는 있지만 ‘불만’과 ‘보통’의 간격이 ‘보통’과 ‘만족’의 간격과 같다고 할 수 없으므로 순서형입니다." },
+    { n:"혈액형", v:"A, B, O, AB", a:"nom", w:"구분만 할 뿐 순서가 없으므로 명목형입니다." },
+    { n:"수면 시간", v:"6.8, 6.6, 7.1 (시간)", a:"cont", w:"시간은 재는 값이고 얼마든지 잘게 나눌 수 있으므로 연속형입니다." },
+    { n:"형제·자매 수", v:"0, 1, 2, 3 (명)", a:"disc", w:"사람 수는 세는 값이므로 이산형입니다." },
+    { n:"티셔츠 사이즈", v:"S, M, L, XL", a:"ord", w:"크기 순서는 있지만 더하거나 평균을 낼 수 없으므로 순서형입니다." },
+    { n:"버스 노선 번호", v:"146, 740, 6411", a:"nom", w:"노선 번호는 이름표입니다. 146번과 740번의 평균인 443번은 아무 의미가 없으므로 명목형입니다." },
+    { n:"오늘 최고 기온", v:"18.2, 21.5, 24.0 (℃)", a:"cont", w:"온도계로 재는 값이므로 연속형입니다." },
+    { n:"한 달 결석 일수", v:"0, 1, 2, 5 (일)", a:"disc", w:"날수를 세는 값이므로 이산형입니다." },
+    { n:"올림픽 메달", v:"금, 은, 동", a:"ord", w:"금 > 은 > 동의 순서가 있으므로 순서형입니다." },
+  ];
+  let order, i, cur, path, done, score;
+
+  function shuffle(a){ for (let k = a.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [a[k], a[j]] = [a[j], a[k]]; } return a; }
+
+  function start(){ order = shuffle(ITEMS.slice()).slice(0, 10); i = 0; score = 0; $("fc-total").textContent = order.length; load(); }
+  function load(){
+    cur = "q1"; path = ["q1"]; done = false;
+    const it = order[i];
+    $("fc-item").innerHTML = `<span class="fc-lbl">판별할 속성</span><span class="nm">${it.n}</span><span class="vals">${it.v}</span>`;
+    $("fc-no").textContent = i + 1; $("fc-score").textContent = score;
+    $("fc-fb").className = "fc-fb"; $("fc-fb").textContent = "맨 위 질문부터 [예]/[아니요]를 눌러 내려가세요.";
+    $("fc-next").disabled = true;
+    draw();
+  }
+  function node(id, cls){
+    const isQ = id in Q;
+    let c = "fc-node " + cls;
+    if (path.includes(id)) c += " path";
+    if (id === cur && !done) c += " cur";
+    if (done && !isQ) {
+      if (id === order[i].a) c += " right";
+      else if (id === cur) c += " wrongleaf";
+    }
+    const body = isQ ? Q[id].text : `${LEAF[id][0]}<small>${LEAF[id][1]}</small>`;
+    const yn = isQ && id === cur && !done ? `<div class="yn"><button data-go="yes">예</button><button data-go="no" class="gray">아니요</button></div>` : "";
+    return `<div class="${c}">${body}${yn}</div>`;
+  }
+  function draw(){
+    $("fc-tree").innerHTML = node("q1", "q1") + node("q2", "q2") + node("q3", "q3") +
+      node("cont", "leaf") + node("disc", "leaf") + node("ord", "leaf") + node("nom", "leaf");
+    $("fc-tree").querySelectorAll("button[data-go]").forEach(b => b.addEventListener("click", () => step(b.dataset.go)));
+  }
+  function step(ans){
+    cur = Q[cur][ans];
+    path.push(cur);
+    if (!(cur in Q)) {
+      done = true;
+      const it = order[i], ok = cur === it.a;
+      if (ok) score++;
+      $("fc-score").textContent = score;
+      $("fc-fb").className = "fc-fb " + (ok ? "ok" : "no");
+      $("fc-fb").textContent = (ok ? `정답! ${it.n} → ${LEAF[cur][0]}. ` : `${LEAF[cur][0]}이(가) 아니라 ${LEAF[it.a][0]}입니다. `) + it.w;
+      if (i < order.length - 1) $("fc-next").disabled = false;
+      else $("fc-fb").textContent += ` — 끝! ${order.length}문제 중 ${score}문제를 맞혔습니다.`;
+    }
+    draw();
+  }
+  $("fc-next").addEventListener("click", () => { if (i < order.length - 1) { i++; load(); } });
+  $("fc-restart").addEventListener("click", start);
+  start();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"학생 30명의 키·몸무게·성별·수면시간을 기록한 표가 있다. 이 표의 ‘레코드’ 수와 ‘속성’ 수로 옳은 것은?",
+    choices:["레코드 4개, 속성 30개","레코드 30개, 속성 4개","레코드 30개, 속성 30개","레코드 1개, 속성 4개","레코드 120개, 속성 1개"], answer:1,
+    explain:"레코드는 한 대상(학생 한 명)의 행이므로 30개, 속성은 특징 항목(열)이므로 키·몸무게·성별·수면시간 4개입니다. 속성값(칸)은 30 × 4 = 120개입니다." },
+  { type:"mc", q:"다음 중 속성 유형이 나머지 넷과 다른 것은?",
+    choices:["혈액형","출신 중학교","우편번호","좋아하는 과목","수행평가 등급(A·B·C)"], answer:4,
+    explain:"①~④는 순서가 없는 명목형이고, 수행평가 등급(A > B > C)은 순서가 있는 순서형입니다. 우편번호는 숫자이지만 명목형입니다." },
+  { type:"ox", q:"pandas에서 걸음수 열이 float64(실수)로 나왔으므로 걸음수는 연속형 속성이다.",
+    answer:false, explain:"걸음 수는 세어서 얻는 이산형입니다. 결측치(NaN)가 있으면 pandas가 정수 열을 실수형으로 저장하므로, 자료형만 보고 속성 유형을 판단하면 안 됩니다." },
+  { type:"mc", q:"대출일이 3월 4일, 실제 반납일이 3월 18일인 레코드에서 파생 속성 ‘대출 기간(일)’의 값은?",
+    choices:["4일","12일","14일","18일","22일"], answer:2,
+    explain:"실제 반납일 − 대출일 = 18 − 4 = 14일입니다. 두 속성을 조합해 원래 표에 없던 새로운 속성을 만든 것입니다." },
+  { type:"short", q:"편의점의 ‘구매 시각’과 ‘구매 상품’ 속성을 기록한 데이터가 있습니다. 이 데이터의 잠재적 가치를 한 가지 제안하고, 그때 필요한 속성과 활용 방법을 쓰세요.",
+    model:"구매 시각과 구매 상품을 함께 보면 시간대별로 잘 팔리는 상품을 알 수 있다. 예를 들어 아침 7~8시에 삼각김밥·우유가 많이 팔린다면 그 시간 전에 해당 상품을 넉넉히 채워 두고, 오후에는 간식류를 앞에 진열하는 등 시간대별 진열·발주 전략을 세울 수 있다. 여기에 날씨 데이터를 결합하면 비 오는 날의 우산 수요 예측 같은 새로운 가치도 찾을 수 있다." },
+]);
+</script>
+</body>
+</html>

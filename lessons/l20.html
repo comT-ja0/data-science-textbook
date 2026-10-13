@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>데이터 시각화 ① 목적에 맞는 그래프 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 그래프 처방소 */
+.q-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:6px; margin-bottom:10px; }
+.q-list button { text-align:left; background:#fff; color:var(--ink); border:1.5px solid var(--line); font-weight:600; font-size:.84rem; line-height:1.4; }
+.q-list button:hover { border-color:var(--accent); filter:none; }
+.q-list button.on { border-color:var(--accent); background:var(--accent-soft); color:var(--accent); }
+.q-list button .tag { display:inline-block; font-size:.68rem; font-weight:800; background:var(--paper); border-radius:5px; padding:1px 6px; margin-right:4px; color:var(--ink-soft); }
+.chart-btns { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 10px; }
+.chart-btns button { background:#fff; color:var(--accent); border:1.5px solid var(--accent); }
+.chart-btns button.on { background:var(--accent); color:#fff; }
+#gv-svg { width:100%; height:auto; background:#fff; border:1px solid var(--line); border-radius:10px; }
+.gv-verdict { margin-top:10px; padding:10px 14px; border-radius:10px; font-size:.9rem; }
+.gv-verdict.best { background:#eafaf0; border:1.5px solid #ace8c4; color:#127a3c; }
+.gv-verdict.ok { background:#fef6e7; border:1.5px solid #f3ddb0; color:#8a5a08; }
+.gv-verdict.bad { background:#fdeeee; border:1.5px solid #f3b9b9; color:#b32424; }
+.gv-score { font-size:.84rem; color:var(--ink-faint); margin-top:6px; }
+</style>
+</head>
+<body data-unit="2" data-lesson="L20">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>데이터 시각화 ① 목적에 맞는 그래프</h1>
+  <span class="std-badge">성취기준 12데과02-02</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>시각화의 목적(비교·시간 변화·구성·관계·분포)을 구분하고, 목적에 맞는 그래프를 고를 수 있다.</li>
+      <li>막대·선·원그래프, 히스토그램, 산점도, 상자그림의 특징과 읽는 방법을 설명할 수 있다.</li>
+      <li>파이썬 matplotlib으로 목적에 맞는 그래프를 그리고, 그래프에서 알게 된 점을 해석할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과02-02] 이상치와 결측치 탐색 및 정규화를 통해 전처리하여 오류 가능성을 최소화하고, 데이터 분석을 위해 시각화한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span>수집</span><span>전처리</span><span class="on">탐색</span><span>모델링</span><span>평가·해석</span><span class="on">공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  시청 공공자전거 담당자에게 1년 치 대여 기록 365줄이 담긴 표가 전달되었습니다. 회의까지 남은 시간은 10분.
+  “어느 달에 자전거를 더 배치해야 하나요?”, “비 오는 날엔 얼마나 줄어요?”라는 질문에 답해야 합니다.
+  숫자 365개를 줄줄 읽을 수는 없습니다. 이럴 때 필요한 것이 한눈에 보이는 <b>그래프</b>입니다.
+  그런데 어떤 그래프를 그려야 할까요? <b>질문이 달라지면 알맞은 그래프도 달라집니다.</b>
+</div>
+
+<h2><span class="sec-no">1</span>왜 시각화하는가 <i class="pub-c">공통</i></h2>
+
+<p><span class="keyterm">데이터 시각화(data visualization)</span>는 데이터를 그래프·도표·지도 등 눈으로 볼 수 있는 형태로 나타내는 것입니다.
+시각화는 두 가지 목적으로 씁니다. 하나는 분석하는 사람이 데이터의 패턴·이상치·관계를 <b>찾기 위한 탐색</b>이고,
+다른 하나는 분석 결과를 다른 사람에게 <b>전달하기 위한 설명</b>입니다. 같은 요약 통계를 가진 데이터라도 그래프로 그려 보면 전혀 다른 모습일 수 있으므로,
+분석의 어느 단계에서든 “일단 그려 보는 것”이 중요합니다.</p>
+
+<div class="box box-tip">
+  <span class="box-label">그래프로 병원을 바꾼 간호사 <i class="pub">YBM</i></span>
+  1850년대 크림 전쟁 당시 간호사 플로렌스 나이팅게일은 군 병원 사망자 기록을 분석해,
+  전투 부상보다 <b>예방할 수 있는 감염병</b>으로 죽는 병사가 훨씬 많다는 사실을 월별 원 모양 그래프(장미 도표)로 나타냈습니다.
+  숫자 표로는 설득하기 어려웠던 이 사실이 그림으로 한눈에 드러나자, 병원 위생 개선이 추진되었습니다.
+  잘 고른 그래프는 의사 결정을 바꾸는 힘이 있습니다.
+</div>
+
+<h2><span class="sec-no">2</span>질문에 맞는 그래프 고르기 <i class="pub">천재</i> <i class="pub">씨마스</i></h2>
+
+<p>그래프를 고를 때는 “어떤 모양이 예쁜가”가 아니라 <b>“내가 무엇을 알고 싶은가”</b>에서 출발합니다.
+시각화의 목적은 크게 다섯 가지로 나눌 수 있습니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:110px">목적</th><th>이런 질문일 때</th><th style="width:150px">알맞은 그래프</th><th style="width:230px">읽는 법·주의점</th></tr></thead>
+  <tbody>
+    <tr><td><b>비교</b></td><td>항목(범주)끼리 크기를 비교한다. “어느 지역이 가장 높은가?”</td><td>막대그래프</td><td>막대 길이로 비교하므로 세로축은 0에서 시작한다.</td></tr>
+    <tr><td><b>시간 변화</b></td><td>시간에 따라 어떻게 변하는가? “월별로 늘었나 줄었나?”</td><td>선그래프</td><td>가로축은 시간 순서. 기울기로 증감을 읽는다.</td></tr>
+    <tr><td><b>구성</b></td><td>전체에서 각 부분이 차지하는 비율은? “통학 수단의 구성비는?”</td><td>원그래프, 누적 막대</td><td>부분의 합이 전체(100%)일 때만 쓴다. 항목이 많으면 읽기 어렵다.</td></tr>
+    <tr><td><b>관계</b></td><td>두 수치 속성이 함께 변하는가? “기온이 높을수록 대여가 많은가?”</td><td>산점도</td><td>점들이 오른쪽 위로 모이면 양의 관계. 이상한 점도 잘 보인다.</td></tr>
+    <tr><td><b>분포</b></td><td>값들이 어디에 몰려 있고 얼마나 퍼져 있는가? 집단끼리 분포를 비교하면?</td><td>히스토그램, 상자그림</td><td>히스토그램은 구간별 개수(막대가 붙어 있음), 상자그림은 사분위수 요약.</td></tr>
+  </tbody>
+</table></div>
+
+<figure>
+<svg viewBox="0 0 640 120" role="img" aria-label="여섯 가지 그래프 아이콘">
+  <g transform="translate(20,10)"><rect x="5" y="50" width="16" height="40" fill="#2563eb"/><rect x="27" y="25" width="16" height="65" fill="#2563eb"/><rect x="49" y="40" width="16" height="50" fill="#2563eb"/><rect x="71" y="60" width="16" height="30" fill="#2563eb"/><text x="46" y="108" font-size="12" text-anchor="middle" fill="#4b5a6b">막대: 비교</text></g>
+  <g transform="translate(125,10)"><polyline points="5,80 25,62 45,66 65,35 85,22" fill="none" stroke="#2563eb" stroke-width="3"/><text x="46" y="108" font-size="12" text-anchor="middle" fill="#4b5a6b">선: 시간 변화</text></g>
+  <g transform="translate(230,10)"><circle cx="46" cy="50" r="38" fill="#e8effe"/><path d="M46 50 L46 12 A38 38 0 0 1 82 62 Z" fill="#2563eb"/><path d="M46 50 L82 62 A38 38 0 0 1 20 78 Z" fill="#f59e0b"/><text x="46" y="108" font-size="12" text-anchor="middle" fill="#4b5a6b">원: 구성</text></g>
+  <g transform="translate(335,10)"><circle cx="12" cy="80" r="4" fill="#2563eb"/><circle cx="25" cy="70" r="4" fill="#2563eb"/><circle cx="35" cy="72" r="4" fill="#2563eb"/><circle cx="48" cy="52" r="4" fill="#2563eb"/><circle cx="60" cy="45" r="4" fill="#2563eb"/><circle cx="72" cy="30" r="4" fill="#2563eb"/><circle cx="84" cy="24" r="4" fill="#2563eb"/><text x="46" y="108" font-size="12" text-anchor="middle" fill="#4b5a6b">산점도: 관계</text></g>
+  <g transform="translate(440,10)"><rect x="5" y="70" width="16" height="20" fill="#2563eb"/><rect x="21" y="40" width="16" height="50" fill="#2563eb" stroke="#fff"/><rect x="37" y="20" width="16" height="70" fill="#2563eb" stroke="#fff"/><rect x="53" y="45" width="16" height="45" fill="#2563eb" stroke="#fff"/><rect x="69" y="75" width="16" height="15" fill="#2563eb" stroke="#fff"/><text x="46" y="108" font-size="12" text-anchor="middle" fill="#4b5a6b">히스토그램: 분포</text></g>
+  <g transform="translate(545,10)"><line x1="46" y1="10" x2="46" y2="30" stroke="#2563eb" stroke-width="2"/><rect x="28" y="30" width="36" height="36" fill="#e8effe" stroke="#2563eb" stroke-width="2"/><line x1="28" y1="50" x2="64" y2="50" stroke="#2563eb" stroke-width="3"/><line x1="46" y1="66" x2="46" y2="88" stroke="#2563eb" stroke-width="2"/><text x="46" y="108" font-size="12" text-anchor="middle" fill="#4b5a6b">상자그림: 분포 비교</text></g>
+</svg>
+<figcaption>대표적인 그래프 여섯 가지와 주된 목적</figcaption>
+</figure>
+
+<h2><span class="sec-no">3</span>그래프 처방소: 질문에 맞는 그래프 찾기 <i class="pub-c">공통</i></h2>
+
+<div class="sim">
+  <div class="sim-head">그래프 처방소 — 같은 데이터, 여섯 가지 그래프</div>
+  <div class="sim-body">
+    <p style="margin-top:0;font-size:.9rem">① 질문을 고르고 ② 그래프 종류를 눌러 보세요. 같은 데이터가 그래프마다 어떻게 보이는지, 어떤 그래프가 질문에 가장 잘 답하는지 확인합니다.
+    (자전거 데이터는 <code>bike.csv</code>에서 일부 날짜를 뽑은 값, 미세먼지는 <code>air.csv</code> 3년 평균, 통학 수단은 가상의 한 반 조사입니다.)</p>
+    <div class="q-list" id="gv-qs"></div>
+    <div class="chart-btns" id="gv-charts">
+      <button data-c="bar">📊 막대</button><button data-c="line">📈 선</button><button data-c="pie">🥧 원</button>
+      <button data-c="hist">▥ 히스토그램</button><button data-c="scatter">⁘ 산점도</button><button data-c="box">⊟ 상자그림</button>
+    </div>
+    <svg id="gv-svg" viewBox="0 0 640 300" role="img" aria-label="선택한 그래프"></svg>
+    <div class="gv-verdict" id="gv-verdict"></div>
+    <div class="gv-score" id="gv-score"></div>
+    <p class="widget-hint">관찰 포인트: ‘월별 대여량’을 원그래프로 그리면 무엇을 알 수 있나요? ‘비 온 날 vs 안 온 날’을 막대그래프(평균)로 그리면 어떤 정보가 사라지나요?</p>
+  </div>
+</div>
+
+<h2><span class="sec-no">4</span>파이썬으로 목적별 그래프 그리기 <i class="pub-c">공통</i></h2>
+
+<p>matplotlib의 <code>plt.bar</code>(막대), <code>plt.plot</code>(선), <code>plt.pie</code>(원), <code>plt.hist</code>(히스토그램),
+<code>plt.scatter</code>(산점도), <code>plt.boxplot</code>(상자그림)으로 여섯 가지 그래프를 모두 그릴 수 있습니다.
+<code>plt.subplots</code>를 쓰면 여러 그래프를 한 그림에 나란히 놓을 수 있습니다.</p>
+
+<div class="pycell" data-title="비교(막대)와 시간 변화(선)"><textarea>
+import pandas as pd
+import matplotlib.pyplot as plt
+
+air = load_csv("air.csv")
+bike = load_csv("bike.csv")
+
+지역평균 = air.groupby("지역")["미세먼지"].mean().sort_values(ascending=False)
+월평균 = bike.groupby("월")["대여량"].mean()
+print(지역평균.round(1))
+print(월평균.round(0))
+
+fig, ax = plt.subplots(1, 2, figsize=(11, 4))
+ax[0].bar(지역평균.index, 지역평균.values, color="#2563eb")
+ax[0].set_title("지역별 미세먼지 평균 (2023~2025)")
+ax[0].set_ylabel("미세먼지(㎍/㎥)")
+
+ax[1].plot(월평균.index, 월평균.values, marker="o", color="#f59e0b")
+ax[1].set_title("월별 하루 평균 대여량")
+ax[1].set_xlabel("월"); ax[1].set_ylabel("대여량(건)")
+ax[1].set_xticks(range(1, 13))
+plt.tight_layout(); plt.show()
+
+# ✏️ 막대그래프를 "초미세먼지"로 바꿔 그려 보세요. 지역 순위가 같나요?
+</textarea></div>
+
+<p>막대그래프에서 미세먼지 평균은 <b>인천(42.5)</b>과 서울(42.2)이 가장 높고 <b>제주(28.5)</b>가 가장 낮습니다.
+선그래프에서는 대여량이 1월(약 2198건)에서 늘어 <b>4월(약 4528건)</b>에 가장 많고, 여름에 조금 줄었다가 가을에 다시 늘고, 겨울에 크게 줄어드는 흐름이 보입니다.
+표의 숫자로는 한참 들여다봐야 알 수 있는 흐름을 선그래프는 한눈에 보여 줍니다.</p>
+
+<div class="pycell" data-title="분포(히스토그램)와 관계(산점도)"><textarea>
+fig, ax = plt.subplots(1, 2, figsize=(11, 4))
+ax[0].hist(bike["대여량"], bins=15, color="#16a34a", edgecolor="white")
+ax[0].set_title("하루 대여량의 분포")
+ax[0].set_xlabel("대여량(건)"); ax[0].set_ylabel("날수")
+
+ax[1].scatter(bike["기온"], bike["대여량"], s=12, alpha=0.6)
+ax[1].set_title("기온과 대여량의 관계")
+ax[1].set_xlabel("기온(℃)"); ax[1].set_ylabel("대여량(건)")
+plt.tight_layout(); plt.show()
+
+# ✏️ bins를 5와 40으로 바꿔 보세요. 분포의 모양이 어떻게 달라 보이나요? 알맞은 구간 수는?
+</textarea></div>
+
+<p>히스토그램을 보면 하루 대여량은 3000~4500건 사이에 많이 몰려 있고, 1000건 아래인 날은 드뭅니다.
+산점도에서는 기온이 올라갈수록 대여량이 늘다가 아주 더운 날에는 오히려 줄어드는 <b>곡선 모양</b>이 보입니다.
+이런 모양은 평균이나 상관계수 하나로는 알기 어렵고, 산점도를 그려야 드러납니다.</p>
+
+<div class="pycell" data-title="분포 비교(상자그림)와 구성(원그래프)"><textarea>
+비 = bike["강수량"] > 0
+fig, ax = plt.subplots(1, 2, figsize=(11, 4))
+ax[0].boxplot([bike.loc[~비, "대여량"], bike.loc[비, "대여량"]])
+ax[0].set_xticks([1, 2]); ax[0].set_xticklabels(["비 안 온 날", "비 온 날"])
+ax[0].set_title("강수 여부에 따른 대여량"); ax[0].set_ylabel("대여량(건)")
+
+날수 = 비.value_counts()
+ax[1].pie([날수[False], 날수[True]], labels=["비 안 온 날", "비 온 날"], autopct="%.1f%%", colors=["#93c5fd", "#2563eb"])
+ax[1].set_title("1년 중 비 온 날의 비율")
+plt.tight_layout(); plt.show()
+
+print("중앙값 비교:", bike.groupby(비)["대여량"].median().to_dict())
+print("비 온 날:", 날수[True], "일 / 전체", len(bike), "일")
+
+# ✏️ 요일별 대여량을 상자그림으로 비교해 보세요. 주말과 평일의 차이가 보이나요?
+</textarea></div>
+
+<p>상자그림에서 비 온 날의 상자(가운데 50%)가 전체적으로 아래로 내려가 있습니다. 대여량의 중앙값은 비 안 온 날 <b>3846건</b>, 비 온 날 <b>3091건</b>입니다.
+평균만 비교하는 막대그래프와 달리 상자그림은 <b>퍼진 정도와 이상치</b>까지 함께 보여 줍니다.
+원그래프는 1년 365일 중 비 온 날 97일(<b>26.6%</b>)처럼 전체에 대한 비율을 보여 줄 때 알맞습니다.</p>
+
+<div class="box box-warn">
+  <span class="box-label">좋은 그래프의 기본 체크리스트</span>
+  ① 그래프가 답하는 질문이 드러나는 <b>제목</b> ② <b>축 이름과 단위</b> ③ 여러 계열이면 <b>범례</b>
+  ④ 막대그래프는 <b>0에서 시작</b> ⑤ 데이터 <b>출처</b> ⑥ 꼭 필요하지 않은 3D·장식 빼기.
+  잘못 그린 그래프가 어떻게 오해를 부르는지는 다음 차시에서 더 살펴봅니다.
+</div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  비코딩 학급은 스프레드시트의 차트 삽입(막대·선·원·분산형·히스토그램·상자 수염)이나 Orange의 <b>Bar Plot, Line Plot, Distributions, Scatter Plot, Box Plot</b> 위젯으로 같은 활동을 할 수 있습니다.
+  CODAP은 속성을 끌어다 놓기만 하면 그래프가 바뀌어 ‘같은 데이터, 다른 그래프’ 체험에 좋습니다.
+  흔한 오개념: 히스토그램과 막대그래프를 같은 것으로 여김(히스토그램은 수치 구간, 막대는 범주), 원그래프를 비율이 아닌 값 비교에 사용함.
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">개별 활동</span>그래프 처방전 쓰기 <i class="pub">천재</i></div>
+  <div class="act-body">
+    <p style="margin-top:0">다음 질문에 답하려면 어떤 그래프가 알맞은지 처방하세요. 마지막 두 칸은 내가 궁금한 질문을 직접 만들어 봅니다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th style="width:38%">질문</th><th style="width:12%">목적</th><th style="width:14%">그래프</th><th>가로축 / 세로축 (또는 구성 요소)</th></tr></thead>
+      <tbody>
+        <tr><td>① 우리 학교 학년별 도서 대출 권수는 어떻게 다를까?</td><td></td><td></td><td></td></tr>
+        <tr><td>② 최근 10년간 우리 지역 여름 폭염 일수는 어떻게 변했을까?</td><td></td><td></td><td></td></tr>
+        <tr><td>③ 스마트폰 사용 시간과 수면 시간은 관계가 있을까?</td><td></td><td></td><td></td></tr>
+        <tr><td>④ 우리 반 50m 달리기 기록은 어느 구간에 많이 몰려 있을까?</td><td></td><td></td><td></td></tr>
+        <tr><td>⑤ (내 질문)</td><td></td><td></td><td></td></tr>
+        <tr><td>⑥ (내 질문)</td><td></td><td></td><td></td></tr>
+      </tbody>
+    </table></div>
+    <p>파이썬 셀에서 그래프 하나를 골라 체크리스트 ①~⑥으로 점검하고, 고칠 점을 쓰세요.</p>
+    <div class="write-lines"><div class="line"></div><div class="line"></div></div>
+  </div>
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>그래프는 ‘무엇을 알고 싶은가’(비교·시간 변화·구성·관계·분포)에 따라 고른다.</li>
+    <li>비교는 막대, 시간 변화는 선, 전체에 대한 구성비는 원(또는 누적 막대), 두 수치의 관계는 산점도가 알맞다.</li>
+    <li>분포는 히스토그램(구간별 개수)으로, 여러 집단의 분포 비교는 상자그림으로 본다.</li>
+    <li>좋은 그래프에는 제목, 축 이름과 단위, 범례, 출처가 있고 막대그래프는 0에서 시작한다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 그래프 처방소 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const PL = 70, PR = 620, PT = 22, PB = 250;
+  const COLORS = ["#2563eb","#f59e0b","#16a34a","#dc2626","#7c3aed","#0891b2","#db2777","#65a30d"];
+  const fmt = v => Math.abs(v) >= 100 ? String(Math.round(v)) : String(Math.round(v * 10) / 10);
+
+  const TEMP = [0.2,0.5,0.6,0.9,2.4,5.9,1.0,8.9,8.6,12.8,8.9,10.8,15.1,19.6,22.4,19.2,21.7,25.8,24.7,25.6,24.1,28.8,24.6,26.8,21.4,23.2,20.8,14.4,16.0,8.8,12.7,4.7,4.1,8.5,1.6,1.8,-0.1];
+  const RENT = [1749,2783,2780,2262,3302,3828,1962,4920,4335,3984,4859,3272,4436,3331,5040,4539,3635,3525,4347,3763,4103,2303,4081,2775,4575,4665,4034,2043,4617,3157,4850,2837,3147,3608,3144,3255,1816];
+  const DAILY = [1797,1631,1149,2837,1356,3415,2476,3514,3592,3285,3216,4068,2337,3027,4815,4442,4343,5295,4846,5980,4379,4166,4886,4204,5150,4922,3635,3519,3503,2757,4368,4335,3564,2788,4206,3292,2742,4006,4075,4691,2644,4351,3301,2886,4920,3799,3465,3387,4378,4526,4835,3618,2778,4692,3329,2814,2181,1142,2685,1321,1873];
+  const RAIN = [1749,841,3171,2923,1119,3133,3920,2337,3448,3675,3331,2387,4858,3635,4037,3900,2674,4751,2136,3855,2972,3897,3686,4080,1910,4335,3381,3739,2877,2181,2685,150,1630];
+  const DRY = [1925,1420,2359,2518,3828,2907,4069,3560,4045,4859,4313,5980,4763,3871,5150,2792,3046,4368,4507,4206,3488,4840,4575,4351,3645,4553,4617,5231,3012,2652,4354,3682,1142,1321];
+
+  const Q = [
+    { tag:"비교", q:"8개 지역 중 미세먼지가 가장 높은 곳은?", kind:"cat", yl:"미세먼지(㎍/㎥)",
+      labels:["강릉","광주","대구","대전","부산","서울","인천","제주"], values:[34.1,39.3,39.4,41.0,39.1,42.2,42.5,28.5],
+      r:{ bar:[2,"지역(범주)끼리 크기를 비교하므로 막대그래프가 가장 알맞습니다. 막대를 크기순으로 정렬하면 더 읽기 쉽습니다."],
+          line:[0,"선으로 이으면 ‘강릉에서 광주로 갈수록 증가’처럼 지역 사이에 흐름이 있는 것처럼 보입니다. 지역에는 순서가 없어요."],
+          pie:[0,"원그래프는 부분이 모여 전체(100%)가 될 때 씁니다. 지역별 농도를 더한 값은 아무 의미가 없습니다."],
+          hist:[0,"히스토그램은 값의 분포를 보는 그래프라 어느 지역이 높은지 알 수 없습니다."],
+          scatter:[1,"점 위치로 비교할 수는 있지만 가로축이 수치가 아니라서 산점도의 장점(관계 보기)이 없습니다."],
+          box:[0,"8개 값을 상자 하나로 요약하면 지역 이름이 사라져 질문에 답할 수 없습니다."] } },
+    { tag:"시간 변화", q:"월별 하루 평균 자전거 대여량은 어떻게 변할까?", kind:"cat", yl:"대여량(건)",
+      labels:["1","2","3","4","5","6","7","8","9","10","11","12"], values:[2198,2845,3550,4528,4382,3823,3480,3752,3921,4037,3157,2231],
+      r:{ line:[2,"시간 순서에 따른 변화는 선그래프가 가장 알맞습니다. 봄(4월)에 가장 많고 겨울에 적은 흐름이 기울기로 바로 보입니다."],
+          bar:[1,"막대그래프로도 월별 크기 비교는 됩니다. 다만 늘고 줄어드는 ‘흐름’은 선그래프가 더 잘 보여 줍니다."],
+          pie:[0,"12개월 대여량을 원 조각으로 나누면 비슷한 크기의 조각 12개가 되어 변화 흐름을 전혀 읽을 수 없습니다."],
+          hist:[0,"월 순서 정보가 사라져 ‘언제’ 많은지 알 수 없습니다."],
+          scatter:[1,"월을 가로축 수치로 보면 점으로 나타낼 수는 있습니다. 점을 선으로 이으면 선그래프가 됩니다."],
+          box:[0,"12개 값을 상자 하나로 요약하면 시간 흐름이 사라집니다."] } },
+    { tag:"구성", q:"우리 반 30명의 통학 수단 구성비는?", kind:"cat", yl:"학생 수(명)",
+      labels:["도보","버스","지하철","자전거","자가용"], values:[12,9,5,3,1],
+      r:{ pie:[2,"30명이라는 전체를 통학 수단별로 나눈 구성비이므로 원그래프가 알맞습니다. 도보가 40%로 가장 큰 조각입니다."],
+          bar:[1,"막대그래프도 좋은 선택입니다. 항목끼리 정확히 비교하기는 막대가 원보다 쉽습니다. ‘전체 중 비율’을 강조하려면 원그래프나 100% 누적 막대를 씁니다."],
+          line:[0,"통학 수단에는 순서가 없어 선으로 이을 이유가 없습니다."],
+          hist:[0,"범주별 개수를 다시 구간으로 묶으면 어떤 수단인지 알 수 없습니다."],
+          scatter:[0,"두 수치 속성의 관계를 보는 그래프라 구성비 질문에 맞지 않습니다."],
+          box:[0,"5개 개수를 상자로 요약하면 구성비를 알 수 없습니다."] } },
+    { tag:"관계", q:"기온이 높을수록 자전거 대여량이 많을까?", kind:"pair", xl:"기온(℃)", yl:"대여량(건)", x:TEMP, y:RENT,
+      r:{ scatter:[2,"두 수치 속성의 관계는 산점도로 봅니다. 기온이 오를수록 대여량이 늘다가 아주 더울 때 다시 줄어드는 곡선 모양이 보입니다."],
+          line:[0,"날짜 순서대로 점을 이어 선이 지그재그로 엉킵니다. 기온과 대여량의 관계가 보이지 않습니다."],
+          bar:[0,"대여량만 막대로 늘어놓아 기온 정보가 사라졌습니다."],
+          pie:[0,"날마다의 대여량을 조각으로 나누는 것은 의미가 없습니다."],
+          hist:[1,"대여량의 분포는 보이지만 기온과의 관계는 알 수 없습니다."],
+          box:[0,"대여량 하나의 요약이라 기온과의 관계는 알 수 없습니다."] } },
+    { tag:"분포", q:"하루 대여량은 주로 어느 정도일까?", kind:"samp", yl:"대여량(건)", values:DAILY,
+      r:{ hist:[2,"값들이 어느 구간에 몰려 있는지 보는 분포 질문에는 히스토그램이 가장 알맞습니다. 3000~5000건 구간에 많이 몰려 있습니다."],
+          box:[1,"상자그림은 중앙값과 가운데 50% 범위를 요약해 줍니다. 다만 봉우리가 몇 개인지 같은 분포의 모양은 히스토그램이 더 잘 보여 줍니다."],
+          bar:[0,"날짜마다 막대 61개가 늘어서 어느 정도가 흔한지 한눈에 알기 어렵습니다."],
+          line:[0,"날짜 순서의 변화는 보이지만 ‘주로 어느 정도인가’라는 분포 질문과는 다릅니다."],
+          pie:[0,"조각 61개! 읽을 수 없는 그래프입니다."],
+          scatter:[0,"순서 번호를 가로축으로 한 점일 뿐, 분포를 읽기 어렵습니다."] } },
+    { tag:"분포 비교", q:"비 온 날과 안 온 날의 대여량 분포는 어떻게 다를까?", kind:"grp", yl:"대여량(건)", names:["비 안 온 날","비 온 날"], groups:[DRY, RAIN],
+      r:{ box:[2,"여러 집단의 분포를 비교할 때는 상자그림이 가장 알맞습니다. 비 온 날의 상자(가운데 50%)가 전체적으로 아래에 있고 아주 적은 날도 보입니다."],
+          hist:[1,"두 집단을 한 히스토그램에 합치면 차이가 보이지 않습니다. 집단별로 따로 그리거나 겹쳐 그려야 합니다."],
+          bar:[1,"평균 막대 두 개로 ‘비 온 날이 적다’는 것은 알 수 있지만, 퍼진 정도와 이상치 정보는 사라집니다."],
+          scatter:[1,"집단별로 점을 늘어놓으면(스트립 도표) 개별 값이 모두 보여 괜찮습니다. 값이 많아지면 상자그림이 더 깔끔합니다."],
+          line:[0,"두 집단의 평균을 선으로 이을 이유가 없습니다."],
+          pie:[0,"평균 대여량을 조각으로 나누는 것은 의미가 없습니다."] } },
+  ];
+
+  let qi = 0, chart = "bar";
+  const tried = Q.map(() => new Set());
+
+  function niceScale(lo, hi){
+    if (hi === lo) hi = lo + 1;
+    const raw = (hi - lo) / 5, mag = Math.pow(10, Math.floor(Math.log10(raw))), n = raw / mag;
+    const step = (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * mag;
+    return { lo: Math.floor(lo / step) * step, hi: Math.ceil(hi / step) * step, step };
+  }
+  function frame(lo, hi, yl, xl){
+    const sc = niceScale(lo, hi);
+    const Y = v => PB - (v - sc.lo) / (sc.hi - sc.lo) * (PB - PT);
+    let s = "";
+    for (let v = sc.lo; v <= sc.hi + 1e-9; v += sc.step)
+      s += `<line x1="${PL}" x2="${PR}" y1="${Y(v)}" y2="${Y(v)}" stroke="#eef1f5"/><text x="${PL - 6}" y="${Y(v) + 4}" font-size="11" text-anchor="end" fill="#4b5a6b">${fmt(v)}</text>`;
+    s += `<line x1="${PL}" y1="${PT}" x2="${PL}" y2="${PB}" stroke="#8595a6"/><line x1="${PL}" y1="${PB}" x2="${PR}" y2="${PB}" stroke="#8595a6"/>`;
+    if (yl) s += `<text x="14" y="${(PT + PB) / 2}" font-size="11" fill="#4b5a6b" transform="rotate(-90 14 ${(PT + PB) / 2})" text-anchor="middle">${yl}</text>`;
+    if (xl) s += `<text x="${(PL + PR) / 2}" y="292" font-size="11" fill="#4b5a6b" text-anchor="middle">${xl}</text>`;
+    return { s, Y, sc };
+  }
+  const quart = (a, p) => { const b = [...a].sort((x, y) => x - y), pos = (b.length - 1) * p, lo = Math.floor(pos), hi = Math.ceil(pos); return b[lo] + (b[hi] - b[lo]) * (pos - lo); };
+  const avg = a => a.reduce((s, x) => s + x, 0) / a.length;
+
+  // 질문 데이터를 차트 입력으로 바꾸기
+  function asSeries(d){        // {labels, values}
+    if (d.kind === "cat") return { labels:d.labels, values:d.values };
+    if (d.kind === "pair") return { labels:d.y.map((_, i) => ""), values:d.y };
+    if (d.kind === "samp") return { labels:d.values.map(() => ""), values:d.values };
+    return { labels:d.names, values:d.groups.map(avg) };
+  }
+  function asSample(d){
+    if (d.kind === "cat") return d.values;
+    if (d.kind === "pair") return d.y;
+    if (d.kind === "samp") return d.values;
+    return [].concat(...d.groups);
+  }
+
+  function drawBar(d){
+    const S = asSeries(d), n = S.values.length;
+    const f = frame(0, Math.max(...S.values), d.yl + (d.kind === "grp" ? " — 평균" : ""), "");
+    let s = f.s; const bw = (PR - PL) / n;
+    S.values.forEach((v, i) => {
+      const x = PL + i * bw + bw * 0.15;
+      s += `<rect x="${x}" y="${f.Y(v)}" width="${bw * 0.7}" height="${PB - f.Y(v)}" fill="${COLORS[0]}" opacity=".85"/>`;
+      if (S.labels[i]) s += `<text x="${x + bw * 0.35}" y="${PB + 16}" font-size="11" text-anchor="middle" fill="#4b5a6b">${S.labels[i]}</text>`;
+    });
+    return s;
+  }
+  function drawLine(d){
+    const S = asSeries(d), n = S.values.length;
+    const f = frame(Math.min(0, ...S.values), Math.max(...S.values), d.yl + (d.kind === "grp" ? " — 평균" : ""), d.kind === "pair" ? "날짜 순서" : "");
+    let s = f.s; const step = (PR - PL) / n;
+    const pts = S.values.map((v, i) => [PL + step * (i + 0.5), f.Y(v)]);
+    s += `<polyline points="${pts.map(p => p.join(",")).join(" ")}" fill="none" stroke="${COLORS[1]}" stroke-width="2.5"/>`;
+    pts.forEach((p, i) => {
+      s += `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="${COLORS[1]}"/>`;
+      if (S.labels[i]) s += `<text x="${p[0]}" y="${PB + 16}" font-size="11" text-anchor="middle" fill="#4b5a6b">${S.labels[i]}</text>`;
+    });
+    return s;
+  }
+  function drawPie(d){
+    const S = asSeries(d), tot = S.values.reduce((a, b) => a + b, 0);
+    const cx = 330, cy = 140, r = 110;
+    let a0 = -Math.PI / 2, s = "";
+    S.values.forEach((v, i) => {
+      const a1 = a0 + v / tot * 2 * Math.PI;
+      const large = a1 - a0 > Math.PI ? 1 : 0;
+      const p0 = [cx + r * Math.cos(a0), cy + r * Math.sin(a0)], p1 = [cx + r * Math.cos(a1), cy + r * Math.sin(a1)];
+      s += `<path d="M${cx},${cy} L${p0[0]},${p0[1]} A${r},${r} 0 ${large} 1 ${p1[0]},${p1[1]} Z" fill="${COLORS[i % COLORS.length]}" stroke="#fff" stroke-width="1"/>`;
+      if (S.values.length <= 12) {
+        const am = (a0 + a1) / 2, lx = cx + (r + 18) * Math.cos(am), ly = cy + (r + 18) * Math.sin(am);
+        const lab = (S.labels[i] || "") + " " + Math.round(v / tot * 100) + "%";
+        s += `<text x="${lx}" y="${ly + 4}" font-size="11" text-anchor="${Math.cos(am) >= 0 ? "start" : "end"}" fill="#1e2733">${lab}</text>`;
+      }
+      a0 = a1;
+    });
+    return s;
+  }
+  function drawHist(d){
+    const vals = asSample(d), lo = Math.min(...vals), hi = Math.max(...vals);
+    const k = Math.min(8, Math.max(3, Math.round(Math.sqrt(vals.length))));
+    const w = (hi - lo) / k || 1, cnt = new Array(k).fill(0);
+    vals.forEach(v => cnt[Math.min(k - 1, Math.floor((v - lo) / w))]++);
+    const f = frame(0, Math.max(...cnt), "개수", d.yl + " 구간");
+    let s = f.s; const bw = (PR - PL) / k;
+    cnt.forEach((c, i) => {
+      s += `<rect x="${PL + i * bw}" y="${f.Y(c)}" width="${bw}" height="${PB - f.Y(c)}" fill="${COLORS[2]}" stroke="#fff" opacity=".85"/>`;
+      s += `<text x="${PL + i * bw}" y="${PB + 16}" font-size="10.5" text-anchor="middle" fill="#4b5a6b">${fmt(lo + i * w)}</text>`;
+    });
+    s += `<text x="${PR}" y="${PB + 16}" font-size="10.5" text-anchor="middle" fill="#4b5a6b">${fmt(hi)}</text>`;
+    return s;
+  }
+  function drawScatter(d){
+    let xs, ys, xl = "순서 번호", s;
+    if (d.kind === "pair") { xs = d.x; ys = d.y; xl = d.xl; }
+    else if (d.kind === "grp") {
+      xs = []; ys = [];
+      d.groups.forEach((g, gi) => g.forEach((v, j) => { xs.push(gi + 1 + ((j * 37) % 11 - 5) / 30); ys.push(v); }));
+      xl = d.names.map((n, i) => `${i + 1}=${n}`).join(", ");
+    } else { const S = asSeries(d); ys = S.values; xs = ys.map((_, i) => i + 1); if (d.kind === "cat") xl = "항목 번호 (" + d.labels.slice(0, 3).join(", ") + " …)"; }
+    const f = frame(Math.min(0, ...ys), Math.max(...ys), d.yl, xl);
+    const xlo = Math.min(...xs), xhi = Math.max(...xs), pad = (xhi - xlo) * 0.05 || 1;
+    const X = v => PL + (v - xlo + pad) / (xhi - xlo + 2 * pad) * (PR - PL);
+    s = f.s;
+    if (d.kind === "pair") {
+      const sc = niceScale(xlo, xhi);
+      for (let v = sc.lo; v <= sc.hi + 1e-9; v += sc.step) if (X(v) >= PL && X(v) <= PR) s += `<text x="${X(v)}" y="${PB + 16}" font-size="11" text-anchor="middle" fill="#4b5a6b">${fmt(v)}</text>`;
+    }
+    xs.forEach((x, i) => s += `<circle cx="${X(x)}" cy="${f.Y(ys[i])}" r="4" fill="${COLORS[0]}" opacity=".7"/>`);
+    return s;
+  }
+  function drawBox(d){
+    const groups = d.kind === "grp" ? d.groups : [asSample(d)];
+    const names = d.kind === "grp" ? d.names : [d.yl];
+    const all = [].concat(...groups);
+    const f = frame(Math.min(0, ...all), Math.max(...all), d.yl, "");
+    let s = f.s; const bw = (PR - PL) / groups.length;
+    groups.forEach((g, i) => {
+      const q1 = quart(g, .25), md = quart(g, .5), q3 = quart(g, .75), iq = q3 - q1;
+      const inside = g.filter(v => v >= q1 - 1.5 * iq && v <= q3 + 1.5 * iq);
+      const wl = Math.min(...inside), wh = Math.max(...inside);
+      const cx = PL + bw * (i + 0.5), hw = Math.min(60, bw * 0.25);
+      s += `<line x1="${cx}" y1="${f.Y(wh)}" x2="${cx}" y2="${f.Y(q3)}" stroke="${COLORS[0]}" stroke-width="2"/><line x1="${cx}" y1="${f.Y(q1)}" x2="${cx}" y2="${f.Y(wl)}" stroke="${COLORS[0]}" stroke-width="2"/>`;
+      s += `<line x1="${cx - hw / 2}" y1="${f.Y(wh)}" x2="${cx + hw / 2}" y2="${f.Y(wh)}" stroke="${COLORS[0]}" stroke-width="2"/><line x1="${cx - hw / 2}" y1="${f.Y(wl)}" x2="${cx + hw / 2}" y2="${f.Y(wl)}" stroke="${COLORS[0]}" stroke-width="2"/>`;
+      s += `<rect x="${cx - hw}" y="${f.Y(q3)}" width="${hw * 2}" height="${f.Y(q1) - f.Y(q3)}" fill="#e8effe" stroke="${COLORS[0]}" stroke-width="2"/>`;
+      s += `<line x1="${cx - hw}" y1="${f.Y(md)}" x2="${cx + hw}" y2="${f.Y(md)}" stroke="${COLORS[0]}" stroke-width="3"/>`;
+      g.filter(v => v < wl || v > wh).forEach(v => s += `<circle cx="${cx}" cy="${f.Y(v)}" r="4" fill="#dc2626"/>`);
+      s += `<text x="${cx}" y="${PB + 16}" font-size="11.5" text-anchor="middle" fill="#1e2733">${names[i]}</text>`;
+    });
+    return s;
+  }
+  const DRAW = { bar:drawBar, line:drawLine, pie:drawPie, hist:drawHist, scatter:drawScatter, box:drawBox };
+  const LABEL = { bar:"막대그래프", line:"선그래프", pie:"원그래프", hist:"히스토그램", scatter:"산점도", box:"상자그림" };
+
+  function render(){
+    const d = Q[qi];
+    $("gv-qs").querySelectorAll("button").forEach((b, i) => b.classList.toggle("on", i === qi));
+    $("gv-charts").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.c === chart));
+    $("gv-svg").innerHTML = `<text x="${PR}" y="14" font-size="11" text-anchor="end" fill="#8595a6">${LABEL[chart]}</text>` + DRAW[chart](d);
+    const [sc, msg] = d.r[chart];
+    const v = $("gv-verdict");
+    v.className = "gv-verdict " + (sc === 2 ? "best" : sc === 1 ? "ok" : "bad");
+    v.innerHTML = (sc === 2 ? "✔ <b>가장 알맞음</b> — " : sc === 1 ? "△ <b>쓸 수는 있음</b> — " : "✘ <b>알맞지 않음</b> — ") + msg;
+    tried[qi].add(chart);
+    const found = Q.filter((q, i) => [...tried[i]].some(c => q.r[c][0] === 2)).length;
+    $("gv-score").textContent = `최적의 그래프를 찾은 질문: ${found} / ${Q.length}`;
+  }
+
+  $("gv-qs").innerHTML = Q.map((d, i) => `<button data-i="${i}"><span class="tag">${d.tag}</span>${d.q}</button>`).join("");
+  $("gv-qs").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; qi = +b.dataset.i; chart = "bar"; render(); });
+  $("gv-charts").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; chart = b.dataset.c; render(); });
+  render();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"‘최근 12개월 동안 우리 학교 매점 매출이 어떻게 변했는가?’라는 질문에 가장 알맞은 그래프는?",
+    choices:["원그래프","선그래프","산점도","상자그림","히스토그램"], answer:1,
+    explain:"시간 순서에 따른 변화는 선그래프로 나타냅니다. 선의 기울기로 증가·감소를 한눈에 읽을 수 있습니다." },
+  { type:"mc", q:"다음 중 원그래프를 쓰기에 가장 알맞은 경우는?",
+    choices:["5개 도시의 연평균 기온 비교","전교생 600명의 희망 진로 계열별 비율","키와 몸무게의 관계","10년간 인구 변화","반별 수학 점수 분포 비교"], answer:1,
+    explain:"원그래프는 부분들이 모여 전체(100%)가 되는 구성비를 나타낼 때 씁니다. 전교생을 진로 계열별로 나눈 비율이 이에 해당합니다. 기온을 더한 값은 전체라는 의미가 없습니다." },
+  { type:"ox", q:"히스토그램은 수치 데이터를 구간으로 나누어 개수를 나타내므로 막대 사이를 붙여 그리고, 막대그래프는 범주를 나타내므로 막대 사이를 띄워 그린다.",
+    answer:true, explain:"히스토그램의 가로축은 이어진 수치 구간이라 막대가 붙어 있고, 막대그래프의 가로축은 서로 독립된 범주라 막대를 떨어뜨려 그립니다." },
+  { type:"mc", q:"상자그림 하나에서 직접 읽을 수 <b>없는</b> 정보는?",
+    choices:["중앙값","제1사분위수와 제3사분위수","사분위수 범위(IQR)","이상치의 위치","평균"], answer:4,
+    explain:"기본 상자그림은 중앙값·사분위수·수염·이상치를 보여 주지만 평균은 표시하지 않습니다. (프로그램에 따라 평균을 따로 점으로 추가하기도 합니다.)" },
+  { type:"short", q:"‘1학년·2학년·3학년의 하루 수면 시간 분포가 어떻게 다른가?’를 알아보려고 한다. 어떤 그래프를 그릴지 쓰고, 그 그래프가 학년별 평균 막대그래프보다 좋은 점을 설명하세요.",
+    model:"학년별 상자그림을 나란히 그린다. 평균 막대그래프는 학년마다 값 하나만 보여 주지만, 상자그림은 중앙값뿐 아니라 가운데 50%가 퍼진 범위(IQR), 최솟값·최댓값 근처, 이상치까지 보여 주므로 ‘분포’를 비교할 수 있다. 예를 들어 평균이 같아도 한 학년은 수면 시간이 들쭉날쭉하다는 것을 알 수 있다." },
+]);
+</script>
+</body>
+</html>

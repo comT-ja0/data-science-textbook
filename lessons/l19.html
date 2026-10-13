@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>전처리 ③ 정규화·표준화 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 심사위원 점수 공정 비교기 */
+.judge-table { font-size:.84rem; min-width:520px; }
+.judge-table th, .judge-table td { text-align:center; padding:5px 6px; }
+.judge-table input { width:58px; padding:4px 6px; text-align:center; font-size:.84rem; }
+.judge-table td.tv { font-variant-numeric:tabular-nums; }
+.judge-table tr.win td { background:#fef6e7; font-weight:800; }
+.judge-table td.tot { font-weight:800; color:var(--accent); }
+.mode-btns { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0; }
+.mode-btns button.on { box-shadow:0 0 0 3px var(--accent-soft); }
+.mode-btns button:not(.on) { background:#fff; color:var(--accent); border:1.5px solid var(--accent); }
+.rank-compare { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px; }
+@media (max-width:640px){ .rank-compare { grid-template-columns:1fr; } }
+.rank-col { background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:8px 12px; font-size:.86rem; }
+.rank-col h5 { margin:0 0 4px; font-size:.84rem; color:var(--accent); }
+.rank-col ol { margin:0; padding-left:20px; }
+.rank-col.cur { border:2px solid var(--accent); background:#fff; }
+#jd-bars { width:100%; height:auto; }
+</style>
+</head>
+<body data-unit="2" data-lesson="L19">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>전처리 ③ 정규화·표준화</h1>
+  <span class="std-badge">성취기준 12데과02-02</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>속성마다 단위와 범위가 다를 때 생기는 문제를 설명할 수 있다.</li>
+      <li>최소-최대 정규화와 Z-점수 표준화를 계산하고, 두 방법의 차이를 비교할 수 있다.</li>
+      <li>파이썬으로 데이터를 정규화·표준화하고, 척도를 맞추기 전후의 분석 결과를 비교할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과02-02] 이상치와 결측치 탐색 및 정규화를 통해 전처리하여 오류 가능성을 최소화하고, 데이터 분석을 위해 시각화한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span>수집</span><span class="on">전처리</span><span>탐색</span><span>모델링</span><span>평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  학교 축제 댄스 경연에서 심사위원 4명이 다섯 팀에 점수를 주었습니다. 그런데 한 심사위원은 모든 팀에 90점대를 주었고,
+  다른 심사위원은 45점부터 95점까지 점수를 넓게 주었습니다. 네 사람의 점수를 그냥 더해 우승 팀을 정하면 공정할까요?
+  점수를 넓게 주는 심사위원 한 명이 사실상 우승을 결정하는 것은 아닐까요?
+  오늘은 <b>서로 다른 기준의 숫자를 공정하게 비교</b>하는 방법을 배웁니다.
+</div>
+
+<h2><span class="sec-no">1</span>단위와 범위가 다르면 생기는 문제 <i class="pub">천재</i></h2>
+
+<p>과일 데이터 <code>fruit.csv</code>에는 무게(68~691g)와 당도(7.5~15.5브릭스)가 함께 들어 있습니다.
+두 과일이 얼마나 비슷한지 거리로 재면 어떻게 될까요? 무게는 수백 단위로 변하고 당도는 몇 단위로만 변하므로,
+거리를 계산하면 <b>무게 차이가 거의 모든 것을 결정</b>해 버립니다. 당도가 크게 달라도 무게만 비슷하면 ‘가까운 과일’이 됩니다.</p>
+
+<h3>손으로 계산해 보기</h3>
+<p>새 과일 Q(300g, 당도 12.0)와 비교할 과일이 두 개 있습니다. P1(306g, 당도 9.0), P2(318g, 당도 12.2). Q와 더 닮은 과일은 무엇일까요?</p>
+<div class="table-wrap"><table>
+  <thead><tr><th></th><th>원래 값으로 거리</th><th>척도를 맞춘 뒤 거리 (무게÷623, 당도÷8)</th></tr></thead>
+  <tbody>
+    <tr><td><b>Q–P1</b></td><td>√(6² + 3²) = √45 ≈ <b>6.71</b></td><td>√(0.0096² + 0.375²) ≈ <b>0.375</b></td></tr>
+    <tr><td><b>Q–P2</b></td><td>√(18² + 0.2²) = √324.04 ≈ <b>18.00</b></td><td>√(0.0289² + 0.025²) ≈ <b>0.038</b></td></tr>
+    <tr><td>더 가까운 과일</td><td>P1 (당도가 3이나 다른데도!)</td><td><b>P2</b> (무게·당도 모두 비슷)</td></tr>
+  </tbody>
+</table></div>
+<p>오른쪽 열은 각 속성의 차이를 그 속성의 전체 범위(무게 691−68=623g, 당도 15.5−7.5=8)로 나누어 계산했습니다.
+이렇게 속성들의 척도를 맞추는 과정을 <span class="keyterm">스케일링(scaling)</span>이라고 하며, 대표적인 방법이 정규화와 표준화입니다.
+거리를 사용하는 k-최근접 이웃, k-평균 군집 같은 분석에서는 스케일링이 필수입니다.</p>
+
+<h2><span class="sec-no">2</span>최소-최대 정규화와 Z-점수 표준화 <i class="pub-c">공통</i></h2>
+
+<p>이 교재에서는 두 용어를 다음과 같이 구분해서 씁니다.</p>
+
+<div class="cards">
+  <div class="cardbox"><h4>정규화 (최소-최대)</h4><p>가장 작은 값을 0, 가장 큰 값을 1로 맞추고 나머지를 그 사이에 비례해 배치한다. <b>범위가 0~1</b>로 같아진다.</p></div>
+  <div class="cardbox"><h4>표준화 (Z-점수)</h4><p>평균을 빼고 표준편차로 나눈다. 결과는 <b>평균 0, 표준편차 1</b>이며, 값은 ‘평균에서 표준편차 몇 개만큼 떨어져 있는가’를 뜻한다.</p></div>
+</div>
+
+<span class="formula">정규화 x′ = (x − 최솟값) ÷ (최댓값 − 최솟값) &nbsp;&nbsp;&nbsp;&nbsp; 표준화 z = (x − 평균) ÷ 표준편차
+<small>정규화 결과는 0~1 사이, 표준화 결과는 보통 −3~+3 사이에 대부분 놓입니다.</small></span>
+
+<h3>손으로 계산해 보기</h3>
+<ul>
+  <li><b>정규화</b>: 값 50, 60, 80, 100의 최솟값은 50, 최댓값은 100이므로 범위는 50입니다.
+    (50−50)÷50 = <b>0</b>, (60−50)÷50 = <b>0.2</b>, (80−50)÷50 = <b>0.6</b>, (100−50)÷50 = <b>1</b>.</li>
+  <li><b>표준화</b>: 국어 시험(평균 70점, 표준편차 10점)에서 85점, 수학 시험(평균 60점, 표준편차 5점)에서 70점을 받았다면
+    국어 z = (85−70)÷10 = <b>1.5</b>, 수학 z = (70−60)÷5 = <b>2.0</b>입니다. 원점수는 국어가 높지만, 반 친구들과 비교한 상대적 위치는 수학이 더 높습니다.</li>
+</ul>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:120px"></th><th>정규화 (최소-최대)</th><th>표준화 (Z-점수)</th></tr></thead>
+  <tbody>
+    <tr><td>결과 범위</td><td>0 ~ 1로 고정</td><td>고정 범위 없음 (평균 0, 표준편차 1)</td></tr>
+    <tr><td>이상치 영향</td><td><b>크다</b> — 극단값 하나가 최댓값이 되면 나머지 값이 0 근처로 몰린다</td><td>상대적으로 작다 — 그래도 평균·표준편차가 이상치의 영향을 받는다</td></tr>
+    <tr><td>잘 쓰이는 곳</td><td>범위가 정해진 점수, 이미지 밝기(0~255), 입력 범위가 정해진 모델</td><td>분포가 종 모양에 가까운 데이터, 서로 다른 시험 점수의 상대 비교</td></tr>
+    <tr><td>공통점</td><td colspan="2">값의 <b>순서와 분포 모양은 그대로</b>이고, 척도(단위·범위)만 바뀐다</td></tr>
+  </tbody>
+</table></div>
+
+<div class="box box-warn">
+  <span class="box-label">용어 주의</span>
+  책이나 프로그램에 따라 ‘정규화’를 표준화까지 포함하는 넓은 뜻으로 쓰기도 하고, 통계에서는 ‘정규 분포로 만든다’는 뜻과 헷갈리기도 합니다.
+  이 교재에서는 <b>정규화 = 최소-최대(0~1)</b>, <b>표준화 = Z-점수</b>로 통일합니다. 정규화·표준화는 분포의 모양을 종 모양으로 바꾸지 <b>않습니다</b>.
+</div>
+
+<h2><span class="sec-no">3</span>심사위원 점수, 공정하게 합치기 <i class="pub">YBM</i></h2>
+
+<p>생각 열기의 댄스 경연 점수로 직접 실험해 봅시다. 심사위원마다 점수를 주는 ‘습관’이 다릅니다.
+심사위원 1은 모두 90점대로 후하게, 심사위원 2는 45~95점으로 넓게 줍니다.
+심사위원별로 점수를 정규화하거나 표준화하면 각 심사위원 안에서의 <b>상대적 순서</b>만 남아 네 사람의 영향력이 비슷해집니다.</p>
+
+<div class="sim">
+  <div class="sim-head">심사위원 점수 공정 비교기 — 원점수 vs 정규화 vs 표준화</div>
+  <div class="sim-body">
+    <p style="margin-top:0;font-size:.9rem">표의 점수는 직접 고칠 수 있습니다. 합산 방법을 바꾸면 각 칸이 변환된 값으로 바뀌고, 우승 팀이 노란색으로 표시됩니다.</p>
+    <div class="mode-btns" id="jd-modes">
+      <button data-m="raw" class="on">원점수 합</button>
+      <button data-m="mm">정규화(최소-최대) 합</button>
+      <button data-m="z">표준화(Z-점수) 합</button>
+      <button id="jd-reset" class="gray" style="margin-left:auto">↺ 처음 점수로</button>
+    </div>
+    <div class="table-wrap"><table class="judge-table">
+      <thead><tr><th>팀</th><th>심사위원 1<br><small>후하고 좁게</small></th><th>심사위원 2<br><small>넓게</small></th><th>심사위원 3</th><th>심사위원 4</th><th>합계</th><th>순위</th></tr></thead>
+      <tbody id="jd-body"></tbody>
+      <tfoot><tr id="jd-foot"></tr></tfoot>
+    </table></div>
+    <svg id="jd-bars" viewBox="0 0 640 170" role="img" aria-label="팀별 합계 막대그래프"></svg>
+    <div class="rank-compare" id="jd-ranks"></div>
+    <p class="widget-hint">관찰 포인트: 원점수로는 ‘다’ 팀이 1위인데, 정규화·표준화하면 순위가 어떻게 바뀌나요? ‘다’ 팀의 점수표를 보고 이유를 설명해 보세요.
+    도전: 정규화 순위와 표준화 순위가 서로 달라지도록 점수를 바꿔 보세요.</p>
+  </div>
+</div>
+
+<h2><span class="sec-no">4</span>파이썬으로 정규화·표준화하기 <i class="pub-c">공통</i></h2>
+
+<p>공식을 그대로 pandas 코드로 옮기면 됩니다. 열 전체에 한 번에 계산되므로 반복문이 필요 없습니다.</p>
+
+<div class="pycell" data-title="최소-최대 정규화 (공식으로 직접)"><textarea>
+import pandas as pd
+
+fruit = load_csv("fruit.csv")
+X = fruit[["무게", "당도", "지름", "붉은정도"]]
+print("정규화 전")
+print(X.describe().round(2))
+
+정규화 = (X - X.min()) / (X.max() - X.min())
+print("\n정규화 후")
+print(정규화.describe().round(2))
+
+# ✏️ 정규화 결과의 min, max 행을 확인하세요. 평균(mean)은 속성마다 왜 다를까요?
+</textarea></div>
+
+<p>정규화 후에는 네 속성 모두 최솟값 0, 최댓값 1이 됩니다. 하지만 평균은 무게 0.37, 당도 0.54처럼 서로 다릅니다.
+정규화는 범위만 맞출 뿐, 값들이 범위 안 어디에 몰려 있는지는 그대로 두기 때문입니다.</p>
+
+<div class="pycell" data-title="Z-점수 표준화와 scikit-learn 도구"><textarea>
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
+
+표준화 = (X - X.mean()) / X.std()
+print("공식으로 표준화 (평균, 표준편차)")
+print(표준화.agg(["mean", "std"]).round(3))
+# (-0.0은 아주 작은 음수를 반올림한 것으로, 0과 같습니다.)
+
+# scikit-learn의 도구 사용
+mm = MinMaxScaler().fit_transform(X)
+zs = StandardScaler().fit_transform(X)
+print("\nMinMaxScaler 결과 첫 3행\n", mm[:3].round(3))
+print("StandardScaler 결과 첫 3행\n", zs[:3].round(3))
+print("공식 표준화 첫 3행\n", 표준화.head(3).values.round(3))
+
+# ✏️ 공식 결과와 StandardScaler 결과가 아주 조금 다릅니다. X.std(ddof=0)으로 바꾸면 어떻게 되나요?
+</textarea></div>
+
+<div class="box box-tip">
+  <span class="box-label">작은 차이의 이유</span>
+  pandas의 <code>std()</code>는 표본 표준편차(n−1로 나눔)를, scikit-learn의 <code>StandardScaler</code>는 모집단 표준편차(n으로 나눔)를 씁니다.
+  그래서 소수 셋째 자리쯤에서 값이 조금 다릅니다. 데이터가 많으면 차이는 거의 없으니, 한 분석 안에서 한 가지 방법을 일관되게 쓰면 됩니다.
+</div>
+
+<p>이제 1절의 문제를 실제 데이터로 확인해 봅시다. 무게 400g, 당도 13.4, 지름 9.0cm, 붉은 정도 0.8인 과일이 있습니다.
+크고 달고 붉으니 ‘큰 사과’처럼 보입니다. 데이터에서 가장 가까운 과일을 찾으면 무엇일까요?</p>
+
+<div class="pycell" data-title="척도를 맞추기 전후, 가장 가까운 과일 비교"><textarea>
+import numpy as np
+
+새과일 = pd.Series({"무게": 400, "당도": 13.4, "지름": 9.0, "붉은정도": 0.8})
+
+# 1) 원래 값 그대로 유클리드 거리
+거리 = np.sqrt(((X - 새과일) ** 2).sum(axis=1))
+i = 거리.idxmin()
+print("정규화 전 가장 가까운 과일:")
+print(fruit.loc[i].to_dict(), " 거리", round(거리[i], 2))
+
+# 2) 같은 기준(데이터의 최솟값·최댓값)으로 새 과일도 정규화한 뒤 거리
+새과일_정규화 = (새과일 - X.min()) / (X.max() - X.min())
+거리2 = np.sqrt(((정규화 - 새과일_정규화) ** 2).sum(axis=1))
+j = 거리2.idxmin()
+print("정규화 후 가장 가까운 과일:")
+print(fruit.loc[j].to_dict(), " 거리", round(거리2[j], 3))
+
+# ✏️ 새 과일의 값을 바꿔 보며 정규화 전후 답이 같아지는 경우와 달라지는 경우를 찾아보세요.
+</textarea></div>
+
+<p>정규화 전에는 무게가 403g으로 거의 같은 <b>배</b>(당도 11.9, 붉은 정도 0.37)가 가장 가깝다고 나옵니다. 당도·색이 꽤 다른데도 말이지요.
+정규화 후에는 네 속성이 공평하게 반영되어 321g의 <b>사과</b>(당도 13.3, 붉은 정도 0.81)가 가장 가까워집니다.
+새 데이터를 정규화할 때는 반드시 <b>기존 데이터의 최솟값·최댓값</b>을 기준으로 써야 한다는 점도 기억하세요.</p>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  Orange에서는 <b>Preprocess</b> 위젯의 Normalize Features(“Normalize to interval [0, 1]” = 정규화, “Standardize to μ=0, σ²=1” = 표준화)로 같은 실습을 할 수 있습니다.
+  스프레드시트에서는 <code>=(B2-MIN(B:B))/(MAX(B:B)-MIN(B:B))</code>, <code>=STANDARDIZE(B2, AVERAGE(B:B), STDEV.S(B:B))</code>를 쓰게 합니다.
+  흔한 오개념: “표준화하면 정규 분포가 된다”, “정규화하면 순위가 바뀐다”(한 속성 안의 순서는 절대 바뀌지 않음, 바뀌는 것은 여러 속성을 <b>합칠 때</b>의 결과).
+  심사위원 위젯에서 도전 과제를 모둠 경쟁으로 운영하면 10분 정도 몰입도 높은 활동이 됩니다.
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">모둠 활동</span>공정한 점수 합산 규칙 만들기 <i class="pub">YBM</i></div>
+  <div class="act-body">
+    <ol>
+      <li>심사위원 점수 공정 비교기의 처음 점수로 세 방법의 순위를 적으세요.
+        <div class="table-wrap"><table>
+          <thead><tr><th>방법</th><th>1위</th><th>2위</th><th>3위</th><th>4위</th><th>5위</th></tr></thead>
+          <tbody><tr><td>원점수 합</td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>정규화 합</td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>표준화 합</td><td></td><td></td><td></td><td></td><td></td></tr></tbody>
+        </table></div></li>
+      <li>‘다’ 팀의 순위가 크게 달라진 이유를 심사위원 2의 점수 분포와 연결해 설명하세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+      <li>심사위원이 5명으로 늘고 그중 한 명이 한 팀에만 0점을 줬다고 합시다. 정규화와 표준화 중 어느 쪽이 이 0점의 영향을 더 크게 받을까요? 위젯으로 실험하고 결과를 쓰세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div></div></li>
+      <li>우리 반 경연 대회에 쓸 ‘공정한 점수 합산 규칙’을 한 문단으로 제안하세요. (정규화·표준화 외에 최고점·최저점 제외 등도 고려 가능)
+        <div class="write-lines"><div class="line"></div><div class="line"></div><div class="line"></div></div></li>
+    </ol>
+  </div>
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>속성마다 단위와 범위가 다르면 큰 수 단위의 속성이 거리·합계를 지배한다. 척도를 맞추는 것을 스케일링이라고 한다.</li>
+    <li>정규화(최소-최대) = (x − 최솟값) ÷ (최댓값 − 최솟값), 결과는 0~1. 이상치에 민감하다.</li>
+    <li>표준화(Z-점수) = (x − 평균) ÷ 표준편차, 결과는 평균 0·표준편차 1. 평균에서 얼마나 떨어졌는지를 나타낸다.</li>
+    <li>두 방법 모두 한 속성 안의 순서와 분포 모양은 바꾸지 않는다. 새 데이터는 기존 데이터의 기준값으로 변환한다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 심사위원 점수 공정 비교기 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const TEAMS = ["가", "나", "다", "라", "마"];
+  const INIT = [            // INIT[심사위원][팀]
+    [92, 95, 90, 94, 91],
+    [60, 45, 95, 50, 80],
+    [78, 85, 70, 88, 75],
+    [70, 72, 68, 90, 71],
+  ];
+  let S = INIT.map(r => [...r]);
+  let mode = "raw";
+  const NAME = { raw:"원점수 합", mm:"정규화 합", z:"표준화 합" };
+
+  const mean = a => a.reduce((s, x) => s + x, 0) / a.length;
+  const sd = a => { const m = mean(a); return Math.sqrt(a.reduce((s, x) => s + (x - m) ** 2, 0) / (a.length - 1)); };
+  const T = {
+    raw: a => a.slice(),
+    mm: a => { const lo = Math.min(...a), hi = Math.max(...a); return a.map(x => hi === lo ? 0 : (x - lo) / (hi - lo)); },
+    z: a => { const m = mean(a), s = sd(a); return a.map(x => s === 0 ? 0 : (x - m) / s); },
+  };
+  function totals(m){
+    const tv = S.map(row => T[m](row));                   // 심사위원별 변환
+    const tot = TEAMS.map((_, i) => tv.reduce((s, r) => s + r[i], 0));
+    const order = TEAMS.map((t, i) => i).sort((a, b) => tot[b] - tot[a]);
+    const rank = []; order.forEach((i, k) => rank[i] = k + 1);
+    return { tv, tot, order, rank };
+  }
+  const f = (v, m) => m === "raw" ? String(Math.round(v * 100) / 100) : v.toFixed(2);
+
+  function buildTable(){
+    $("jd-body").innerHTML = TEAMS.map((t, i) =>
+      `<tr id="jd-r${i}"><td><b>${t}</b></td>` +
+      S.map((row, j) => `<td><input type="number" min="0" max="100" step="1" data-j="${j}" data-i="${i}" value="${row[i]}"><div class="tv" id="jd-v${j}-${i}"></div></td>`).join("") +
+      `<td class="tot" id="jd-t${i}"></td><td id="jd-k${i}"></td></tr>`).join("");
+  }
+
+  function render(){
+    const r = totals(mode);
+    TEAMS.forEach((t, i) => {
+      S.forEach((row, j) => { $(`jd-v${j}-${i}`).textContent = mode === "raw" ? "" : "→ " + r.tv[j][i].toFixed(2); });
+      $(`jd-t${i}`).textContent = f(r.tot[i], mode);
+      $(`jd-k${i}`).textContent = r.rank[i] + "위";
+      $(`jd-r${i}`).className = r.rank[i] === 1 ? "win" : "";
+    });
+    $("jd-foot").innerHTML = `<td><small>범위</small></td>` + S.map(row => `<td><small>${Math.min(...row)}~${Math.max(...row)}</small></td>`).join("") + `<td></td><td></td>`;
+
+    // 막대그래프 (음수 가능)
+    const lo = Math.min(0, ...r.tot), hi = Math.max(0, ...r.tot);
+    const x0 = 60, x1 = 575;
+    const X = v => x0 + (v - lo) / ((hi - lo) || 1) * (x1 - x0);
+    let s = `<line x1="${X(0)}" y1="6" x2="${X(0)}" y2="164" stroke="#8595a6"/>`;
+    TEAMS.forEach((t, i) => {
+      const y = 10 + i * 31, v = r.tot[i];
+      const a = Math.min(X(0), X(v)), w = Math.abs(X(v) - X(0));
+      s += `<text x="${x0 - 30}" y="${y + 17}" font-size="13" font-weight="700" fill="#1e2733">${t}</text>`;
+      s += `<rect x="${a}" y="${y}" width="${Math.max(w, 1)}" height="24" rx="4" fill="${r.rank[i] === 1 ? "#f59e0b" : "#2563eb"}" opacity=".85"/>`;
+      const tx = v >= 0 ? X(v) + 5 : X(v) - 5;
+      s += `<text x="${tx}" y="${y + 17}" font-size="12" text-anchor="${v >= 0 ? "start" : "end"}" fill="#4b5a6b">${f(v, mode)}</text>`;
+    });
+    $("jd-bars").innerHTML = s;
+
+    // 세 방법 순위 비교
+    $("jd-ranks").innerHTML = ["raw", "mm", "z"].map(m => {
+      const q = totals(m);
+      return `<div class="rank-col${m === mode ? " cur" : ""}"><h5>${NAME[m]}</h5><ol>${q.order.map(i => `<li>${TEAMS[i]} <small>(${f(q.tot[i], m)})</small></li>`).join("")}</ol></div>`;
+    }).join("");
+    document.querySelectorAll("#jd-modes button[data-m]").forEach(b => b.classList.toggle("on", b.dataset.m === mode));
+  }
+
+  $("jd-body").addEventListener("input", e => {
+    const inp = e.target; if (!inp.dataset.j) return;
+    let v = parseFloat(inp.value); if (isNaN(v)) return;
+    v = Math.max(0, Math.min(100, v));
+    S[+inp.dataset.j][+inp.dataset.i] = v;
+    render();
+  });
+  $("jd-modes").addEventListener("click", e => {
+    const b = e.target.closest("button[data-m]"); if (!b) return;
+    mode = b.dataset.m; render();
+  });
+  $("jd-reset").addEventListener("click", () => { S = INIT.map(r => [...r]); buildTable(); render(); });
+  buildTable(); render();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"어떤 속성의 최솟값이 40, 최댓값이 100이다. 값 70을 최소-최대 정규화한 값은?",
+    choices:["0.3","0.4","0.5","0.7","1.75"], answer:2,
+    explain:"(70 − 40) ÷ (100 − 40) = 30 ÷ 60 = 0.5입니다. 70은 최솟값과 최댓값의 정확히 가운데에 있습니다." },
+  { type:"mc", q:"평균 70점, 표준편차 10점인 시험에서 85점을 받았다. Z-점수는?",
+    choices:["0.15","0.85","1.0","1.5","15"], answer:3,
+    explain:"z = (85 − 70) ÷ 10 = 1.5. 평균보다 표준편차 1.5개만큼 높은 점수라는 뜻입니다." },
+  { type:"ox", q:"키 데이터를 표준화하면 분포의 모양이 종 모양(정규 분포)으로 바뀐다.",
+    answer:false, explain:"표준화는 모든 값에서 같은 수를 빼고 같은 수로 나누는 변환이라 분포 모양과 순서는 그대로입니다. 평균이 0, 표준편차가 1이 될 뿐입니다." },
+  { type:"mc", q:"값 10, 12, 13, 15, 500을 최소-최대 정규화했을 때 나타나는 현상으로 옳은 것은?",
+    choices:["모든 값이 0.2 간격으로 고르게 퍼진다","500만 1이 되고 나머지 네 값은 0~0.01 근처로 몰린다","500이 자동으로 삭제된다","값들의 순서가 바뀐다","평균이 0이 된다"], answer:1,
+    explain:"범위가 490이 되어 10→0, 12→약 0.004, 13→약 0.006, 15→약 0.010, 500→1이 됩니다. 정규화는 이상치에 민감하므로 이상치를 먼저 처리하거나 표준화를 고려합니다." },
+  { type:"short", q:"k-최근접 이웃으로 학생의 진로 유형을 분류하려고 한다. 속성은 ‘월 독서량(0~10권)’과 ‘주간 스마트폰 사용 시간(0~3000분)’이다. 스케일링 없이 거리를 계산하면 어떤 문제가 생기는지, 어떻게 해결할지 쓰세요.",
+    model:"스마트폰 사용 시간은 수천 단위로, 독서량은 10 이하로 변하므로 거리가 거의 스마트폰 사용 시간 차이로만 결정된다. 독서량이 크게 달라도 가까운 학생으로 판단된다. 두 속성을 최소-최대 정규화(0~1)하거나 Z-점수 표준화하여 척도를 맞춘 뒤 거리를 계산해야 한다. 새 학생 데이터도 기존 데이터의 최솟값·최댓값(또는 평균·표준편차)으로 변환한다." },
+]);
+</script>
+</body>
+</html>

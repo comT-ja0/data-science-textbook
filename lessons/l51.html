@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>데이터 스토리텔링 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 스토리보드 카드 정렬 */
+.sb-list { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+.sb-card { display:flex; align-items:center; gap:10px; background:#fff; border:1.5px solid var(--line); border-radius:11px; padding:9px 12px; }
+.sb-card .sb-no { flex-shrink:0; width:26px; height:26px; border-radius:50%; background:var(--paper); border:1.5px solid var(--line); font-weight:800; font-size:.8rem; display:flex; align-items:center; justify-content:center; }
+.sb-card .sb-txt { flex:1; font-size:.88rem; line-height:1.5; }
+.sb-card .sb-txt b { color:var(--accent); }
+.sb-card .sb-btns { display:flex; flex-direction:column; gap:3px; flex-shrink:0; }
+.sb-card .sb-btns button { padding:2px 9px; font-size:.75rem; }
+.sb-card.ok { border-color:#86d7a5; background:#f3fcf6; }
+.sb-card.bad { border-color:#f3b9b9; background:#fff7f7; }
+.sb-feedback { margin-top:12px; font-size:.88rem; }
+.sb-feedback li { margin:3px 0; }
+.sb-feedback li.ok::marker { content:"✔ "; color:var(--ok); }
+.sb-feedback li.no::marker { content:"✘ "; color:var(--no); }
+/* 그래프 다듬기 스위치 */
+.gd-toggles { display:flex; flex-wrap:wrap; gap:6px 14px; margin-bottom:10px; font-size:.86rem; font-weight:600; }
+.gd-chart { background:#fff; border:1px solid var(--line); border-radius:10px; padding:8px; }
+.gd-chart svg { width:100%; height:auto; display:block; }
+.story-arc { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; margin:16px 0; }
+.story-arc div { background:#fff; border:1.5px solid var(--line); border-top:4px solid var(--accent); border-radius:10px; padding:10px 12px; font-size:.85rem; }
+.story-arc b { display:block; font-size:.92rem; }
+</style>
+</head>
+<body data-unit="4" data-lesson="L51">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>데이터 스토리텔링</h1>
+  <span class="std-badge">성취기준 12데과04-04</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>데이터 스토리텔링의 요소(데이터·시각화·이야기)와 필요성을 설명할 수 있다.</li>
+      <li>‘핵심 메시지 → 근거 그래프 → 행동 제안’ 구조로 분석 결과의 이야기 흐름을 설계할 수 있다.</li>
+      <li>제목·강조·주석을 활용해 메시지가 분명히 드러나도록 그래프를 다듬을 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과04-04] 복잡하고 어려운 문제라도 끝까지 해결하기 위한 자세를 갖추고 분석하여, 분석 결과에 대한 의미를 해석한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span>수집</span><span>전처리</span><span>탐색</span><span>모델링</span><span class="on">평가·해석</span><span class="on">공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  학생회 회의에서 우리 모둠이 전력 분석 결과를 발표할 시간은 단 3분입니다.
+  준비한 그래프는 12개, 상관계수 표가 3개, 회귀식이 2개. 모두 열심히 만든 것이라 하나도 빼고 싶지 않습니다.
+  그런데 발표가 끝난 뒤 학생회장이 묻습니다. <b>“그래서, 우리가 뭘 하면 된다는 거예요?”</b>
+  분석을 잘하는 것과 결과를 잘 <b>전달</b>하는 것은 다른 능력입니다. 오늘은 데이터로 사람을 움직이는 이야기를 만들어 봅니다.
+</div>
+
+<h2><span class="sec-no">1</span>데이터로 이야기하기 <i class="pub">YBM</i></h2>
+
+<p>1850년대 크림 전쟁 당시 간호사였던 <b>플로렌스 나이팅게일</b>은 야전 병원 병사들의 사망 원인을 월별로 기록했습니다.
+그녀는 숫자 표 대신 부채꼴 조각의 넓이로 사망자 수를 나타낸 그림(흔히 ‘장미 도표’라고 부름)을 만들어,
+전투 부상보다 <b>위생 불량으로 생긴 예방 가능한 질병</b>으로 죽는 병사가 훨씬 많다는 사실을 한눈에 보여 주었습니다.
+이 그림은 병원 위생 개선을 이끌어 내는 데 힘이 되었습니다. 분석 결과가 <b>행동</b>으로 이어진 대표적인 사례입니다.</p>
+
+<p><span class="keyterm">데이터 스토리텔링(data storytelling)</span>은 분석 결과를 청중이 이해하고 행동할 수 있도록
+<b>데이터·시각화·이야기(내러티브)</b>를 엮어 전달하는 방법입니다. 세 요소는 각각 다음 역할을 합니다.</p>
+
+<div class="cards">
+  <div class="cardbox"><h4>📊 데이터</h4><p>이야기의 <b>근거</b>. 정확하고 출처가 분명해야 한다. 데이터가 없으면 그냥 의견일 뿐이다.</p></div>
+  <div class="cardbox"><h4>🖼️ 시각화</h4><p>패턴을 <b>한눈에</b> 보여 준다. 청중이 숫자를 계산하지 않아도 차이를 느끼게 한다.</p></div>
+  <div class="cardbox"><h4>🧭 이야기</h4><p>왜 중요한지, 그래서 무엇을 해야 하는지 <b>맥락과 흐름</b>을 준다. 청중의 기억에 남게 한다.</p></div>
+</div>
+
+<div class="box box-warn">
+  <span class="box-label">이야기는 데이터를 넘어서면 안 된다</span>
+  감동적인 이야기를 위해 불리한 그래프를 빼거나, 축을 잘라 차이를 부풀리거나, 상관을 인과처럼 말하면 <b>데이터 왜곡</b>입니다.
+  좋은 스토리텔링은 한계와 불확실성도 함께 말합니다. 설득력은 정직함에서 나옵니다.
+</div>
+
+<h2><span class="sec-no">2</span>이야기의 뼈대 세우기 <i class="pub-c">공통</i></h2>
+
+<p>발표나 보고서의 흐름은 다음 다섯 칸으로 설계하면 빠뜨림이 없습니다. 분석한 순서(수집→전처리→모델링…)대로가 아니라
+<b>청중이 알고 싶은 순서</b>로 배치하는 것이 핵심입니다.</p>
+
+<div class="story-arc">
+  <div><b>① 문제 제기</b>청중이 공감할 상황·질문으로 시작</div>
+  <div><b>② 핵심 메시지</b>한 문장으로 말하는 결론</div>
+  <div><b>③ 근거</b>메시지를 뒷받침하는 그래프 1~3개</div>
+  <div><b>④ 한계</b>일반화 범위와 불확실성</div>
+  <div><b>⑤ 행동 제안</b>구체적으로 무엇을, 얼마나</div>
+</div>
+
+<p>핵심 메시지는 <b>“주어 + 발견 + 숫자”</b>를 담은 한 문장으로 씁니다.
+“전력 사용량을 분석했다”(주제)가 아니라 “우리 학교 전력 사용을 가장 크게 좌우하는 것은 냉난방 시간이다”(메시지)처럼요.
+메시지가 정해지면 그래프 12개 중 그 메시지를 증명하는 것만 남기고 나머지는 부록으로 보냅니다.</p>
+
+<div class="sim">
+  <div class="sim-head">스토리보드 카드 정렬 — 전력 절약 발표 3분</div>
+  <div class="sim-body">
+    <p style="margin-top:0;font-size:.92rem">카드의 ▲▼ 버튼으로 발표 순서를 정한 뒤 <b>‘흐름 점검’</b>을 누르세요. 정답이 하나로 정해진 것은 아니지만, 좋은 이야기가 지켜야 할 규칙이 있습니다.</p>
+    <ol class="sb-list" id="sb-list"></ol>
+    <div class="sim-controls" style="margin-top:12px">
+      <button id="sb-check">🔍 흐름 점검</button>
+      <button id="sb-shuffle" class="gray">🔀 다시 섞기</button>
+    </div>
+    <ul class="sb-feedback" id="sb-feedback"></ul>
+  </div>
+</div>
+
+<h2><span class="sec-no">3</span>그래프 다듬기: 메시지가 보이게 <i class="pub-c">공통</i></h2>
+
+<p>분석할 때 그린 그래프(<b>탐색용</b>)와 발표할 때 보여 줄 그래프(<b>설명용</b>)는 목적이 다릅니다.
+설명용 그래프는 청중이 5초 안에 메시지를 읽을 수 있도록 다듬어야 합니다. 대표적인 다듬기 기법은 다음과 같습니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:150px">기법</th><th>방법</th><th style="width:250px">예</th></tr></thead>
+  <tbody>
+    <tr><td><b>메시지형 제목</b></td><td>무엇을 그렸는지가 아니라 무엇을 알아냈는지를 제목으로 쓴다.</td><td>“월별 전력” → “12월 전력이 가장 많다”</td></tr>
+    <tr><td><b>강조 색</b></td><td>나머지는 회색으로 두고, 메시지와 관련된 부분만 한 가지 색으로 칠한다.</td><td>12월·7월 막대만 보라색</td></tr>
+    <tr><td><b>주석</b></td><td>그래프 안에 짧은 설명을 직접 적어 눈이 범례와 본문을 오가지 않게 한다.</td><td>“난방 시간 월평균 6.7시간”</td></tr>
+    <tr><td><b>군더더기 제거</b></td><td>진한 격자·테두리·불필요한 범례·무지개색을 없앤다.</td><td>옅은 가로선만 남기기</td></tr>
+    <tr><td><b>정직한 축</b></td><td>막대그래프의 값 축은 0에서 시작하고 단위를 밝힌다.</td><td>“하루 평균 전력(kWh)”</td></tr>
+  </tbody>
+</table></div>
+
+<div class="sim">
+  <div class="sim-head">그래프 다듬기 스위치 — 탐색용 → 설명용</div>
+  <div class="sim-body">
+    <p style="margin-top:0;font-size:.92rem">수업일 월별 하루 평균 전력 사용량(energy.csv)입니다. 스위치를 하나씩 켜며 메시지가 얼마나 빨리 읽히는지 비교해 보세요.</p>
+    <div class="gd-toggles">
+      <label><input type="checkbox" id="gd-title"> 메시지형 제목</label>
+      <label><input type="checkbox" id="gd-color"> 강조 색</label>
+      <label><input type="checkbox" id="gd-note"> 주석</label>
+      <label><input type="checkbox" id="gd-clean"> 군더더기 제거</label>
+      <label><input type="checkbox" id="gd-zero" checked> 축 0부터 시작</label>
+    </div>
+    <div class="gd-chart"><svg id="gd-svg" viewBox="0 0 640 340" role="img" aria-label="월별 전력 막대그래프"></svg></div>
+    <p class="widget-hint" id="gd-hint"></p>
+  </div>
+</div>
+
+<h3>파이썬으로 그래프 다듬기</h3>
+
+<div class="pycell" data-title="① 탐색용 기본 그래프"><textarea>
+import pandas as pd
+import matplotlib.pyplot as plt
+
+en = load_csv("energy.csv")
+school = en[en["수업일"] == 1]
+monthly = school.groupby("월")["전력사용량"].mean().round(0)
+print(monthly)
+
+monthly.plot(kind="bar")
+plt.title("월별 전력사용량")
+plt.show()
+
+# ✏️ kind="bar"를 kind="line"으로 바꾸면 어떤 점이 더 잘 보이고, 어떤 점이 덜 보이나요?
+</textarea></div>
+
+<div class="pycell" data-title="② 설명용으로 다듬은 그래프"><textarea>
+colors = ["#7c3aed" if m in (7, 12) else "#c7ccd6" for m in monthly.index]
+
+fig, ax = plt.subplots(figsize=(8, 4))
+ax.bar([f"{m}월" for m in monthly.index], monthly.values, color=colors)
+
+# 메시지형 제목 + 단위를 밝힌 축
+ax.set_title("냉난방이 많은 12월·7월에 하루 전력 사용이 가장 많다", fontsize=13, loc="left")
+ax.set_ylabel("수업일 하루 평균 전력(kWh)")
+ax.set_ylim(0, monthly.max() * 1.18)
+
+# 주석: 메시지를 뒷받침하는 숫자를 그래프 안에
+hvac = school.groupby("월")["냉난방시간"].mean()
+for m in (7, 12):
+    i = list(monthly.index).index(m)
+    ax.annotate(f"냉난방 하루 {hvac[m]:.1f}시간", (i, monthly[m]),
+                xytext=(0, 6), textcoords="offset points", ha="center", fontsize=9, color="#7c3aed")
+
+# 군더더기 제거
+for side in ["top", "right"]:
+    ax.spines[side].set_visible(False)
+ax.grid(axis="y", alpha=0.3)
+ax.set_axisbelow(True)
+plt.tight_layout()
+plt.show()
+
+# ✏️ 강조할 달을 (3, 11)로 바꾸고 제목도 그에 맞는 메시지로 고쳐 보세요.
+</textarea></div>
+
+<p>출력에서 12월 수업일의 하루 평균 전력은 <b>1,835 kWh</b>로 가장 많고, 9월(<b>1,194 kWh</b>)의 약 1.5배입니다.
+다듬은 그래프에서는 이 차이가 강조 색과 주석 덕분에 설명 없이도 읽힙니다.</p>
+
+<div class="pycell" data-title="③ 청중에게 와닿는 숫자로 바꾸기"><textarea>
+import numpy as np
+
+b1 = np.polyfit(school["냉난방시간"], school["전력사용량"], 1)[0]
+days = (school["냉난방시간"] >= 1).sum()
+save = b1 * 0.5 * days                       # 냉난방 1시간 이상인 날마다 30분 절감
+
+HOME_MONTH = 300   # 가정: 한 가구가 한 달에 약 300 kWh를 쓴다고 가정한 값
+print(f"예상 절감량: 약 {save:,.0f} kWh")
+print(f"= 한 가구 약 {save / HOME_MONTH:.1f}개월 치 전력(가정값 {HOME_MONTH} kWh/월 기준)")
+
+# ✏️ 같은 절감량을 ‘교실 1개의 하루 사용량’처럼 다른 비유로 바꾸려면 어떤 자료가 더 필요할까요?
+</textarea></div>
+
+<p>“3,878 kWh”는 청중에게 크기가 잘 느껴지지 않지만 “한 가구가 약 13개월 쓰는 전력”이라고 하면 와닿습니다.
+단, 비유에 쓴 기준값(월 300 kWh)이 <b>가정</b>임을 밝혀야 정직한 스토리텔링입니다.</p>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  코딩이 부담스러운 반은 스프레드시트 차트 편집 기능으로 같은 다듬기(제목 고치기, 한 막대만 색 바꾸기, 데이터 레이블, 눈금선 제거)를 해도 충분합니다.
+  흔한 오개념은 “화려한 그래프 = 좋은 그래프”입니다. 모둠끼리 서로의 그래프를 <b>5초만</b> 보여 주고 메시지를 말해 보게 하는 ‘5초 테스트’가 효과적입니다.
+  확장 차시이므로 3학점 반은 2절의 뼈대(스토리보드)만 L53 보고서 준비에서 다뤄도 됩니다.
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">모둠 활동</span>우리 모둠 3분 스토리보드 <i class="pub-c">공통</i></div>
+  <div class="act-body">
+    <div class="table-wrap"><table>
+      <thead><tr><th style="width:120px">칸</th><th>내용 (한두 문장)</th><th style="width:170px">사용할 그래프·숫자</th></tr></thead>
+      <tbody>
+        <tr><td>① 문제 제기</td><td>&nbsp;</td><td></td></tr>
+        <tr><td>② 핵심 메시지</td><td>&nbsp;</td><td></td></tr>
+        <tr><td>③ 근거 1</td><td>&nbsp;</td><td></td></tr>
+        <tr><td>③ 근거 2</td><td>&nbsp;</td><td></td></tr>
+        <tr><td>④ 한계</td><td>&nbsp;</td><td></td></tr>
+        <tr><td>⑤ 행동 제안</td><td>&nbsp;</td><td></td></tr>
+      </tbody>
+    </table></div>
+    <p><b>5초 테스트</b> — 다른 모둠에 근거 그래프를 5초만 보여 주고, 그들이 말한 메시지를 적으세요. 우리가 의도한 메시지와 같았나요?</p>
+    <div class="write-lines"><div class="line"></div><div class="line"></div></div>
+  </div>
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>데이터 스토리텔링은 데이터(근거)·시각화(한눈에)·이야기(맥락과 행동)를 엮어 결과를 전달하는 방법이다.</li>
+    <li>이야기는 분석 순서가 아니라 ‘문제 제기 → 핵심 메시지 → 근거 → 한계 → 행동 제안’처럼 청중이 알고 싶은 순서로 짠다.</li>
+    <li>설명용 그래프는 메시지형 제목, 강조 색, 주석, 군더더기 제거, 정직한 축으로 다듬는다.</li>
+    <li>설득력은 정직함에서 나온다. 한계와 가정을 숨기지 않는다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 스토리보드 카드 정렬 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const CARDS = [
+    { k:"hook",  t:"<b>문제 제기</b> — 12월 수업일에는 하루에 1,835 kWh를 씁니다. 9월보다 약 1.5배! 왜 그럴까요?" },
+    { k:"msg",   t:"<b>핵심 메시지</b> — 우리 학교 전력 사용을 가장 크게 좌우하는 것은 냉난방 시간입니다." },
+    { k:"ev1",   t:"<b>근거 ①</b> — 월별 막대그래프: 냉난방이 많은 12월·7월에 전력 사용이 가장 많다." },
+    { k:"ev2",   t:"<b>근거 ②</b> — 산점도: 냉난방 시간과 전력의 상관계수 0.97, 1시간당 약 96 kWh 증가." },
+    { k:"limit", t:"<b>한계</b> — 한 학교, 2025년 3~12월 자료에 근거한 추정입니다. 다른 학교에는 그대로 적용하기 어렵습니다." },
+    { k:"act",   t:"<b>행동 제안</b> — 빈 교실 냉난방 끄기로 하루 30분만 줄여도 약 3,878 kWh를 아낄 수 있습니다. 함께해요!" },
+  ];
+  let order = [];
+  function shuffle(){
+    do { order = CARDS.map((_, i) => i).sort(() => Math.random() - 0.5); }
+    while (order.every((v, i) => v === i));
+    $("sb-feedback").innerHTML = "";
+    render(false);
+  }
+  function render(marks){
+    $("sb-list").innerHTML = order.map((ci, pos) =>
+      `<li class="sb-card${marks && marks[pos] !== undefined ? (marks[pos] ? " ok" : " bad") : ""}">
+        <span class="sb-no">${pos + 1}</span><span class="sb-txt">${CARDS[ci].t}</span>
+        <span class="sb-btns"><button class="ghost" data-mv="-1" data-pos="${pos}" ${pos === 0 ? "disabled" : ""} aria-label="위로">▲</button>
+        <button class="ghost" data-mv="1" data-pos="${pos}" ${pos === order.length - 1 ? "disabled" : ""} aria-label="아래로">▼</button></span></li>`).join("");
+  }
+  $("sb-list").addEventListener("click", e => {
+    const b = e.target.closest("button[data-mv]"); if (!b) return;
+    const p = +b.dataset.pos, q = p + (+b.dataset.mv);
+    if (q < 0 || q >= order.length) return;
+    [order[p], order[q]] = [order[q], order[p]];
+    $("sb-feedback").innerHTML = "";
+    render(false);
+  });
+  $("sb-check").addEventListener("click", () => {
+    const pos = k => order.findIndex(ci => CARDS[ci].k === k);
+    const rules = [
+      [pos("hook") <= 1 && pos("msg") <= 1, "문제 제기와 핵심 메시지가 맨 앞 두 칸에 있다 (청중의 관심을 먼저 잡기)", ["hook","msg"]],
+      [pos("ev1") > pos("msg") && pos("ev2") > pos("msg"), "근거 그래프가 핵심 메시지 뒤에 온다 (무엇을 증명하는지 알고 보게 하기)", ["ev1","ev2"]],
+      [pos("limit") > pos("ev1") && pos("limit") > pos("ev2"), "한계는 근거를 모두 보여 준 뒤에 말한다", ["limit"]],
+      [pos("act") === order.length - 1, "행동 제안으로 끝맺는다 (청중이 기억할 마지막 문장)", ["act"]],
+    ];
+    const good = {};
+    rules.forEach(([ok, , keys]) => keys.forEach(k => { good[k] = (good[k] === undefined ? true : good[k]) && ok; }));
+    const marks = order.map(ci => good[CARDS[ci].k]);
+    render(marks);
+    const n = rules.filter(r => r[0]).length;
+    $("sb-feedback").innerHTML = rules.map(([ok, msg]) => `<li class="${ok ? "ok" : "no"}">${msg}</li>`).join("") +
+      `<li style="list-style:none;font-weight:800;margin-top:6px">${n === 4 ? "🎉 탄탄한 이야기 흐름입니다! 문제 제기와 핵심 메시지는 어느 쪽이 먼저여도 좋습니다." : `규칙 ${n}/4 충족 — 빨간 카드의 위치를 옮겨 보세요.`}</li>`;
+  });
+  $("sb-shuffle").addEventListener("click", shuffle);
+  shuffle();
+})();
+
+/* ---------- 그래프 다듬기 스위치 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const M = [3,4,5,6,7,8,9,10,11,12];
+  const V = [1411,1204,1226,1414,1623,1306,1194,1216,1462,1835];   // energy.csv 수업일 월평균(반올림)
+  const H = {7:4.6, 12:6.7};                                         // 냉난방시간 월평균
+  const RAINBOW = ["#ef4444","#f97316","#eab308","#22c55e","#14b8a6","#0ea5e9","#6366f1","#a855f7","#ec4899","#64748b"];
+  const ids = ["gd-title","gd-color","gd-note","gd-clean","gd-zero"];
+
+  function draw(){
+    const o = {}; ids.forEach(id => o[id.slice(3)] = $(id).checked);
+    const L = 64, R = 620, T = 60, B = 290;
+    const ymin = o.zero ? 0 : 1100, ymax = 2000;
+    const Y = v => B - (v - ymin) / (ymax - ymin) * (B - T);
+    const bw = (R - L) / M.length;
+    let s = "";
+    // 격자
+    for (let v = ymin; v <= ymax; v += (o.zero ? 500 : 100)){
+      s += `<line x1="${L}" x2="${R}" y1="${Y(v)}" y2="${Y(v)}" stroke="${o.clean ? "#eef1f5" : "#9aa5b1"}" stroke-width="${o.clean ? 1 : 1.2}" ${o.clean ? "" : 'stroke-dasharray="4 3"'}/>`;
+      s += `<text x="${L - 6}" y="${Y(v) + 4}" font-size="11" text-anchor="end" fill="#64748b">${v}</text>`;
+    }
+    if (!o.clean) s += `<rect x="${L}" y="${T}" width="${R - L}" height="${B - T}" fill="none" stroke="#334155" stroke-width="2"/>`;
+    // 막대
+    M.forEach((m, i) => {
+      const hi = m === 7 || m === 12;
+      const fill = o.color ? (hi ? "#7c3aed" : "#c7ccd6") : RAINBOW[i];
+      const x = L + i * bw + bw * 0.18, w = bw * 0.64;
+      s += `<rect x="${x}" y="${Y(V[i])}" width="${w}" height="${B - Y(V[i])}" fill="${fill}" rx="3"/>`;
+      s += `<text x="${x + w / 2}" y="${B + 16}" font-size="11.5" text-anchor="middle" fill="#475569">${m}월</text>`;
+      if (o.note && hi) s += `<text x="${x + w / 2}" y="${Y(V[i]) - 8}" font-size="11" font-weight="700" text-anchor="middle" fill="#7c3aed">냉난방 ${H[m]}시간</text>`;
+    });
+    if (!o.clean) s += `<g font-size="10.5" fill="#334155"><rect x="${R - 118}" y="${T + 6}" width="112" height="22" fill="#fff" stroke="#334155"/><text x="${R - 110}" y="${T + 21}">■ 전력사용량(범례)</text></g>`;
+    s += `<text x="16" y="${(T + B) / 2}" font-size="11" fill="#64748b" transform="rotate(-90 16 ${(T + B) / 2})" text-anchor="middle">${o.clean || o.title ? "하루 평균 전력(kWh)" : "전력사용량"}</text>`;
+    s += `<text x="${L}" y="30" font-size="${o.title ? 16 : 14}" font-weight="800" fill="#1e2733">${o.title ? "냉난방이 많은 12월·7월에 전력 사용이 가장 많다" : "월별 전력사용량"}</text>`;
+    if (o.title) s += `<text x="${L}" y="48" font-size="11" fill="#64748b">우리 학교 수업일 하루 평균 전력, 2025년 3~12월</text>`;
+    $("gd-svg").innerHTML = s;
+
+    const on = ids.filter(id => id !== "gd-zero" && $(id).checked).length;
+    $("gd-hint").textContent = !o.zero
+      ? `⚠ 축을 1,100부터 시작하면 12월 막대가 9월의 약 ${((V[9] - ymin) / (V[6] - ymin)).toFixed(1)}배처럼 보이지만 실제로는 약 ${(V[9] / V[6]).toFixed(1)}배입니다. 막대그래프의 축은 0에서 시작해야 정직합니다.`
+      : on === 4 ? "완성! 5초 만에 ‘12월·7월이 많고, 그 이유는 냉난방’이라는 메시지가 읽히나요?"
+      : `스위치 ${on}/4개 켜짐 — 나머지도 켜 보며 무엇이 달라지는지 관찰하세요.`;
+  }
+  ids.forEach(id => $(id).addEventListener("change", draw));
+  draw();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"다음 중 ‘핵심 메시지’로 가장 알맞은 문장은?",
+    choices:["우리 학교 전력 사용량 분석","월별 전력사용량 그래프","전력 데이터를 수집하고 전처리했다","우리 학교 전력 사용을 가장 크게 좌우하는 것은 냉난방 시간이다","전력에 관한 여러 가지 사실"], answer:3,
+    explain:"핵심 메시지는 주제가 아니라 ‘무엇을 발견했는지’를 한 문장으로 말합니다. 나머지는 주제나 작업 내용일 뿐입니다." },
+  { type:"ox", q:"발표의 흐름은 실제로 분석한 순서(수집 → 전처리 → 모델링 → 결과)대로 짜는 것이 가장 좋다.",
+    answer:false, explain:"청중은 과정보다 결론과 그 근거가 궁금합니다. 문제 제기·핵심 메시지를 먼저, 과정은 근거를 설명할 때 필요한 만큼만 넣습니다." },
+  { type:"mc", q:"막대그래프에서 두 막대의 실제 값이 1,200과 1,800이다. 값 축을 1,000부터 시작하면 막대 길이의 비는 몇 배로 보이는가?",
+    choices:["1.5배","2배","3배","4배","6배"], answer:3,
+    explain:"축이 1,000에서 시작하면 막대 길이는 200과 800이 되어 4배로 보입니다. 실제 비율은 1,800 ÷ 1,200 = 1.5배이므로 차이가 크게 부풀려집니다." },
+  { type:"mc", q:"설명용 그래프를 다듬는 방법으로 알맞지 <b>않은</b> 것은?",
+    choices:["제목을 발견한 내용으로 쓴다","강조할 막대만 색을 칠하고 나머지는 회색으로 둔다","그래프 안에 짧은 주석을 단다","메시지에 불리한 달의 막대는 지운다","진한 격자와 불필요한 테두리를 없앤다"], answer:3,
+    explain:"불리한 데이터를 지우는 것은 다듬기가 아니라 왜곡입니다. 강조는 색과 주석으로 하고, 데이터는 그대로 보여 주어야 합니다." },
+  { type:"short", q:"나이팅게일의 장미 도표가 병원 위생 개선이라는 행동을 이끌어 낼 수 있었던 까닭을 데이터 스토리텔링의 세 요소(데이터·시각화·이야기)로 설명하세요.",
+    model:"데이터: 월별 사망자 수와 원인을 꼼꼼히 기록한 믿을 수 있는 근거가 있었다. 시각화: 부채꼴 넓이로 사망 원인별 규모를 나타내 예방 가능한 질병 사망이 부상 사망보다 훨씬 많다는 차이를 한눈에 보여 주었다. 이야기: ‘병사들은 전투보다 위생 불량으로 더 많이 죽는다, 그러니 위생을 개선해야 한다’는 분명한 메시지와 행동 제안으로 의사 결정자를 설득했다." },
+]);
+</script>
+</body>
+</html>

@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>데이터 통합: 키로 연결하기 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 조인 시각화기 */
+.jn-types { display:flex; flex-wrap:wrap; gap:6px; }
+.jn-types button { background:#fff; color:var(--accent); border:1.5px solid var(--accent); padding:6px 12px; font-size:.84rem; display:inline-flex; align-items:center; gap:6px; }
+.jn-types button.on { background:var(--accent); color:#fff; }
+.jn-types svg { width:30px; height:18px; }
+.jn-src { display:grid; grid-template-columns:1.2fr 1fr; gap:12px; margin-top:12px; }
+@media (max-width:760px){ .jn-src { grid-template-columns:1fr; } }
+.jn-src h5, .jn-out h5 { margin:0 0 4px; font-size:.84rem; }
+.jn-src table, .jn-out table { margin:0; font-size:.8rem; }
+.jn-src th, .jn-src td, .jn-out th, .jn-out td { padding:4px 8px; }
+.jn-src tr.m td { background:#eafaf0; }
+.jn-src tr.u td { background:#fef6e7; }
+.jn-src tr.x td { color:var(--ink-faint); text-decoration:line-through; background:#f6f8fa; }
+.jn-src select { padding:2px 4px; font-size:.78rem; }
+.jn-out { margin-top:12px; }
+.jn-out td.na { background:#fdeeee; color:var(--no); font-weight:700; text-align:center; }
+.jn-legend { font-size:.76rem; color:var(--ink-soft); margin-top:6px; display:flex; flex-wrap:wrap; gap:10px; }
+.jn-legend i { display:inline-block; width:12px; height:12px; border-radius:3px; vertical-align:-2px; margin-right:3px; border:1px solid var(--line); }
+.jn-explain { margin-top:10px; padding:10px 12px; border-radius:10px; font-size:.87rem; background:var(--tip-bg); border:1px solid #cbe4f7; line-height:1.55; }
+/* 벤다이어그램 4종 */
+.venn4 { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin:14px 0; }
+.venn4 div { background:#fff; border:1px solid var(--line); border-radius:12px; padding:10px; text-align:center; font-size:.82rem; }
+.venn4 b { display:block; font-size:.92rem; margin-top:4px; }
+/* 데이터셋 카드 */
+.ds-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px; margin:10px 0; }
+.ds-cards div { border:1.5px solid var(--accent); border-radius:10px; padding:8px 10px; font-size:.8rem; background:#fff; }
+.ds-cards div b { display:block; color:var(--accent); font-size:.88rem; }
+</style>
+</head>
+<body data-unit="1" data-lesson="L07">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>데이터 통합: 키로 연결하기</h1>
+  <span class="std-badge">성취기준 12데과01-03</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>공통 속성(키)을 기준으로 서로 다른 데이터셋을 통합하는 의미를 설명할 수 있다.</li>
+      <li>내부·왼쪽·오른쪽·완전 외부 결합의 결과를 예측하고 비교할 수 있다.</li>
+      <li>통합 과정에서 생기는 결측과 불일치 키를 찾아 해석할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과01-03] 데이터셋의 집합인 데이터베이스를 이해하고, 서로 다른 데이터셋의 데이터를 분석이 가능한 형태로 통합하는 것의 의미를 파악한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span class="on">수집</span><span class="on">전처리</span><span class="on">탐색</span><span>모델링</span><span>평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  도서부에서 “어느 동아리 학생들이 책을 가장 많이 읽을까?”를 조사하려고 합니다. 그런데 독서 기록장에는 <b>학번과 읽은 권수</b>만,
+  학생 명단에는 <b>학번과 동아리코드</b>만, 동아리 목록에는 <b>동아리코드와 동아리 이름</b>만 있습니다.
+  세 표 어디에도 “동아리별 독서량”은 없습니다. 이 질문에 답하려면 세 표를 어떻게 이어 붙여야 할까요?
+</div>
+
+<h2><span class="sec-no">1</span>통합하면 새로운 정보가 생긴다 <i class="pub-c">공통</i></h2>
+
+<p><span class="keyterm">데이터 통합</span>이란 서로 다른 곳에서 모은 데이터셋을 <b>공통 속성</b>을 기준으로 연결해 하나의 분석용 데이터셋으로 만드는 것입니다.
+연결의 기준이 되는 공통 속성을 <span class="keyterm">키(key)</span>라고 합니다. 앞 차시에서 배운 기본키·외래키가 바로 이 역할을 합니다.</p>
+
+<figure>
+<svg viewBox="0 0 620 170" role="img" aria-label="세 테이블을 키로 연결하는 도해">
+  <g font-size="11" text-anchor="middle">
+    <rect x="10" y="30" width="150" height="80" rx="10" fill="#fff" stroke="#0e7490" stroke-width="1.5"/>
+    <text x="85" y="50" font-weight="800" fill="#0e7490">독서 기록</text>
+    <text x="85" y="72"><tspan font-weight="800" fill="#d97706">학번</tspan> · 월 · 독서권수</text>
+    <rect x="235" y="30" width="150" height="80" rx="10" fill="#fff" stroke="#0e7490" stroke-width="1.5"/>
+    <text x="310" y="50" font-weight="800" fill="#0e7490">학생 명단</text>
+    <text x="310" y="72"><tspan font-weight="800" fill="#d97706">학번</tspan> · 이름 · 반</text>
+    <text x="310" y="90"><tspan font-weight="800" fill="#7c3aed">동아리코드</tspan></text>
+    <rect x="460" y="30" width="150" height="80" rx="10" fill="#fff" stroke="#0e7490" stroke-width="1.5"/>
+    <text x="535" y="50" font-weight="800" fill="#0e7490">동아리 목록</text>
+    <text x="535" y="72"><tspan font-weight="800" fill="#7c3aed">동아리코드</tspan></text>
+    <text x="535" y="90">동아리명 · 활동장소</text>
+    <line x1="160" y1="70" x2="235" y2="70" stroke="#d97706" stroke-width="3"/><text x="197" y="62" fill="#d97706" font-weight="700">학번</text>
+    <line x1="385" y1="86" x2="460" y2="70" stroke="#7c3aed" stroke-width="3"/><text x="422" y="66" fill="#7c3aed" font-weight="700">동아리코드</text>
+    <rect x="160" y="130" width="300" height="30" rx="8" fill="#e2f4f8"/>
+    <text x="310" y="150" font-weight="700" fill="#0e7490">통합 결과 → “동아리별 평균 독서량”을 계산할 수 있다!</text>
+  </g>
+</svg>
+<figcaption>어느 표에도 없던 질문의 답이, 키로 표를 연결하는 순간 계산 가능해집니다.</figcaption>
+</figure>
+
+<p>통합의 가치는 <b>하나의 데이터셋만으로는 답할 수 없던 질문</b>에 답할 수 있게 된다는 데 있습니다. 날씨 데이터와 교통사고 데이터를 날짜로 연결하면 “비 오는 날 사고가 더 많을까?”를,
+급식 식단과 잔반량을 날짜로 연결하면 “어떤 메뉴에서 잔반이 많을까?”를 분석할 수 있습니다. 단, 통합하려면 <b>키의 형식이 서로 같아야</b> 합니다(예: ‘2025-03-03’과 ‘3월 3일’은 컴퓨터에게 다른 값입니다).</p>
+
+<h2><span class="sec-no">2</span>네 가지 결합 방식 <i class="pub">천재</i></h2>
+
+<p>두 표의 키 값이 항상 딱 맞지는 않습니다. 한쪽에만 있는 키를 <b>어떻게 처리하느냐</b>에 따라 결합(join) 방식이 달라집니다.</p>
+
+<div class="venn4">
+  <div><svg viewBox="0 0 100 56" width="100"><circle cx="38" cy="28" r="24" fill="#fff" stroke="#0e7490" stroke-width="2"/><circle cx="62" cy="28" r="24" fill="#fff" stroke="#7c3aed" stroke-width="2"/><path d="M50 7.2 A24 24 0 0 1 50 48.8 A24 24 0 0 1 50 7.2" fill="#0e7490" fill-opacity=".45"/></svg><b>내부 결합 (inner)</b>두 표에 <b>모두 있는</b> 키만 남긴다.</div>
+  <div><svg viewBox="0 0 100 56" width="100"><circle cx="38" cy="28" r="24" fill="#0e7490" fill-opacity=".45" stroke="#0e7490" stroke-width="2"/><circle cx="62" cy="28" r="24" fill="none" stroke="#7c3aed" stroke-width="2"/></svg><b>왼쪽 결합 (left)</b><b>왼쪽(기준) 표</b>의 행은 모두 남기고, 짝이 없으면 빈칸.</div>
+  <div><svg viewBox="0 0 100 56" width="100"><circle cx="62" cy="28" r="24" fill="#7c3aed" fill-opacity=".4" stroke="#7c3aed" stroke-width="2"/><circle cx="38" cy="28" r="24" fill="none" stroke="#0e7490" stroke-width="2"/></svg><b>오른쪽 결합 (right)</b><b>오른쪽 표</b>의 행은 모두 남기고, 짝이 없으면 빈칸.</div>
+  <div><svg viewBox="0 0 100 56" width="100"><circle cx="38" cy="28" r="24" fill="#0e7490" fill-opacity=".45" stroke="#0e7490" stroke-width="2"/><circle cx="62" cy="28" r="24" fill="#7c3aed" fill-opacity=".4" stroke="#7c3aed" stroke-width="2"/></svg><b>완전 외부 결합 (outer)</b>양쪽 표의 행을 <b>모두</b> 남기고, 짝이 없으면 빈칸.</div>
+</div>
+
+<p>짝이 없어 비어 버린 칸은 <b>결측치(NaN)</b>가 됩니다. 어떤 결합을 고를지는 <b>분석 목적</b>에 따라 정합니다. “전교생 모두의 동아리 이름을 붙이고 싶다”면 학생 표 기준의 왼쪽 결합,
+“동아리 활동 중인 학생만 분석하고 싶다”면 내부 결합이 알맞습니다.</p>
+
+<h2><span class="sec-no">3</span>조인 시각화기 <i class="pub">천재</i></h2>
+
+<div class="sim">
+  <div class="sim-head">조인 시각화기 — 결합 방식에 따라 무엇이 남을까?</div>
+  <div class="sim-body">
+    <div class="jn-types" id="jn-types"></div>
+    <div class="jn-src">
+      <div><h5>왼쪽 표: 학생 (동아리코드를 바꿔 볼 수 있어요)</h5><div class="table-wrap"><table class="data" id="jn-left"></table></div></div>
+      <div><h5>오른쪽 표: 동아리</h5><div class="table-wrap"><table class="data" id="jn-right"></table></div></div>
+    </div>
+    <div class="jn-legend"><span><i style="background:#eafaf0"></i>짝을 찾은 행</span><span><i style="background:#fef6e7"></i>짝은 없지만 결과에 남은 행</span><span><i style="background:#f6f8fa"></i>결과에서 빠진 행</span></div>
+    <div class="jn-out"><h5 id="jn-out-title">결과</h5><div class="table-wrap"><table class="data" id="jn-out"></table></div></div>
+    <div class="sim-stats">
+      <span class="stat-chip">왼쪽 <b id="jn-nl">0</b>행</span>
+      <span class="stat-chip">오른쪽 <b id="jn-nr">0</b>행</span>
+      <span class="stat-chip">결과 <b id="jn-no">0</b>행</span>
+      <span class="stat-chip">빈칸(NaN) <b id="jn-nn">0</b>칸</span>
+    </div>
+    <div class="jn-explain" id="jn-explain"></div>
+    <p class="widget-hint">도전: 학생 한 명의 동아리코드를 ‘C4’로 바꾸면 오른쪽 결합 결과가 어떻게 달라질까요? 먼저 예측한 다음 바꿔 보세요.</p>
+  </div>
+</div>
+
+<h2><span class="sec-no">4</span>스프레드시트로 통합하기: VLOOKUP <i class="pub">씨마스</i></h2>
+
+<p>코딩 없이 스프레드시트에서도 통합할 수 있습니다. 대표 함수가 <code>VLOOKUP</code>(세로 방향 찾기)입니다.
+‘학생’ 시트의 D열에 동아리 이름을 붙이려면 D2 칸에 다음과 같이 입력하고 아래로 채웁니다.</p>
+
+<span class="formula">=VLOOKUP(C2, 동아리!$A$2:$C$6, 2, FALSE)
+<small>C2(찾을 키: 동아리코드)를 ‘동아리’ 시트의 A2:C6 범위 첫 열에서 찾아, 그 행의 2번째 열(동아리명)을 가져온다. FALSE = 정확히 일치하는 값만 찾기</small></span>
+
+<ul>
+  <li>학생 시트의 모든 행에 대해 값을 찾아오므로 결과는 <b>왼쪽 결합</b>과 같습니다.</li>
+  <li>짝이 없는 키(C9, 빈칸)는 <code>#N/A</code> 오류가 납니다. 이것이 pandas의 NaN에 해당합니다. <code>IFERROR(…, "미가입")</code>으로 감싸면 원하는 글자로 바꿀 수 있습니다.</li>
+  <li>범위를 <code>$A$2:$C$6</code>처럼 <b>절대 참조</b>로 고정해야 아래로 채울 때 범위가 밀리지 않습니다.</li>
+</ul>
+
+<h3>파이썬으로 통합하기: pd.merge</h3>
+<p>이제 교재 데이터 세 개(<code>school_students.csv</code> 30명, <code>school_clubs.csv</code> 5개, <code>school_reading.csv</code> 독서 기록)를 실제로 통합해 봅시다.</p>
+
+<div class="pycell" data-title="결합 방식별 행 수 비교"><textarea>
+import pandas as pd
+
+students = load_csv("school_students.csv")
+clubs = load_csv("school_clubs.csv")
+reading = load_csv("school_reading.csv")
+print("학생", len(students), "명 / 동아리", len(clubs), "개 / 독서 기록", len(reading), "건")
+
+for how in ["inner", "left", "right", "outer"]:
+    m = pd.merge(students, clubs, on="동아리코드", how=how)
+    print(f"{how:>5} 결합 → {len(m)}행, 동아리명 빈칸 {m['동아리명'].isna().sum()}개")
+
+# 왼쪽 결합 결과 중 동아리명이 비어 있는 학생은?
+left = pd.merge(students, clubs, on="동아리코드", how="left")
+print(left[left["동아리명"].isna()])
+
+# ✏️ how="outer", indicator=True 를 넣고 m["_merge"].value_counts() 로 행의 출처를 확인해 보세요.
+</textarea></div>
+
+<div class="pycell" data-title="독서 기록과 통합: 명단에 없는 학번 찾기"><textarea>
+# 1) 학생별 총 독서 권수 (한 학생의 여러 달 기록을 합친다)
+total = reading.groupby("학번", as_index=False)["독서권수"].sum()
+print("독서 기록에 나온 학번 수:", len(total))
+
+# 2) 완전 외부 결합 + indicator로 한쪽에만 있는 학번 찾기
+chk = pd.merge(students, total, on="학번", how="outer", indicator=True)
+print(chk["_merge"].value_counts())
+print(chk[chk["_merge"] != "both"])
+
+# ✏️ 명단에 없는 학번은 어떻게 처리하는 것이 좋을까요? (삭제 / 담당자에게 확인 / 그대로 두기)
+</textarea></div>
+
+<div class="pycell" data-title="세 표를 모두 이어서 동아리별 독서량 구하기"><textarea>
+import matplotlib.pyplot as plt
+
+full = students.merge(clubs, on="동아리코드", how="inner").merge(total, on="학번", how="inner")
+print("통합된 행 수:", len(full))
+club_read = full.groupby("동아리명")["독서권수"].agg(["count", "mean"]).round(1).sort_values("mean", ascending=False)
+club_read.columns = ["학생 수", "1인당 평균 독서 권수"]
+print(club_read)
+
+club_read["1인당 평균 독서 권수"].plot(kind="barh", color="#0e7490")
+plt.title("동아리별 1인당 평균 독서 권수")
+plt.xlabel("권"); plt.gca().invert_yaxis()
+plt.show()
+
+# ✏️ 동아리명 대신 "반"으로 묶어 반별 평균 독서 권수도 구해 보세요.
+</textarea></div>
+
+<div id="py-note">
+<p>첫 번째 셀에서 학생 30명 중 <b>27명</b>만 동아리 표와 짝이 맞아 내부 결합은 27행, 왼쪽·완전 외부 결합은 30행입니다.
+빈칸이 된 3명은 동아리코드가 비어 있는 두 명과, 존재하지 않는 코드 <b>C9</b>를 가진 서건우 학생입니다.
+이 데이터에서는 5개 동아리 모두 회원이 있어서 오른쪽 결합도 내부 결합과 같은 27행이 됩니다.</p>
+<p>두 번째 셀에서는 독서 기록에 나온 학번이 31개로, 학생 명단(30명)보다 하나 많습니다. <code>indicator</code>로 확인하면
+학번 <b>20399</b>가 독서 기록에만 있는(<code>right_only</code>) 학번입니다. 전학 간 학생이거나 입력 실수일 수 있으므로 삭제하기 전에 확인이 필요합니다.
+이처럼 통합은 새로운 정보를 만들 뿐 아니라 <b>데이터의 오류를 발견</b>하는 기회이기도 합니다.</p>
+<p>세 번째 셀의 결과로 드디어 “동아리별 독서량”이라는 질문에 답할 수 있습니다. 1인당 평균 독서 권수는 <b>독서토론반이 11.5권</b>으로 가장 많고, 로봇공학반 10.0권, 방송반 9.8권, 데이터탐구반 7.2권 순입니다.
+환경지킴이는 2.0권으로 가장 적지만 학생이 <b>1명뿐</b>이므로 “환경지킴이 학생들은 책을 적게 읽는다”고 일반화하기는 어렵습니다. 평균을 볼 때는 항상 학생 수(표본 크기)도 함께 보아야 합니다.</p>
+</div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  시각화기에서 결합 방식을 바꾸기 전에 “결과가 몇 행일까?”를 먼저 예측하게 하면 좋습니다. 흔한 오개념은 “결합하면 항상 행 수가 줄어든다(또는 그대로다)”인데,
+  오른쪽 표의 키가 중복되면(예: 같은 동아리코드가 두 번) 결과 행이 <b>늘어날 수도</b> 있음을 심화로 다룰 수 있습니다.
+  Orange를 쓰는 학급은 <b>Merge Data</b> 위젯의 세 가지 모드(Append columns / Find matching pairs / Concatenate)가 각각 왼쪽·내부·완전 외부 결합에 대응합니다.
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">모둠 활동</span>데이터셋 카드 연결 게임 <i class="pub">YBM</i></div>
+  <div class="act-body">
+    <p style="margin-top:0">아래는 한 도시의 데이터셋 카드 6장입니다. 공통 속성으로 이어 붙일 수 있는 카드 쌍(또는 세 장)을 찾고, 통합하면 알 수 있는 새로운 정보를 ‘행동 카드’에 적으세요.</p>
+    <div class="ds-cards">
+      <div><b>① 날씨</b>날짜, 지역, 최고 기온, 강수량</div>
+      <div><b>② 자전거 대여</b>날짜, 대여소ID, 대여 건수</div>
+      <div><b>③ 대여소 정보</b>대여소ID, 지역, 거치대 수</div>
+      <div><b>④ 교통사고</b>날짜, 지역, 사고 건수</div>
+      <div><b>⑤ 학교 행사</b>날짜, 학교명, 행사 종류</div>
+      <div><b>⑥ 학교 위치</b>학교명, 지역, 학생 수</div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>연결할 카드</th><th>키(공통 속성)</th><th>결합 방식과 이유</th><th>행동 카드: 새로 알 수 있는 정보·행동</th></tr></thead>
+      <tbody><tr><td>&nbsp;</td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td></tr></tbody>
+    </table></div>
+    <p>생각해 보기: ①과 ②는 ‘날짜’만으로 연결하면 문제가 생길 수 있습니다. 왜 그럴까요? (힌트: 날씨는 지역마다 다릅니다.)</p>
+    <div class="write-lines"><div class="line"></div><div class="line"></div></div>
+  </div>
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>데이터 통합은 공통 속성(키)으로 데이터셋을 연결해, 하나의 데이터셋으로는 답할 수 없던 질문에 답할 수 있게 한다.</li>
+    <li>내부 결합은 양쪽에 모두 있는 키만, 왼쪽·오른쪽 결합은 기준 표의 행을 모두, 완전 외부 결합은 양쪽 행을 모두 남기며 짝이 없으면 결측치(NaN)가 된다.</li>
+    <li>스프레드시트의 VLOOKUP은 왼쪽 결합과 같고, 파이썬에서는 pd.merge(how=…)를 쓴다.</li>
+    <li>통합하면서 짝이 없는 키(C9, 20399)를 확인하면 데이터 오류를 발견할 수 있다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 조인 시각화기 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const L = [
+    { id:"20101", name:"김민준", code:"C1" },
+    { id:"20102", name:"이서연", code:"C2" },
+    { id:"20103", name:"박도윤", code:"C1" },
+    { id:"20104", name:"최하윤", code:"" },
+    { id:"20105", name:"정시우", code:"C9" },
+    { id:"20106", name:"강지유", code:"C3" },
+  ];
+  const R = [
+    { code:"C1", name:"데이터탐구반", place:"정보실" },
+    { code:"C2", name:"로봇공학반", place:"과학실" },
+    { code:"C3", name:"방송반", place:"방송실" },
+    { code:"C4", name:"환경지킴이", place:"생태정원" },
+  ];
+  const CODES = ["C1", "C2", "C3", "C4", "C9", ""];
+  const TYPES = [
+    { k:"inner", t:"내부 결합", l:false, r:false },
+    { k:"left",  t:"왼쪽 결합", l:true,  r:false },
+    { k:"right", t:"오른쪽 결합", l:false, r:true },
+    { k:"outer", t:"완전 외부 결합", l:true, r:true },
+  ];
+  const icon = (l, r) => `<svg viewBox="0 0 30 18"><circle cx="11" cy="9" r="7" fill="${l ? "currentColor" : "none"}" fill-opacity=".45" stroke="currentColor"/><circle cx="19" cy="9" r="7" fill="${r ? "currentColor" : "none"}" fill-opacity=".45" stroke="currentColor"/><path d="M15 3.3 A7 7 0 0 1 15 14.7 A7 7 0 0 1 15 3.3" fill="currentColor" fill-opacity=".6"/></svg>`;
+  let type = "left";
+
+  $("jn-types").innerHTML = TYPES.map(T => `<button data-k="${T.k}">${icon(T.l, T.r)}${T.t} (${T.k})</button>`).join("");
+  $("jn-types").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { type = b.dataset.k; render(); }));
+
+  function join(){
+    const T = TYPES.find(x => x.k === type), out = [];
+    const usedR = new Set();
+    L.forEach(l => {
+      const ms = R.filter(r => l.code !== "" && r.code === l.code);
+      if (ms.length) ms.forEach(r => { usedR.add(r.code); out.push({ id:l.id, name:l.name, code:l.code, cname:r.name, place:r.place }); });
+      else if (T.l) out.push({ id:l.id, name:l.name, code:l.code === "" ? null : l.code, cname:null, place:null });
+    });
+    if (T.r) R.forEach(r => { if (!usedR.has(r.code)) out.push({ id:null, name:null, code:r.code, cname:r.name, place:r.place }); });
+    return { out, usedR, T };
+  }
+
+  function render(){
+    $("jn-types").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.k === type));
+    const { out, usedR, T } = join();
+    const matchedL = l => l.code !== "" && R.some(r => r.code === l.code);
+    $("jn-left").innerHTML = `<thead><tr><th>학번</th><th>이름</th><th>동아리코드</th></tr></thead><tbody>` +
+      L.map((l, i) => {
+        const cls = matchedL(l) ? "m" : T.l ? "u" : "x";
+        const sel = `<select data-i="${i}" aria-label="${l.name} 동아리코드">` + CODES.map(c => `<option value="${c}"${c === l.code ? " selected" : ""}>${c || "(빈칸)"}</option>`).join("") + `</select>`;
+        return `<tr class="${cls}"><td>${l.id}</td><td>${l.name}</td><td>${sel}</td></tr>`;
+      }).join("") + `</tbody>`;
+    $("jn-right").innerHTML = `<thead><tr><th>동아리코드</th><th>동아리명</th><th>활동장소</th></tr></thead><tbody>` +
+      R.map(r => `<tr class="${usedR.has(r.code) ? "m" : T.r ? "u" : "x"}"><td>${r.code}</td><td>${r.name}</td><td>${r.place}</td></tr>`).join("") + `</tbody>`;
+    const cell = v => v === null ? `<td class="na">NaN</td>` : `<td>${v}</td>`;
+    $("jn-out").innerHTML = `<thead><tr><th>학번</th><th>이름</th><th>동아리코드</th><th>동아리명</th><th>활동장소</th></tr></thead><tbody>` +
+      (out.length ? out.map(o => `<tr>${cell(o.id)}${cell(o.name)}${cell(o.code)}${cell(o.cname)}${cell(o.place)}</tr>`).join("") : `<tr><td colspan="5">(결과 없음)</td></tr>`) + `</tbody>`;
+    const nn = out.reduce((s, o) => s + [o.id, o.name, o.code, o.cname, o.place].filter(v => v === null).length, 0);
+    $("jn-out-title").textContent = `결과: pd.merge(학생, 동아리, on="동아리코드", how="${type}")`;
+    $("jn-nl").textContent = L.length; $("jn-nr").textContent = R.length; $("jn-no").textContent = out.length; $("jn-nn").textContent = nn;
+    const lostL = L.filter(l => !matchedL(l)).map(l => l.name), lostR = R.filter(r => !usedR.has(r.code)).map(r => r.name);
+    const msg = {
+      inner: `양쪽에 모두 있는 키만 남았습니다. 짝이 없는 학생(${lostL.join(", ") || "없음"})과 회원이 없는 동아리(${lostR.join(", ") || "없음"})는 결과에서 빠졌습니다.`,
+      left:  `학생 표의 ${L.length}명이 모두 남았습니다. 동아리 표에서 짝을 못 찾은 학생(${lostL.join(", ") || "없음"})은 동아리명·활동장소가 NaN입니다. 회원이 없는 동아리(${lostR.join(", ") || "없음"})는 빠졌습니다.`,
+      right: `동아리 표의 ${R.length}개가 모두 남았습니다. 회원이 없는 동아리(${lostR.join(", ") || "없음"})는 학번·이름이 NaN입니다. 짝이 없는 학생(${lostL.join(", ") || "없음"})은 빠졌습니다.`,
+      outer: `양쪽의 모든 행이 남았습니다. 짝이 없는 학생(${lostL.join(", ") || "없음"})과 회원이 없는 동아리(${lostR.join(", ") || "없음"}) 모두 결과에 포함되고, 비어 있는 부분은 NaN입니다.`,
+    };
+    $("jn-explain").textContent = msg[type];
+    $("jn-left").querySelectorAll("select").forEach(s => s.addEventListener("change", () => { L[+s.dataset.i].code = s.value; render(); }));
+  }
+  render();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"학생 표(30명)와 동아리 표(5개)를 동아리코드로 결합했다. 학생 중 27명만 동아리 표에 있는 코드를 가지고 있고, 동아리 5개 모두 회원이 있다. 왼쪽(학생 기준) 결합 결과의 행 수는?",
+    choices:["5행","27행","30행","32행","35행"], answer:2,
+    explain:"왼쪽 결합은 기준(왼쪽) 표의 행을 모두 남기므로 30행입니다. 짝이 없는 3명은 동아리 정보가 NaN이 됩니다. 내부 결합이었다면 27행입니다." },
+  { type:"mc", q:"양쪽 표에 모두 있는 키의 행만 남기는 결합 방식은?",
+    choices:["왼쪽 결합","오른쪽 결합","내부 결합","완전 외부 결합","세로 이어 붙이기"], answer:2,
+    explain:"내부 결합(inner join)은 두 표의 교집합에 해당하는 키만 남깁니다." },
+  { type:"ox", q:"스프레드시트에서 학생 시트의 모든 행에 VLOOKUP으로 동아리 이름을 가져오는 것은 학생 시트를 기준으로 한 왼쪽 결합과 같은 결과를 낸다.",
+    answer:true, explain:"학생 시트의 행은 모두 유지되고, 짝이 없으면 #N/A(결측)가 표시되므로 왼쪽 결합과 같습니다." },
+  { type:"mc", q:"날씨 데이터의 날짜는 ‘2025-03-03’ 형식이고, 매출 데이터의 날짜는 ‘3월 3일’ 형식이다. 날짜를 키로 내부 결합하면 어떤 일이 생기는가?",
+    choices:["자동으로 형식을 맞춰 잘 결합된다","키 값이 서로 달라 짝이 거의 맞지 않아 결과가 비거나 매우 적어진다","행 수가 두 배가 된다","모든 값이 0이 된다","왼쪽 결합으로 바뀐다"], answer:1,
+    explain:"컴퓨터는 두 값을 다른 글자로 보므로 짝을 찾지 못합니다. 통합 전에 키의 형식을 같게 맞추는 전처리가 필요합니다." },
+  { type:"short", q:"독서 기록에는 있지만 학생 명단에는 없는 학번 20399가 발견되었습니다. 이 레코드를 바로 삭제하지 않고 먼저 확인해야 하는 이유와, 확인할 방법을 쓰세요.",
+    model:"20399는 전학 간 학생의 기록일 수도, 20309나 20139를 잘못 입력한 것일 수도 있다. 입력 실수라면 삭제할 경우 실제 학생의 독서 기록이 사라져 분석 결과가 왜곡된다. 따라서 도서부 담당 선생님이나 원본 기록장을 확인하고, 비슷한 학번 학생의 기록 누락 여부를 살펴본 뒤 수정·삭제 여부를 결정하고 그 처리 내용을 기록으로 남긴다." },
+]);
+</script>
+</body>
+</html>

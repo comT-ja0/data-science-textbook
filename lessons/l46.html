@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>탐색적 데이터 분석(EDA) | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* EDA 질문 카드 생성기 */
+.eq-type { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+.eq-type button { font-size:.84rem; padding:6px 12px; }
+.eq-row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:6px 0; font-size:.88rem; font-weight:700; }
+.eq-row input[type=text] { flex:1; min-width:200px; }
+.eq-card { border:2px solid var(--accent); border-radius:14px; background:#fff; margin-top:12px; overflow:hidden; }
+.eq-card .eq-q { background:var(--accent-soft); padding:12px 16px; font-weight:800; font-size:1.02rem; }
+.eq-card .eq-q small { display:block; font-weight:700; font-size:.74rem; color:var(--accent); margin-bottom:2px; }
+.eq-card dl { display:grid; grid-template-columns:92px 1fr; gap:6px 10px; margin:0; padding:12px 16px; font-size:.88rem; }
+.eq-card dt { font-weight:800; color:var(--ink-soft); }
+.eq-card dd { margin:0; }
+.eq-card code { font-size:.82rem; word-break:break-all; }
+.eq-list { margin-top:12px; font-size:.86rem; }
+.eq-list ol { padding-left:20px; margin:6px 0; }
+.eq-err { color:#b32424; font-size:.85rem; margin-top:6px; }
+</style>
+</head>
+<body data-unit="4" data-lesson="L46">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>탐색적 데이터 분석(EDA)</h1>
+  <span class="std-badge">성취기준 12데과04-02</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>프로젝트 데이터에 대해 요약·분포·비교·관계·시간 추세의 EDA 질문을 만들고 그래프와 통계로 답할 수 있다.</li>
+      <li>요약 통계만으로는 드러나지 않는 관계를 시각화로 찾아낼 수 있다.</li>
+      <li>EDA 결과를 바탕으로 분석 방향과 문제 해결 방법을 구상할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과04-02] 수집된 데이터를 탐색적으로 분석하여 데이터 속 의미를 파악하고, 문제 해결을 위한 창의적인 방법을 구상한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span>수집</span><span>전처리</span><span class="on">탐색</span><span>모델링</span><span>평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  낯선 도시에 여행을 가면 먼저 지도를 펼치고 동네를 한 바퀴 걸어 봅니다. 어디가 번화가이고, 어디가 조용한지, 길이 어떻게 이어지는지 알아야 계획을 세울 수 있죠.
+  데이터도 곧바로 모델을 만들기 전에 <b>한 바퀴 둘러보는</b> 시간이 필요합니다. 이것을 <span class="keyterm">탐색적 데이터 분석(EDA, Exploratory Data Analysis)</span>이라고 합니다.
+  오늘은 우리 학교 전력 데이터를 둘러보다가, 다음 차시의 분석 방향을 완전히 바꾸어 놓을 <b>뜻밖의 모양</b>을 발견하게 됩니다.
+</div>
+
+<h2><span class="sec-no">1</span>EDA는 질문으로 시작한다 <i class="pub">YBM</i></h2>
+
+<p>EDA는 아무 그래프나 그려 보는 일이 아닙니다. <b>질문을 만들고 → 그래프·통계로 답하고 → 답에서 새 질문을 만드는</b> 순환입니다.
+좋은 EDA 질문은 대개 다음 다섯 유형 중 하나에 속합니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:100px">유형</th><th>질문의 모양</th><th style="width:170px">주로 쓰는 도구</th><th style="width:250px">예시 프로젝트의 질문</th></tr></thead>
+  <tbody>
+    <tr><td><b>요약</b></td><td>대표값과 흩어진 정도는?</td><td>평균·중앙값·표준편차</td><td>하루 전력 사용량은 보통 얼마인가?</td></tr>
+    <tr><td><b>분포</b></td><td>값들이 어떤 모양으로 퍼져 있나? 봉우리가 몇 개인가?</td><td>히스토그램·상자그림</td><td>사용량의 분포는 한 덩어리인가?</td></tr>
+    <tr><td><b>비교</b></td><td>집단에 따라 다른가?</td><td>집단별 요약·막대그래프·상자그림</td><td>수업일과 쉬는 날은 얼마나 다른가?</td></tr>
+    <tr><td><b>관계</b></td><td>두 속성이 함께 변하는가? 어떤 모양으로?</td><td>산점도·상관계수</td><td>기온이 오르면 사용량은 어떻게 변하나?</td></tr>
+    <tr><td><b>시간 추세</b></td><td>시간에 따라 어떻게 변하나?</td><td>꺾은선그래프</td><td>3월부터 12월까지 사용량은 어떻게 변했나?</td></tr>
+  </tbody>
+</table></div>
+
+<h2><span class="sec-no">2</span>예시 프로젝트 EDA: 네 가지 질문에 답하기 <i class="pub-c">공통</i></h2>
+
+<h3>질문 1. 수업일과 쉬는 날은 얼마나 다른가? (요약·비교·분포)</h3>
+
+<div class="pycell" data-title="수업일/쉬는 날 요약과 분포"><textarea>
+import pandas as pd
+import matplotlib.pyplot as plt
+
+en = load_csv("energy.csv")
+en["날짜"] = pd.to_datetime(en["날짜"])
+
+print(en["전력사용량"].describe().round(1), "\n")
+print(en.groupby("수업일")["전력사용량"].agg(["count", "mean", "median", "std"]).round(1))
+
+plt.figure(figsize=(7, 3.4))
+plt.hist(en["전력사용량"], bins=30, color="#a78bfa", edgecolor="white")
+plt.title("하루 전력 사용량의 분포")
+plt.xlabel("전력 사용량(kWh)"); plt.ylabel("일수")
+plt.show()
+
+# ✏️ bins를 10, 60으로 바꿔 보세요. 봉우리 두 개가 여전히 보이나요?
+</textarea></div>
+
+<p>수업일의 평균은 약 1388kWh, 쉬는 날은 약 385kWh로 <b>3배 이상</b> 차이가 납니다.
+히스토그램에도 봉우리가 두 개(쌍봉) 나타납니다. 전체 평균 1034kWh는 어느 봉우리에도 속하지 않는, 실제로는 거의 없는 값입니다.
+→ <b>발견</b>: 성격이 다른 두 집단은 <b>나누어 분석</b>해야 합니다. 전기를 줄일 여지는 사용량이 큰 <b>수업일</b>에 있으므로, 이후 분석은 수업일에 집중합니다.</p>
+
+<h3>질문 2. 3월부터 12월까지 어떻게 변했나? (시간 추세)</h3>
+
+<div class="pycell" data-title="월별 평균 사용량 (수업일 vs 쉬는 날)"><textarea>
+monthly = en.pivot_table(index="월", columns="수업일", values="전력사용량", aggfunc="mean").round(0)
+monthly.columns = ["쉬는 날", "수업일"]
+monthly["월평균기온"] = en.groupby("월")["평균기온"].mean().round(1)
+print(monthly)
+
+plt.figure(figsize=(7, 3.4))
+plt.plot(monthly.index, monthly["수업일"], "o-", color="#7c3aed", label="수업일")
+plt.plot(monthly.index, monthly["쉬는 날"], "s--", color="#94a3b8", label="쉬는 날")
+plt.title("월별 평균 전력 사용량")
+plt.xlabel("월"); plt.ylabel("kWh"); plt.legend()
+plt.show()
+
+# ✏️ 쉬는 날을 빼지 않고 월별 전체 평균을 그리면 8월은 어떻게 보이나요? 왜 그런가요?
+</textarea></div>
+
+<p>수업일만 보면 사용량은 12월(약 1835kWh)에 가장 많고, 7월(약 1623kWh)에도 높으며, 봄(4~5월)과 가을(9~10월)에는 1200kWh 안팎으로 낮습니다.
+월평균기온과 나란히 놓고 보면 <b>가장 추운 달과 가장 더운 달</b>에 사용량이 많다는 점이 드러납니다.</p>
+
+<h3>질문 3. 기온과 사용량은 어떤 모양의 관계인가? (관계)</h3>
+
+<div class="pycell" data-title="기온–전력 산점도와 상관계수"><textarea>
+school = en[en["수업일"] == 1]
+off = en[en["수업일"] == 0]
+
+plt.figure(figsize=(7, 4))
+plt.scatter(school["평균기온"], school["전력사용량"], s=16, color="#7c3aed", alpha=.7, label="수업일")
+plt.scatter(off["평균기온"], off["전력사용량"], s=14, color="#94a3b8", alpha=.7, label="쉬는 날")
+plt.title("평균기온과 하루 전력 사용량")
+plt.xlabel("평균기온(℃)"); plt.ylabel("kWh"); plt.legend()
+plt.show()
+
+r = school["평균기온"].corr(school["전력사용량"])
+print(f"수업일의 기온–전력 상관계수 r = {r:.2f}")
+
+# ✏️ 쉬는 날(off)의 상관계수도 구해 보세요. 쉬는 날에는 왜 기온의 영향이 작을까요?
+</textarea></div>
+
+<p>산점도의 수업일 점들은 <b>U자(또는 V자)</b> 모양입니다. 추운 날에는 난방, 더운 날에는 냉방 때문에 사용량이 늘고, 선선한 날에 가장 적습니다.
+그런데 상관계수는 <b>r = −0.31</b>로 ‘약한 음의 상관’에 불과합니다. 숫자만 보았다면 “기온은 전력과 별 관계가 없다”고 잘못 결론 내렸을 것입니다.</p>
+
+<h3>질문 4. 기온이 몇 도일 때부터 사용량이 늘어나나? (관계를 구간으로)</h3>
+
+<div class="pycell" data-title="기온 구간별 평균 사용량 (수업일)"><textarea>
+bins = [-5, 0, 5, 10, 15, 20, 25, 30, 35]
+school = school.copy()
+school["기온구간"] = pd.cut(school["평균기온"], bins)
+table = school.groupby("기온구간", observed=True)["전력사용량"].agg(["count", "mean"]).round(0)
+print(table)
+
+table["mean"].plot(kind="bar", figsize=(7, 3.4), color="#a78bfa")
+plt.title("기온 구간별 평균 전력 사용량 (수업일)")
+plt.xlabel("평균기온 구간(℃)"); plt.ylabel("kWh"); plt.xticks(rotation=0)
+plt.show()
+
+# ✏️ 구간을 2.5℃ 간격으로 더 잘게 나누면 '바닥'이 시작되고 끝나는 기온을 더 정확히 찾을 수 있을까요?
+</textarea></div>
+
+<p>평균 사용량은 10~25℃ 구간에서 약 1210kWh로 거의 평평하다가, 10℃ 아래와 25℃ 위에서 가파르게 늘어납니다
+(0~5℃ 약 1650kWh, 25~30℃ 약 1600kWh, 영하에서는 2000kWh 이상).
+→ <b>발견</b>: 기온이 약 10℃ 아래로 내려가거나 25℃ 위로 오르면 냉난방 때문에 전기 사용이 크게 늘어납니다. 이 구간이 바로 <b>절약 여지가 큰 날</b>입니다.</p>
+
+<h2><span class="sec-no">3</span>숫자만 믿지 말고 그려 보라 <i class="pub">천재</i></h2>
+
+<p>상관계수 r은 두 속성이 <b>직선</b>에 얼마나 모여 있는지만 측정합니다. 곡선 관계는 아무리 뚜렷해도 r이 0에 가깝게 나올 수 있습니다.
+통계학자들은 평균·표준편차·상관계수가 거의 같은데 산점도는 공룡, 별, 원 모양으로 완전히 다른 데이터 묶음(<span class="keyterm">Datasaurus</span>)을 만들어 이 점을 경고했습니다.
+아래 세 그림도 상관계수는 모두 0에 가깝지만 관계는 전혀 다릅니다.</p>
+
+<figure>
+<svg viewBox="0 0 720 215" role="img" aria-label="상관계수가 0에 가깝지만 모양이 다른 세 산점도">
+  <g font-family="Pretendard Variable, sans-serif" font-size="13" text-anchor="middle">
+    <rect x="20" y="10" width="200" height="180" rx="8" fill="#fafafa" stroke="#ddd"/>
+    <rect x="255" y="10" width="200" height="180" rx="8" fill="#fafafa" stroke="#ddd"/>
+    <rect x="490" y="10" width="200" height="180" rx="8" fill="#fafafa" stroke="#ddd"/>
+    <g fill="#7c3aed" fill-opacity=".75"><circle cx="129" cy="38" r="3.2"/><circle cx="155" cy="81" r="3.2"/><circle cx="84" cy="49" r="3.2"/><circle cx="122" cy="57" r="3.2"/><circle cx="187" cy="122" r="3.2"/><circle cx="187" cy="162" r="3.2"/><circle cx="56" cy="84" r="3.2"/><circle cx="70" cy="97" r="3.2"/><circle cx="44" cy="124" r="3.2"/><circle cx="110" cy="143" r="3.2"/><circle cx="40" cy="118" r="3.2"/><circle cx="113" cy="109" r="3.2"/><circle cx="145" cy="137" r="3.2"/><circle cx="82" cy="134" r="3.2"/><circle cx="150" cy="111" r="3.2"/><circle cx="135" cy="55" r="3.2"/><circle cx="39" cy="93" r="3.2"/><circle cx="130" cy="135" r="3.2"/><circle cx="79" cy="136" r="3.2"/><circle cx="106" cy="111" r="3.2"/><circle cx="83" cy="146" r="3.2"/><circle cx="153" cy="147" r="3.2"/><circle cx="110" cy="103" r="3.2"/><circle cx="62" cy="163" r="3.2"/><circle cx="128" cy="107" r="3.2"/><circle cx="168" cy="124" r="3.2"/><circle cx="87" cy="76" r="3.2"/><circle cx="73" cy="70" r="3.2"/><circle cx="101" cy="78" r="3.2"/><circle cx="194" cy="79" r="3.2"/></g>
+    <g fill="#7c3aed" fill-opacity=".75"><circle cx="274" cy="23" r="3.2"/><circle cx="273" cy="15" r="3.2"/><circle cx="284" cy="54" r="3.2"/><circle cx="283" cy="56" r="3.2"/><circle cx="292" cy="91" r="3.2"/><circle cx="294" cy="86" r="3.2"/><circle cx="308" cy="112" r="3.2"/><circle cx="314" cy="123" r="3.2"/><circle cx="316" cy="128" r="3.2"/><circle cx="327" cy="135" r="3.2"/><circle cx="327" cy="140" r="3.2"/><circle cx="335" cy="145" r="3.2"/><circle cx="341" cy="144" r="3.2"/><circle cx="343" cy="154" r="3.2"/><circle cx="353" cy="154" r="3.2"/><circle cx="363" cy="139" r="3.2"/><circle cx="361" cy="146" r="3.2"/><circle cx="372" cy="154" r="3.2"/><circle cx="375" cy="144" r="3.2"/><circle cx="386" cy="130" r="3.2"/><circle cx="388" cy="123" r="3.2"/><circle cx="395" cy="120" r="3.2"/><circle cx="401" cy="115" r="3.2"/><circle cx="405" cy="107" r="3.2"/><circle cx="407" cy="96" r="3.2"/><circle cx="420" cy="68" r="3.2"/><circle cx="419" cy="76" r="3.2"/><circle cx="429" cy="47" r="3.2"/><circle cx="436" cy="28" r="3.2"/><circle cx="438" cy="15" r="3.2"/></g>
+    <g fill="#7c3aed" fill-opacity=".75"><circle cx="665" cy="107" r="3.2"/><circle cx="666" cy="90" r="3.2"/><circle cx="662" cy="78" r="3.2"/><circle cx="653" cy="68" r="3.2"/><circle cx="639" cy="56" r="3.2"/><circle cx="632" cy="49" r="3.2"/><circle cx="612" cy="47" r="3.2"/><circle cx="599" cy="40" r="3.2"/><circle cx="580" cy="45" r="3.2"/><circle cx="562" cy="45" r="3.2"/><circle cx="552" cy="50" r="3.2"/><circle cx="540" cy="57" r="3.2"/><circle cx="528" cy="69" r="3.2"/><circle cx="521" cy="79" r="3.2"/><circle cx="514" cy="92" r="3.2"/><circle cx="512" cy="103" r="3.2"/><circle cx="515" cy="120" r="3.2"/><circle cx="525" cy="130" r="3.2"/><circle cx="530" cy="143" r="3.2"/><circle cx="537" cy="155" r="3.2"/><circle cx="553" cy="154" r="3.2"/><circle cx="565" cy="165" r="3.2"/><circle cx="581" cy="171" r="3.2"/><circle cx="600" cy="165" r="3.2"/><circle cx="612" cy="167" r="3.2"/><circle cx="624" cy="159" r="3.2"/><circle cx="639" cy="150" r="3.2"/><circle cx="652" cy="143" r="3.2"/><circle cx="660" cy="132" r="3.2"/><circle cx="668" cy="119" r="3.2"/></g>
+    <text x="120" y="208" font-weight="700">관계 없음 · r ≈ −0.05</text>
+    <text x="355" y="208" font-weight="700">U자 관계 · r ≈ 0.01</text>
+    <text x="590" y="208" font-weight="700">원 모양 · r ≈ 0.00</text>
+  </g>
+</svg>
+<figcaption>그림 1. 상관계수가 모두 0에 가까운 세 데이터. 가운데 U자 관계는 “관계가 없는 것”이 아니라 “직선이 아닌 관계”입니다.</figcaption>
+</figure>
+
+<div class="box box-warn">
+  <span class="box-label">EDA의 첫 번째 원칙</span>
+  요약 통계를 계산했다면 <b>반드시 그래프로 확인</b>하세요. 예시 프로젝트에서 r = −0.31만 보고 넘어갔다면
+  “기온은 중요하지 않다”는 잘못된 결론에 이르렀을 것입니다.
+</div>
+
+<h2><span class="sec-no">4</span>EDA에서 분석 방법 구상으로 <i class="pub-c">공통</i></h2>
+
+<p>EDA의 목적은 그래프를 많이 그리는 것이 아니라 <b>다음 단계의 방향을 정하는 것</b>입니다. 예시 프로젝트의 발견을 정리하고, 그로부터 떠올린 방법을 적어 봅시다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:36%">EDA에서 발견한 것</th><th>그래서 구상한 방법</th></tr></thead>
+  <tbody>
+    <tr><td>수업일과 쉬는 날은 사용량 수준이 전혀 다르다(쌍봉 분포).</td><td>분석 대상을 <b>수업일</b>로 한정한다. 쉬는 날은 대기 전력(기기를 켜 두기만 해도 쓰는 전기) 점검 대상으로 따로 본다.</td></tr>
+    <tr><td>기온과 사용량은 U자 관계이고 r은 약하다.</td><td>직선 모델(선형 회귀)이 잘 맞을지 먼저 <b>확인</b>하고(L47), 곡선을 표현할 수 있는 방법(다항 회귀·의사결정트리)과 <b>비교</b>한다(L48).</td></tr>
+    <tr><td>약 10℃ 아래·25℃ 위에서 사용량이 급증한다.</td><td>‘기온이 기준에서 얼마나 벗어났는가’를 나타내는 새 속성(냉방·난방 필요 정도)을 만들어 본다(L49).</td></tr>
+    <tr><td>12월 수업일 사용량이 가장 많다.</td><td>겨울철 난방 운영(설정 온도, 가동 시간, 창문 단속)에 대한 절약 캠페인을 제안할 수 있다.</td></tr>
+  </tbody>
+</table></div>
+
+<div class="sim">
+  <div class="sim-head">EDA 질문 카드 생성기</div>
+  <div class="sim-body">
+    <p style="margin-top:0;font-size:.92rem">질문 유형을 고르고 속성 이름을 넣으면 EDA 질문 카드(질문·그래프·코드·확인할 점)가 만들어집니다.
+    예시 프로젝트의 속성이 채워져 있으니, 모둠 데이터의 속성 이름으로 바꾸어 우리 모둠만의 질문 카드를 만들어 보세요.</p>
+    <div class="eq-type" id="eq-type"></div>
+    <div class="eq-row"><label for="eq-a">속성 A (수치)</label><input type="text" id="eq-a" value="전력사용량"></div>
+    <div class="eq-row" id="eq-brow"><label for="eq-b" id="eq-blab">속성 B</label><input type="text" id="eq-b" value="평균기온"></div>
+    <div class="eq-row"><label for="eq-df">데이터프레임 이름</label><input type="text" id="eq-df" value="en" style="max-width:120px;flex:0 0 auto"></div>
+    <div class="eq-err" id="eq-err"></div>
+    <div class="eq-card" id="eq-card"></div>
+    <div style="margin-top:10px"><button type="button" id="eq-add" class="ghost">＋ 이 카드를 우리 모둠 질문 목록에 담기</button> <button type="button" id="eq-clear" class="gray">목록 비우기</button></div>
+    <div class="eq-list" id="eq-list"></div>
+    <p class="widget-hint">관찰 포인트: 같은 두 속성이라도 ‘관계’ 질문과 ‘비교’ 질문은 필요한 그래프가 다릅니다. B가 범주(예: 수업일, 요일, 지역)일 때와 수치일 때 어떤 유형이 알맞은지 생각해 보세요.</p>
+  </div>
+</div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  EDA 질문은 모둠원 각자 2개씩 만든 뒤 겹치는 것을 합치고 유형이 고르게 섞였는지 점검하게 하세요.
+  파이썬이 어려운 반은 스프레드시트의 피벗 테이블(월별·수업일별 평균)과 분산형 차트로, Orange에서는 <b>Distributions</b>(분포)·<b>Scatter Plot</b>(관계, 색상=수업일)·<b>Box Plot</b>(비교) 위젯으로 같은 발견을 할 수 있습니다.
+  상관계수가 약하면 관계가 없다는 오개념이 흔하므로 산점도와 r을 꼭 함께 보여 주세요.
+</div>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">모둠 활동</span>우리 모둠 EDA 질문 만들기 ↔ 답하기 <i class="pub">YBM</i></div>
+  <div class="act-body">
+    <ol>
+      <li>모둠 데이터로 서로 다른 유형의 EDA 질문을 4개 이상 만들고, 그래프·통계로 답하세요.
+        <div class="table-wrap"><table>
+          <thead><tr><th style="width:70px">유형</th><th>EDA 질문</th><th style="width:110px">사용한 그래프·통계</th><th>답(발견한 것)</th></tr></thead>
+          <tbody><tr><td>&nbsp;</td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td></tr></tbody>
+        </table></div></li>
+      <li>답을 얻는 과정에서 새로 생긴 질문을 하나 적으세요.
+        <div class="write-lines"><div class="line"></div></div></li>
+      <li>EDA 결과를 바탕으로 <b>분석 방향</b>(나누어 볼 집단, 적용할 방법 두 가지, 새로 만들 속성)과 <b>문제 해결 아이디어</b>를 구상하세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div><div class="line"></div></div></li>
+    </ol>
+  </div>
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>EDA는 요약·분포·비교·관계·시간 추세의 질문을 만들고 그래프·통계로 답하는 순환 과정이다.</li>
+    <li>쌍봉 분포처럼 성격이 다른 집단이 섞여 있으면 나누어 분석한다. 예시 프로젝트는 수업일에 집중한다.</li>
+    <li>상관계수는 직선 관계만 잰다. 기온–전력처럼 U자 관계는 r이 약해도 관계가 강할 수 있으므로 반드시 그래프로 확인한다.</li>
+    <li>EDA의 발견은 분석 방법(두 모델 비교)과 새 속성, 문제 해결 아이디어를 구상하는 근거가 된다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- EDA 질문 카드 생성기 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  // 받침 유무에 따라 조사 고르기 (한글이 아니면 받침 없음으로 처리)
+  const J = (w, withJ, noJ) => { const c = w.charCodeAt(w.length - 1); return (c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28) ? withJ : noJ; };
+  const TYPES = {
+    요약: { needB:false,
+      q:(a) => `‘${a}’의 대표값은 얼마이고, 값들은 얼마나 흩어져 있는가?`,
+      g:"요약 통계표 (평균·중앙값·표준편차·최솟값·최댓값)",
+      code:(d,a) => `${d}["${a}"].describe()`,
+      look:"평균과 중앙값이 크게 다르면 한쪽으로 치우친 분포이거나 극단값이 있다는 신호입니다. 단위를 꼭 함께 적으세요." },
+    분포: { needB:false,
+      q:(a) => `‘${a}’의 값들은 어떤 모양으로 퍼져 있으며, 봉우리는 몇 개인가?`,
+      g:"히스토그램 (필요하면 상자그림)",
+      code:(d,a) => `${d}["${a}"].plot(kind="hist", bins=30)`,
+      look:"봉우리가 두 개 이상이면 성격이 다른 집단이 섞였을 수 있습니다. 한쪽 꼬리가 길면 평균 대신 중앙값을 대표값으로 고려하세요." },
+    비교: { needB:true, bLabel:"집단 속성 B (범주)",
+      q:(a,b) => `‘${b}’에 따라 ‘${a}’${J(a,"은","는")} 얼마나 다른가?`,
+      g:"집단별 상자그림 또는 평균 막대그래프",
+      code:(d,a,b) => `${d}.groupby("${b}")["${a}"].agg(["count","mean","median"])`,
+      look:"평균 차이뿐 아니라 집단별 사례 수와 흩어진 정도도 비교하세요. 사례가 몇 개 안 되는 집단의 평균은 믿기 어렵습니다." },
+    관계: { needB:true, bLabel:"속성 B (수치)",
+      q:(a,b) => `‘${b}’${J(b,"이","가")} 변할 때 ‘${a}’${J(a,"은","는")} 어떤 모양으로 함께 변하는가?`,
+      g:"산점도 (+ 상관계수 r)",
+      code:(d,a,b) => `${d}.plot.scatter(x="${b}", y="${a}"); print(${d}["${b}"].corr(${d}["${a}"]))`,
+      look:"r은 직선 관계만 잽니다. 점들이 곡선(U자 등)을 그리는지, 몇 개의 무리로 나뉘는지 그래프로 확인하세요." },
+    "시간 추세": { needB:true, bLabel:"시간 속성 B (날짜·월·연도)",
+      q:(a,b) => `‘${b}’에 따라 ‘${a}’${J(a,"은","는")} 어떻게 변해 왔는가? 계절성이나 추세가 있는가?`,
+      g:"꺾은선그래프 (시간 단위별 평균)",
+      code:(d,a,b) => `${d}.groupby("${b}")["${a}"].mean().plot(marker="o")`,
+      look:"꾸준히 오르거나 내리는 추세, 해마다 반복되는 계절성, 갑자기 튀는 시점을 구분하세요. 튀는 시점에는 어떤 사건이 있었는지 찾아보세요." }
+  };
+  let type = "관계", list = [];
+
+  $("eq-type").innerHTML = Object.keys(TYPES).map(t => `<button type="button" data-t="${t}">${t}</button>`).join("");
+  function paintType(){
+    [...$("eq-type").children].forEach(b => b.className = b.dataset.t === type ? "" : "ghost");
+    const T = TYPES[type];
+    $("eq-brow").style.display = T.needB ? "" : "none";
+    if (T.needB) $("eq-blab").textContent = T.bLabel;
+  }
+  function current(){
+    const T = TYPES[type];
+    const a = $("eq-a").value.trim(), b = $("eq-b").value.trim(), d = $("eq-df").value.trim() || "df";
+    if (!a) return { err:"속성 A의 이름을 입력하세요." };
+    if (T.needB && !b) return { err:"속성 B의 이름을 입력하세요." };
+    if (T.needB && a === b) return { err:"속성 A와 B는 서로 달라야 합니다." };
+    return { type, q:T.q(a, b), g:T.g, code:T.code(d, a, b), look:T.look };
+  }
+  function render(){
+    paintType();
+    const c = current();
+    $("eq-err").textContent = c.err || "";
+    $("eq-add").disabled = !!c.err;
+    if (c.err){ $("eq-card").innerHTML = ""; $("eq-card").style.display = "none"; return; }
+    $("eq-card").style.display = "";
+    $("eq-card").innerHTML = `<div class="eq-q"><small>${esc(c.type)} 질문</small>${esc(c.q)}</div>
+      <dl><dt>그래프·통계</dt><dd>${esc(c.g)}</dd><dt>파이썬 한 줄</dt><dd><code>${esc(c.code)}</code></dd><dt>확인할 점</dt><dd>${esc(c.look)}</dd></dl>`;
+  }
+  function renderList(){
+    $("eq-list").innerHTML = list.length
+      ? `<b>우리 모둠 EDA 질문 (${list.length}개)</b> · 유형: ${[...new Set(list.map(x => x.type))].join(", ")}<ol>${list.map(x => `<li>[${esc(x.type)}] ${esc(x.q)}</li>`).join("")}</ol>`
+        + (new Set(list.map(x => x.type)).size < 3 && list.length >= 3 ? `<div class="eq-err">질문 유형이 한쪽에 몰려 있어요. 다른 유형도 섞어 보세요.</div>` : "")
+      : "";
+  }
+  $("eq-type").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    type = b.dataset.t;
+    if (type === "비교" && $("eq-b").value.trim() === "평균기온") $("eq-b").value = "수업일";
+    if (type === "관계" && $("eq-b").value.trim() === "수업일") $("eq-b").value = "평균기온";
+    if (type === "시간 추세" && ["평균기온","수업일"].includes($("eq-b").value.trim())) $("eq-b").value = "월";
+    render();
+  });
+  ["eq-a","eq-b","eq-df"].forEach(id => $(id).addEventListener("input", render));
+  $("eq-add").addEventListener("click", () => {
+    const c = current(); if (c.err) return;
+    if (!list.some(x => x.q === c.q)) list.push(c);
+    renderList();
+  });
+  $("eq-clear").addEventListener("click", () => { list = []; renderList(); });
+  render(); renderList();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"‘요일에 따라 급식 잔반량은 얼마나 다른가?’라는 EDA 질문에 답하기에 가장 알맞은 그래프는?",
+    choices:["산점도","요일별 상자그림 또는 평균 막대그래프","원그래프","히스토그램 하나","지도"], answer:1,
+    explain:"범주(요일)에 따라 수치(잔반량)를 비교하는 ‘비교’ 질문이므로 집단별 상자그림이나 평균 막대그래프가 알맞습니다. 산점도는 두 수치 속성의 관계를 볼 때 씁니다." },
+  { type:"ox", q:"두 속성의 상관계수가 0에 가까우면 두 속성 사이에는 어떤 관계도 없다고 결론 내릴 수 있다.",
+    answer:false, explain:"상관계수는 직선 관계의 강도만 측정합니다. 기온–전력처럼 U자 관계나 원 모양 관계는 매우 뚜렷해도 r이 0에 가깝게 나올 수 있으므로 산점도로 확인해야 합니다." },
+  { type:"mc", q:"수업일 198일의 평균 사용량이 1388kWh, 쉬는 날 108일의 평균이 385kWh일 때, 306일 전체의 평균 사용량에 가장 가까운 값은?",
+    choices:["약 887kWh","약 950kWh","약 1034kWh","약 1200kWh","약 1388kWh"], answer:2,
+    explain:"전체 평균 = (1388×198 + 385×108) ÷ 306 = (274824 + 41580) ÷ 306 ≈ 1034kWh입니다. 단순히 두 평균의 평균(약 887)을 내면 안 되고, 일수로 가중해야 합니다. 이 값은 두 봉우리 사이에 있어 실제로는 거의 나타나지 않는 값입니다." },
+  { type:"mc", q:"예시 프로젝트의 EDA 결과로부터 구상한 다음 단계로 가장 적절하지 않은 것은?",
+    choices:["수업일만 따로 분석한다","직선 모델이 잘 맞는지 확인하고 곡선 모델과 비교한다","냉방·난방이 필요한 정도를 나타내는 새 속성을 만든다","상관계수가 약하므로 기온 속성을 분석에서 제외한다","겨울철 난방 운영에 대한 절약 방안을 제안한다"], answer:3,
+    explain:"r = −0.31은 직선 관계가 약하다는 뜻일 뿐, 산점도와 구간별 평균은 기온이 사용량에 강한 U자 모양의 영향을 준다는 것을 보여 줍니다. 기온을 빼면 가장 중요한 정보를 잃습니다." },
+  { type:"short", q:"하루 전력 사용량 히스토그램에 봉우리가 두 개 나타났습니다. 이것이 무엇을 뜻할 수 있는지, 그리고 분석에서 어떻게 대응해야 하는지 쓰세요.",
+    model:"성격이 다른 두 집단(수업일과 쉬는 날)이 한 데이터에 섞여 있다는 뜻일 수 있다. 전체 평균은 어느 집단도 대표하지 못하므로, 집단을 구분하는 속성(수업일)으로 데이터를 나누어 각각 요약·분석하거나, 분석 목적에 맞는 집단(절약 여지가 큰 수업일)만 골라 분석한다. 이상치 판단도 집단별로 한다." },
+]);
+</script>
+</body>
+</html>

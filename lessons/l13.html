@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>편향 없는 데이터 수집 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 표본 추출 시뮬레이터 */
+.sp-methods { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+.sp-m { background:#fff; color:var(--ink-soft); border:2px solid var(--line); border-radius:9px; padding:6px 12px; font-size:.82rem; }
+.sp-m:hover { filter:none; }
+.sp-m .dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:-1px; }
+.sp-m.cur { color:var(--ink); font-weight:800; }
+.sp-desc { font-size:.85rem; color:var(--ink-soft); background:var(--paper); border-radius:8px; padding:7px 10px; margin-bottom:10px; }
+#sp-svg { width:100%; height:auto; background:#fff; border:1px solid var(--line); border-radius:10px; display:block; }
+.sp-n { display:flex; align-items:center; gap:8px; }
+.sp-n input { width:180px; }
+</style>
+</head>
+<body data-unit="2" data-lesson="L13">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>편향 없는 데이터 수집</h1>
+  <span class="std-badge">성취기준 12데과02-01</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>선택 편향·확증 편향·사회적 편향의 뜻을 사례로 설명할 수 있다.</li>
+      <li>표본 추출 방법에 따라 추정 결과가 어떻게 달라지는지 실험으로 확인할 수 있다.</li>
+      <li>편향을 줄이는 수집 계획을 세우고 체크리스트로 데이터를 상호 검증할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과02-01] 데이터를 편향되지 않도록 수집하고, 수집된 데이터의 특성을 분석한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span>문제 정의</span><span class="on">수집</span><span>전처리</span><span class="on">탐색</span><span>모델링</span><span>평가·해석</span><span>공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  학생회가 ‘급식 만족도’를 조사하려고 학교 누리집에 온라인 설문을 올렸습니다. 응답자는 366명, 평균 만족도는 5점 만점에 3.31점.
+  “생각보다 낮네? 급식 업체를 바꿔야겠어!” 그런데 잠깐, <b>설문에 응답한 366명은 전교생 1,000명을 잘 대표할까요?</b>
+  혹시 설문에 응답하는 학생들에게 어떤 공통점이 있지는 않을까요?
+</div>
+
+<h2><span class="sec-no">1</span>데이터 편향이란 <i class="pub">씨마스</i></h2>
+
+<p>데이터가 알고 싶은 대상 전체의 모습을 고르게 담지 못하고 한쪽으로 치우친 것을 <span class="keyterm">데이터 편향(bias)</span>이라고 합니다.
+편향된 데이터로 분석하면 계산은 정확해도 결론이 틀립니다. 수집 단계에서 자주 생기는 편향은 세 가지입니다.</p>
+
+<div class="cards">
+  <div class="cardbox"><h4>🎯 선택 편향</h4><p>데이터를 모으는 대상이 특정 집단에 치우친 경우. 예: 온라인 설문에는 인터넷을 자주 쓰는 학생만 응답한다. 체육관 앞에서 운동 시간을 물어본다.</p></div>
+  <div class="cardbox"><h4>🔍 확증 편향</h4><p>내가 이미 믿는 결론을 뒷받침하는 데이터만 모으거나 골라 쓰는 경우. 예: “게임은 성적을 떨어뜨린다”고 믿고 그런 사례만 수집한다.</p></div>
+  <div class="cardbox"><h4>👥 사회적 편향</h4><p>사회의 고정관념이나 ‘바람직해 보이는 답’이 데이터에 스며든 경우. 예: “하루에 책을 몇 분 읽나요?”에 실제보다 많이 답한다. 과거의 차별이 담긴 기록.</p></div>
+</div>
+
+<h2><span class="sec-no">2</span>역사 속 편향 사례 <i class="pub">천재</i> <i class="pub">YBM</i></h2>
+
+<h3>1936년 미국 대통령 선거 여론 조사</h3>
+<p>한 유명 잡지사는 자기 구독자, 전화 가입자, 자동차 소유자 명단에서 약 1,000만 명에게 모의 투표 용지를 보내 약 240만 명의 응답을 받았고,
+공화당 후보가 크게 이길 것이라고 예측했습니다. 그러나 실제로는 민주당의 루스벨트가 압도적인 차이로 이겼습니다.
+당시는 경제 대공황 시기라 전화·자동차를 가진 사람은 비교적 부유한 층이었고, 이들은 전체 유권자를 대표하지 못했습니다(<b>선택 편향</b>).
+게다가 적극적으로 답장을 보낸 사람들의 성향도 달랐습니다(<b>무응답 편향</b>). 반면 훨씬 적은 수를 골고루 뽑아 조사한 다른 조사 기관은 결과를 맞혔습니다.
+<b>표본이 크다고 편향이 사라지지 않는다</b>는 교훈을 남긴 사례입니다.</p>
+
+<h3>돌아온 비행기만 본 생존자 편향</h3>
+<p>제2차 세계 대전 때 연구자들은 임무에서 돌아온 폭격기의 총알 자국을 조사해 구멍이 많은 날개와 동체를 보강하자는 의견을 냈습니다.
+그러나 통계학자 에이브러햄 왈드는 반대로 <b>구멍이 없는 엔진 부분</b>을 보강해야 한다고 했습니다. 엔진에 맞은 비행기는 돌아오지 못해 데이터에 없었기 때문입니다.
+살아남은 것만 보고 판단하는 오류를 <span class="keyterm">생존자 편향</span>이라고 합니다. “성공한 사람들은 모두 새벽 5시에 일어났다”는 말도 같은 함정을 품고 있습니다.</p>
+
+<h3>텍사스 명사수의 오류와 AI 채용 편향</h3>
+<p>헛간 벽에 총을 마구 쏜 뒤 총알 자국이 몰린 곳에 과녁을 그려 넣고 명사수라고 자랑하는 이야기에서 나온 말이 <span class="keyterm">텍사스 명사수의 오류</span>입니다.
+데이터를 먼저 본 뒤 우연히 생긴 무리에 의미를 붙이는 잘못으로, 확증 편향과 닮았습니다.
+또 2018년에는 한 글로벌 기업이 과거 10년간의 합격자 이력서로 학습시킨 AI 채용 프로그램이 여성 지원자에게 불리한 점수를 준다는 사실이 보도되어 사용을 멈춘 일이 있습니다.
+과거 합격자 대부분이 남성이었던 <b>사회적 편향</b>이 데이터를 통해 AI에 그대로 옮겨 간 것입니다.</p>
+
+<h2><span class="sec-no">3</span>모집단과 표본: 무작위로 뽑아야 하는 이유 <i class="pub-c">공통</i></h2>
+
+<p>알고 싶은 대상 전체를 <span class="keyterm">모집단</span>, 실제로 조사한 일부를 <span class="keyterm">표본</span>이라고 합니다.
+전교생 1,000명 모두에게 묻기 어려우면 일부만 조사해서 전체를 <b>추정</b>합니다. 이때 모집단의 모든 사람이 뽑힐 기회를 똑같이 갖도록
+제비뽑기처럼 뽑는 것을 <span class="keyterm">무작위 추출</span>이라고 합니다. 무작위 표본은 운에 따라 조금씩 흔들리지만 평균적으로는 모집단의 값을 중심으로 모입니다.</p>
+
+<p>교재의 <code>survey_population.csv</code>는 어느 학교 전교생 1,000명의 급식 만족도(1~5점)를 모두 담은 가상 데이터입니다.
+모집단 전체를 알고 있으므로, 여러 방법으로 표본을 뽑아 보며 어떤 방법이 정답(모집단 평균)에 가까운지 실험할 수 있습니다.</p>
+
+<div class="sim">
+  <div class="sim-head">표본 추출 시뮬레이터 — 전교생 1,000명의 급식 만족도</div>
+  <div class="sim-body">
+    <div class="sp-methods" id="sp-methods"></div>
+    <div class="sp-desc" id="sp-desc"></div>
+    <div class="sim-controls">
+      <span class="sp-n"><label for="sp-n">표본 크기</label><input type="range" id="sp-n" min="10" max="300" step="10" value="30"><b id="sp-n-v">30</b>명</span>
+      <button id="sp-one">🎲 표본 1번 뽑기</button>
+      <button id="sp-many" class="ghost">🎲×100 100번 뽑기</button>
+      <button id="sp-clear" class="gray">지우기</button>
+    </div>
+    <svg id="sp-svg" viewBox="0 0 640 240"></svg>
+    <div class="sim-stats">
+      <span class="stat-chip">모집단 평균 (정답) <b id="sp-pop">—</b></span>
+      <span class="stat-chip">방금 뽑은 표본 평균 <b id="sp-last">—</b></span>
+      <span class="stat-chip">현재 방법 표본 평균들의 평균 <b id="sp-avg">—</b> (<span id="sp-cnt">0</span>회)</span>
+      <span class="stat-chip">방금 표본의 통학 30분 초과 비율 <b id="sp-far">—</b> (전체 <span id="sp-far-pop">—</span>)</span>
+    </div>
+    <p class="widget-hint">실험: ① ‘무작위 추출’로 100번 뽑아 점들이 어디에 모이는지 보세요. ② 같은 표본 크기로 ‘온라인 설문 응답자’를 100번 뽑아 비교하세요.
+    ③ 표본 크기를 300명으로 늘리면 점들의 퍼짐은 줄어드는데, 온라인 설문의 점 무리는 정답 쪽으로 옮겨 갈까요?</p>
+  </div>
+</div>
+
+<p>실험 결과를 정리하면 다음과 같습니다. <b>표본을 키우면 우연에 의한 흔들림(퍼짐)은 줄지만, 뽑는 방법이 치우쳐 생긴 편향은 줄지 않습니다.</b>
+온라인 설문의 점 무리는 표본이 커져도 정답보다 왼쪽(낮은 쪽)에, 학교 근처 학생만 조사한 점 무리는 오른쪽(높은 쪽)에 머뭅니다. 1936년 잡지사가 240만 명에게 답을 받고도 틀린 이유가 바로 이것입니다.</p>
+
+<h3>파이썬으로 확인하기</h3>
+
+<div class="pycell" data-title="① 모집단과 온라인 응답자 비교"><textarea>
+import pandas as pd
+
+pop = load_csv("survey_population.csv")
+print(pop.head())
+print("전교생 수:", len(pop))
+print("모집단(전교생) 평균 만족도:", round(pop["급식만족도"].mean(), 3))
+
+online = pop[pop["온라인설문응답"] == 1]
+print("온라인 응답자 수:", len(online))
+print("온라인 응답자 평균 만족도:", round(online["급식만족도"].mean(), 3))
+
+# ✏️ 동아리 참여 학생(동아리참여 == 1)만 조사했다면 평균이 어떻게 나올지 계산해 보세요.
+</textarea></div>
+
+<div class="pycell" data-title="② 무작위 표본을 200번 뽑아 보기"><textarea>
+import numpy as np
+
+n = 100
+random_means = [pop.sample(n=n, random_state=i)["급식만족도"].mean() for i in range(200)]
+online_means = [online.sample(n=n, random_state=i)["급식만족도"].mean() for i in range(200)]
+
+print(f"무작위 표본 {n}명 × 200번 → 표본 평균들의 평균 {np.mean(random_means):.3f}, 가장 작은 값 {min(random_means):.2f}, 가장 큰 값 {max(random_means):.2f}")
+print(f"온라인 응답자 {n}명 × 200번 → 표본 평균들의 평균 {np.mean(online_means):.3f}, 가장 작은 값 {min(online_means):.2f}, 가장 큰 값 {max(online_means):.2f}")
+
+# ✏️ n을 30과 300으로 바꿔 보세요. 무작위 표본 평균의 '가장 작은 값~가장 큰 값' 범위는 어떻게 달라지나요?
+</textarea></div>
+
+<div class="pycell" data-title="③ 왜 온라인 응답자는 만족도가 낮을까?"><textarea>
+import matplotlib.pyplot as plt
+
+print("통학시간 중앙값(분) — 전체:", pop["통학시간"].median(), "/ 온라인 응답자:", online["통학시간"].median())
+
+pop["통학구간"] = pd.cut(pop["통학시간"], bins=[0, 15, 30, 100], labels=["15분 이하", "16~30분", "30분 초과"])
+print(pop.groupby("통학구간", observed=True)["급식만족도"].agg(["count", "mean"]).round(2))
+
+share = pd.DataFrame({
+    "전교생": pop["통학구간"].value_counts(normalize=True),
+    "온라인 응답자": pop.loc[pop["온라인설문응답"] == 1, "통학구간"].value_counts(normalize=True),
+}).loc[["15분 이하", "16~30분", "30분 초과"]]
+print((share * 100).round(1))
+
+share.plot(kind="bar", figsize=(6, 3.4), color=["#9fd3df", "#2563eb"], rot=0)
+plt.title("통학 시간 구간별 학생 비율")
+plt.ylabel("비율")
+plt.show()
+
+# ✏️ 온라인 응답자의 '30분 초과' 비율이 전교생과 같아지도록 표본을 다시 구성한다면 어떻게 해야 할까요?
+</textarea></div>
+
+<p>결과를 보면 통학 시간이 긴 학생일수록 급식 만족도가 낮은데, 온라인 설문에는 <b>통학 시간이 긴 학생이 전교생보다 훨씬 많이</b> 응답했습니다(30분 초과 학생의 비율: 전교생 21.8%, 온라인 응답자 33.3%).
+(버스 안에서 휴대 전화로 설문에 답할 시간이 많았을까요?) 그래서 온라인 설문 결과는 전체 만족도를 실제보다 낮게 추정합니다.
+이렇게 응답 여부가 결과와 관련된 특성(통학 시간)에 따라 달라질 때 편향이 생깁니다.</p>
+
+<div class="box box-tip">
+  <span class="box-label">층화 추출</span>
+  모집단을 학년·통학 구간처럼 결과에 영향을 줄 만한 기준으로 나눈 뒤(층), <b>각 층에서 전체와 같은 비율로</b> 무작위로 뽑는 방법을 <span class="keyterm">층화 추출</span>이라고 합니다.
+  중요한 집단이 빠지거나 몰리는 일을 막아 적은 표본으로도 정확하게 추정할 수 있습니다.
+</div>
+
+<h2><span class="sec-no">4</span>편향을 줄이는 수집과 상호 검증 <i class="pub">삼양</i> <i class="pub">씨마스</i></h2>
+
+<p>편향을 완전히 없애기는 어렵지만 수집 계획 단계에서 크게 줄일 수 있습니다.</p>
+<ul>
+  <li><b>대상</b>: 모집단 명단에서 무작위로 뽑는다. 필요하면 학년·성별 등으로 층화한다. 특정 장소·시간·매체(온라인만)에서만 모으지 않는다.</li>
+  <li><b>질문</b>: 답을 유도하는 표현(“맛없는 급식에 대해 어떻게 생각하나요?”)을 피하고, 선택지와 단위(분·회)를 분명히 한다. 익명으로 조사해 솔직한 답을 끌어낸다.</li>
+  <li><b>기간</b>: 시험 기간·방학 직전처럼 특별한 시기만 조사하지 않는다.</li>
+  <li><b>기록</b>: 누가, 언제, 어떻게 모았는지, 응답률은 얼마인지 메타데이터로 남긴다.</li>
+  <li><b>검증</b>: 내가 모은 데이터를 다른 사람이 점검하게 한다. 내 눈에는 내 편향이 잘 보이지 않기 때문이다.</li>
+</ul>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">모둠 활동</span>수집 데이터 상호 검증하기 <i class="pub">삼양</i></div>
+  <div class="act-body">
+    <p style="margin-top:0">각 모둠이 “우리 학교 학생들의 하루 스마트폰 사용 시간” 조사 계획을 세운 뒤, 옆 모둠과 계획서를 바꾸어 아래 체크리스트로 점검해 주세요.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>점검 항목</th><th style="width:70px">예</th><th style="width:70px">아니오</th><th>보완 의견</th></tr></thead>
+      <tbody>
+        <tr><td>출처와 수집 방법이 분명한가?</td><td>□</td><td>□</td><td></td></tr>
+        <tr><td>특정 집단(학년·장소·시간·매체)에 치우치지 않았는가?</td><td>□</td><td>□</td><td></td></tr>
+        <tr><td>원하는 결론을 정해 두고 그에 맞는 데이터만 모으지 않았는가?</td><td>□</td><td>□</td><td></td></tr>
+        <tr><td>질문이 답을 유도하지 않고, 단위와 선택지가 분명한가?</td><td>□</td><td>□</td><td></td></tr>
+        <tr><td>목적에 맞는 속성을 모두 포함하는가?</td><td>□</td><td>□</td><td></td></tr>
+        <tr><td>분석하기에 충분한 양인가?</td><td>□</td><td>□</td><td></td></tr>
+        <tr><td>분석하려는 시기를 반영하는가?</td><td>□</td><td>□</td><td></td></tr>
+        <tr><td>개인정보를 최소한으로, 익명으로 모으는가?</td><td>□</td><td>□</td><td></td></tr>
+      </tbody>
+    </table></div>
+    <p>점검을 받은 뒤 우리 모둠 계획에서 고칠 점을 정리하세요.</p>
+    <div class="write-lines"><div class="line"></div><div class="line"></div></div>
+  </div>
+</div>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  시뮬레이터는 “표본이 크면 편향이 해결된다”는 흔한 오개념을 깨는 데 초점을 둡니다. 같은 표본 크기(예: 100명)에서 세 방법을 각각 100번씩 뽑아 점 무리의 위치를 비교하게 한 뒤,
+  표본 크기를 300명으로 바꾸어 ‘퍼짐은 줄지만 위치는 그대로’임을 확인하게 하세요.
+  비코딩 반은 스프레드시트의 <code>RAND()</code> 열로 무작위 정렬한 뒤 위에서 n명을 뽑는 방식으로 같은 실험을 할 수 있습니다.
+  AI 채용 사례는 특정 기업 비난보다 ‘과거 데이터가 담은 편향이 미래 결정으로 이어지는 구조’에 초점을 맞추어 토의하게 합니다.
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>데이터 편향에는 선택 편향(대상의 치우침), 확증 편향(원하는 데이터만), 사회적 편향(고정관념·바람직한 답)이 있다.</li>
+    <li>생존자 편향, 텍사스 명사수의 오류, 1936년 여론 조사, AI 채용 사례는 모두 편향된 데이터가 틀린 결론을 낳은 예이다.</li>
+    <li>무작위 추출은 표본 평균이 모집단 평균을 중심으로 모이게 한다. 표본을 키우면 흔들림은 줄지만 편향은 사라지지 않는다.</li>
+    <li>층화 추출, 중립적인 질문, 수집 기록, 모둠 상호 검증으로 편향을 줄인다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 표본 추출 시뮬레이터 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  // survey_population.csv 1,000명 (학생 번호 순): 급식만족도, 온라인설문응답, 통학구간(0: 15분 이하, 1: 16~30분, 2: 30분 초과)
+  const SCORE = "4152333335443343323232344543444433534443344234523333333332333334143444435424352333252354333454335224334243323553353243344233324343455434533255345435332334452355233434324334533442342233444434453425232442333433443444243333334243444532542334444334435334323253433535333335435444523233235341334244332343333435433344543253252333433444414443353335343243344244232445553343444132243444333445445233343434324455345434425423245342344443454442352534533454443443234444343431343335343435424345333323434342432533224124252443443354445444444333354253224142454333225343443143334234442432333333234452544453343443245442422433344333435533434424442333225535343353333244342444414345323233432454444343353333444334243435324343253425443325443532324453444444425323242343453342325354355523243344342542424534253424333442344242533522342441533432343333433434254233325432335343543324323134334435444554254414325343333224433434445345313333233343322334343343353334254133233344333343443432334554323224323342343432433334434324435342534334";
+  const ONLINE = "1100010001001101100010000001010000110100010000010110000110000001100001101001000000010001010001010000000110000000100011000000101110100011001010000010110010010010011011101001000110101101010010110010111000110100010101100111100101000000001100000000001010111100111000000010000001001101100000010011010001101011010000000110100010011101110101100100001111100001101110010101110010100000001000100000100000011000010011100000010010001101100001000001000000000100110011000011001000011100100010010010000001000100100111110100101101100000111000101010001101001011110011101001111001000000100000001011001100010110000110011000011011100010000010100111000010100001000110110100000010011000000101000000100010100000100110000101010100011011100011100110010100110100110000000001000001000000101100011011100111111111000100000101111001000010011001101000000010010010101010100000010110000111111010110100000100011101100101000000001001100010000001010100010100101100000010001000010101000010001001001001000110000001000001100000110000001000";
+  const COMMUTE = "2202001101021012010120110012202021012111100101020100121121121020211020112011111102212100200001221010201222021100202111100011111211111201000201211020111011101201212121212000010102101200111010000020211002220202000011111200101101201110011211111221011102002202010110011021210011121211220102101212110001202100221100111200202211021001122000201100102221110010112000001212010011202102000201210110200120010100100100110012221110010012020002001100010100100100200002101021110211002011001200111121100100102111210001202011222012120102101212201001111000001211221011010212101011111011220120210001002021120211210002122021120111100101100110201112122111111000100200111210021211010120111200111201200120101221101210101011001011022111210022210121000111121210101201100202111101100100102110022002110011210020101000002101222112000002021010202102002001210200010121011111111211110200111020022110200120010012211211111020102010122100100011011000102201101201010121100210101001100111010112022110110022121012110200020120120001010110";
+  const N = SCORE.length;
+  const people = [];
+  for (let i = 0; i < N; i++) people.push({ s: +SCORE[i], on: ONLINE[i] === "1", c: +COMMUTE[i] });
+  const METHODS = [
+    { name:"무작위 추출", color:"#16a34a", desc:"전교생 1,000명 명단에서 제비뽑기로 뽑습니다. 모든 학생이 뽑힐 기회가 같습니다.", pool: people },
+    { name:"온라인 설문 응답자", color:"#dc2626", desc:"학교 누리집 설문에 스스로 응답한 366명 중에서 뽑습니다. 응답은 학생의 선택에 달려 있습니다.", pool: people.filter(p => p.on) },
+    { name:"학교 근처 학생만", color:"#d97706", desc:"조사하기 편하도록 통학 시간 15분 이하인 학생(376명) 중에서만 뽑습니다.", pool: people.filter(p => p.c === 0) },
+  ];
+  const mean = arr => arr.reduce((a, p) => a + p.s, 0) / arr.length;
+  const popMean = mean(people);
+  const farPop = people.filter(p => p.c === 2).length / N;
+  let cur = 0;
+  let dots = []; // {m, v}
+
+  function sample(pool, n){
+    const idx = pool.map((_, i) => i);
+    for (let i = 0; i < n; i++){
+      const j = i + Math.floor(Math.random() * (idx.length - i));
+      const t = idx[i]; idx[i] = idx[j]; idx[j] = t;
+    }
+    return idx.slice(0, n).map(i => pool[i]);
+  }
+  const X0 = 2.5, X1 = 4.3, W = 640, H = 240, L = 30, R = 20, BASE = 200;
+  const xp = v => L + (Math.min(Math.max(v, X0), X1) - X0) / (X1 - X0) * (W - L - R);
+
+  function draw(){
+    let s = "";
+    for (let v = 2.6; v <= 4.21; v += 0.2){
+      const x = xp(v);
+      s += `<line x1="${x}" y1="${BASE}" x2="${x}" y2="${BASE + 5}" stroke="#8595a6"/><text x="${x}" y="${BASE + 18}" font-size="11" text-anchor="middle" fill="#8595a6">${v.toFixed(1)}</text>`;
+    }
+    s += `<line x1="${L}" y1="${BASE}" x2="${W - R}" y2="${BASE}" stroke="#8595a6"/>`;
+    s += `<text x="${W - R}" y="${BASE + 34}" font-size="11" text-anchor="end" fill="#8595a6">표본 평균 만족도 (점)</text>`;
+    // 점 쌓기 (0.02 간격 칸)
+    const stacks = {};
+    dots.forEach(d => { const b = Math.round(d.v / 0.02); (stacks[b] = stacks[b] || []).push(d); });
+    const maxStack = Math.max(1, ...Object.values(stacks).map(a => a.length));
+    const step = Math.min(7, (BASE - 30) / maxStack);
+    Object.entries(stacks).forEach(([b, arr]) => {
+      const x = xp(b * 0.02);
+      arr.forEach((d, k) => { s += `<circle cx="${x}" cy="${BASE - 5 - k * step}" r="${Math.max(2, Math.min(3.4, step / 2))}" fill="${METHODS[d.m].color}" fill-opacity=".75"/>`; });
+    });
+    const px = xp(popMean);
+    s += `<line x1="${px}" y1="16" x2="${px}" y2="${BASE}" stroke="#1e2733" stroke-width="2" stroke-dasharray="5 4"/>`;
+    s += `<text x="${px + 5}" y="16" font-size="12" font-weight="700" fill="#1e2733">모집단 평균 ${popMean.toFixed(2)}</text>`;
+    // 범례
+    METHODS.forEach((m, i) => {
+      s += `<circle cx="${L + 8 + i * 150}" cy="${H - 8}" r="5" fill="${m.color}"/><text x="${L + 17 + i * 150}" y="${H - 4}" font-size="11" fill="#4b5a6b">${m.name}</text>`;
+    });
+    $("sp-svg").innerHTML = s;
+    const mine = dots.filter(d => d.m === cur);
+    $("sp-avg").textContent = mine.length ? (mine.reduce((a, d) => a + d.v, 0) / mine.length).toFixed(3) : "—";
+    $("sp-cnt").textContent = mine.length;
+  }
+  function drawOnce(times){
+    const n = +$("sp-n").value, pool = METHODS[cur].pool;
+    let last = null;
+    for (let t = 0; t < times; t++){
+      last = sample(pool, n);
+      dots.push({ m: cur, v: mean(last) });
+    }
+    $("sp-last").textContent = mean(last).toFixed(2);
+    $("sp-far").textContent = (last.filter(p => p.c === 2).length / n * 100).toFixed(0) + "%";
+    draw();
+  }
+  function renderMethods(){
+    $("sp-methods").innerHTML = METHODS.map((m, i) =>
+      `<button class="sp-m${i === cur ? " cur" : ""}" data-i="${i}" style="${i === cur ? "border-color:" + m.color : ""}"><span class="dot" style="background:${m.color}"></span>${m.name}</button>`).join("");
+    $("sp-desc").textContent = METHODS[cur].desc;
+  }
+  $("sp-methods").addEventListener("click", e => {
+    const b = e.target.closest(".sp-m"); if (!b) return;
+    cur = +b.dataset.i; renderMethods(); draw();
+  });
+  $("sp-n").addEventListener("input", () => { $("sp-n-v").textContent = $("sp-n").value; });
+  $("sp-one").addEventListener("click", () => drawOnce(1));
+  $("sp-many").addEventListener("click", () => drawOnce(100));
+  $("sp-clear").addEventListener("click", () => { dots = []; $("sp-last").textContent = "—"; $("sp-far").textContent = "—"; draw(); });
+  $("sp-pop").textContent = popMean.toFixed(3);
+  $("sp-far-pop").textContent = (farPop * 100).toFixed(1) + "%";
+  renderMethods(); draw();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"‘우리 학교 학생들의 평균 운동 시간’을 알아보려고 방과 후 체육관에 있는 학생들에게만 설문했다. 이때 생기는 편향은?",
+    choices:["확증 편향","선택 편향","사회적 편향","생존자 편향이 아닌 측정 오차","편향이 없다"], answer:1,
+    explain:"조사 대상이 운동을 많이 하는 학생이 모인 장소에 치우쳐 있으므로 선택 편향입니다. 평균 운동 시간이 실제보다 길게 추정됩니다." },
+  { type:"ox", q:"표본의 크기를 충분히 크게 하면 표본을 뽑는 방법이 치우쳐 있어도 편향이 사라진다.",
+    answer:false, explain:"표본을 키우면 우연에 의한 흔들림(퍼짐)은 줄지만, 뽑는 방법이 치우쳐 생긴 편향은 그대로 남습니다. 1936년 여론 조사는 240만 명의 응답을 받고도 틀렸습니다." },
+  { type:"mc", q:"전교생 1,000명 중 통학 시간이 30분을 넘는 학생은 218명이다. 100명을 뽑는 층화 추출에서 ‘30분 초과’ 층에서는 몇 명을 뽑아야 하는가? (가장 가까운 정수)",
+    choices:["10명","22명","30명","33명","50명"], answer:1,
+    explain:"전체에서 차지하는 비율 218 ÷ 1,000 = 21.8%를 100명에 적용하면 약 22명입니다. 각 층의 비율을 표본에서도 그대로 유지하는 것이 층화 추출입니다." },
+  { type:"mc", q:"임무에서 돌아온 비행기의 총알 자국만 보고 보강할 곳을 정하면 안 되는 이유와 가장 관련 깊은 개념은?",
+    choices:["무작위 추출","생존자 편향","층화 추출","메타데이터","정규화"], answer:1,
+    explain:"엔진에 맞은 비행기는 돌아오지 못해 데이터에 포함되지 않았습니다. 살아남은 것만 보고 판단하는 생존자 편향입니다." },
+  { type:"short", q:"온라인 설문 응답자(366명)의 급식 만족도 평균은 3.31점, 전교생(1,000명) 평균은 3.40점이었다. 온라인 설문이 만족도를 낮게 추정한 이유를 ‘통학 시간’과 연결해 설명하고, 편향을 줄이는 조사 방법을 하나 제안하세요.",
+    model:"통학 시간이 긴 학생일수록 급식 만족도가 낮은데, 온라인 설문에는 통학 시간이 긴 학생이 전교생보다 많이 응답했다. 그래서 만족도가 낮은 집단이 과대 대표되어 평균이 낮게 추정되었다. 전교생 명단에서 무작위로(또는 통학 구간별 비율에 맞춰 층화하여) 학생을 뽑아 모두 응답하도록 수업 시간에 설문을 진행하면 편향을 줄일 수 있다." },
+]);
+</script>
+</body>
+</html>

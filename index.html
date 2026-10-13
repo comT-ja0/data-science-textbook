@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>데이터 과학 온라인 교과서 | 2022 개정 교육과정</title>
+<meta name="description" content="2022 개정 교육과정 고등학교 진로 선택 과목 「데이터 과학」 — 교과서 4종을 성취기준별로 통합한 40/56차시 학생 활동 중심 온라인 교과서">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="assets/css/style.css?v=20260930">
+</head>
+<body data-page="home">
+<div id="app">
+<main>
+
+  <div class="hero">
+    <h1>데이터 과학<br>온라인 교과서</h1>
+    <p>2022 개정 교육과정 「데이터 과학」 교과서 <b>4종(삼양미디어·씨마스·와이비엠·천재교과서)을 성취기준별로 분석·통합</b>하여
+    새로 집필한 학생 활동 중심 교재입니다. 3학점(40차시)과 4학점(56차시) 운영을 모두 지원하며,
+    설치 없이 브라우저에서 데이터를 직접 만지고, 파이썬으로 분석하고, 형성평가로 스스로 점검할 수 있습니다.</p>
+    <div class="hero-tags">
+      <span>📚 교과서 4종 통합</span>
+      <span>📖 40차시 + 확장 16차시</span>
+      <span>🕹️ 조작형 데이터 실험실</span>
+      <span>🐍 브라우저 파이썬(pandas·scikit-learn)</span>
+      <span>🗂️ 실습 데이터 13종</span>
+      <span>✏️ 차시별 형성평가</span>
+    </div>
+  </div>
+
+  <div class="mode-note">
+    <span>🎚️ 왼쪽 목차 상단에서 <b>3학점(40차시)</b> / <b>4학점(56차시)</b> 모드를 선택하세요.
+    3학점 모드에서는 확장 차시가 목차에서 숨겨지고 차시 번호가 40차시 기준으로 표시됩니다.</span>
+  </div>
+
+  <h2 id="units">단원 구성</h2>
+  <div id="unit-cards" class="cards" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))"></div>
+
+  <h2>데이터 과학 문제 해결 과정</h2>
+  <p>모든 차시 상단의 단계 표시줄은 지금 배우는 내용이 데이터 과학 문제 해결 과정의 어느 단계에 해당하는지 알려 줍니다.
+  Ⅳ단원 프로젝트에서는 이 전 과정을 모둠이 직접 수행합니다.</p>
+  <figure>
+  <svg viewBox="0 0 760 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="데이터 과학 문제 해결 과정 7단계">
+    <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8595a6"/></marker></defs>
+    <g font-size="13" font-weight="700" text-anchor="middle">
+      <rect x="4" y="30" width="92" height="46" rx="10" fill="#e2f4f8" stroke="#0e7490"/><text x="50" y="58" fill="#0e7490">문제 정의</text>
+      <rect x="112" y="30" width="92" height="46" rx="10" fill="#e8effe" stroke="#2563eb"/><text x="158" y="58" fill="#2563eb">수집</text>
+      <rect x="220" y="30" width="92" height="46" rx="10" fill="#e8effe" stroke="#2563eb"/><text x="266" y="58" fill="#2563eb">전처리</text>
+      <rect x="328" y="30" width="92" height="46" rx="10" fill="#e8effe" stroke="#2563eb"/><text x="374" y="58" fill="#2563eb">탐색·시각화</text>
+      <rect x="436" y="30" width="92" height="46" rx="10" fill="#fdf1de" stroke="#d97706"/><text x="482" y="58" fill="#b4700a">모델링</text>
+      <rect x="544" y="30" width="92" height="46" rx="10" fill="#fdf1de" stroke="#d97706"/><text x="590" y="58" fill="#b4700a">평가·해석</text>
+      <rect x="652" y="30" width="100" height="46" rx="10" fill="#f1eafd" stroke="#7c3aed"/><text x="702" y="58" fill="#7c3aed">공유·성찰</text>
+    </g>
+    <g stroke="#8595a6" stroke-width="1.8" marker-end="url(#ar)">
+      <line x1="96" y1="53" x2="110" y2="53"/><line x1="204" y1="53" x2="218" y2="53"/><line x1="312" y1="53" x2="326" y2="53"/>
+      <line x1="420" y1="53" x2="434" y2="53"/><line x1="528" y1="53" x2="542" y2="53"/><line x1="636" y1="53" x2="650" y2="53"/>
+    </g>
+    <path d="M700 80 Q700 112 380 112 Q50 112 50 82" fill="none" stroke="#8595a6" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ar)"/>
+    <text x="380" y="106" font-size="11.5" fill="#8595a6" text-anchor="middle">결과를 성찰하며 문제를 다시 정의하고 반복한다</text>
+    <g font-size="11" fill="#8595a6" text-anchor="middle"><text x="50" y="20">Ⅰ·Ⅳ</text><text x="266" y="20">Ⅱ 데이터 준비와 분석</text><text x="536" y="20">Ⅲ 데이터 모델링과 평가</text><text x="702" y="20">Ⅳ</text></g>
+  </svg>
+  <figcaption>데이터 과학 문제 해결 과정 — 단원과 단계의 대응</figcaption>
+  </figure>
+
+  <h2 id="standards">성취기준 한눈에 보기</h2>
+  <p>이 교과서의 모든 차시는 2022 개정 교육과정(교육부 고시)의 「데이터 과학」 성취기준 19개에 연결되어 있습니다.
+  성취기준 코드를 누르면 해당 내용을 시작하는 차시로 이동합니다. 차시 번호는 4학점(56차시) 기준이며, 괄호는 확장 차시입니다.</p>
+
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th style="width:124px">성취기준</th><th>내용</th><th style="width:120px">차시</th></tr></thead>
+    <tbody>
+      <tr><td colspan="3" style="background:var(--u1-soft);font-weight:800;color:var(--u1)">Ⅰ. 데이터 과학의 이해</td></tr>
+      <tr><td><a href="lessons/l02.html">[12데과01-01]</a></td><td>데이터 과학의 개념을 이해하고, 문제 해결 사례를 데이터 기반 의사 결정 상황에 적용한다.</td><td>2 · 3 · (11)</td></tr>
+      <tr><td><a href="lessons/l04.html">[12데과01-02]</a></td><td>정형 데이터와 비정형 데이터를 구분하고, 데이터 속성에서 데이터의 잠재적 가치를 파악한다.</td><td>4 · 5</td></tr>
+      <tr><td><a href="lessons/l06.html">[12데과01-03]</a></td><td>데이터셋의 집합인 데이터베이스를 이해하고, 서로 다른 데이터셋의 데이터를 분석이 가능한 형태로 통합하는 것의 의미를 파악한다.</td><td>6 · 7 · (8)</td></tr>
+      <tr><td><a href="lessons/l09.html">[12데과01-04]</a></td><td>데이터로 인한 사회 변화를 인식하고, 진로 및 직업과 관련한 데이터 기반 문제 해결 사례를 분석한다.</td><td>9 · (10)</td></tr>
+      <tr><td colspan="3" style="background:var(--u2-soft);font-weight:800;color:var(--u2)">Ⅱ. 데이터 준비와 분석</td></tr>
+      <tr><td><a href="lessons/l12.html">[12데과02-01]</a></td><td>데이터를 편향되지 않도록 수집하고, 수집된 데이터의 특성을 분석한다.</td><td>12~15 · (16)</td></tr>
+      <tr><td><a href="lessons/l17.html">[12데과02-02]</a></td><td>이상치와 결측치 탐색 및 정규화를 통해 전처리하여 오류 가능성을 최소화하고, 데이터 분석을 위해 시각화한다.</td><td>17~20 · (21)</td></tr>
+      <tr><td><a href="lessons/l22.html">[12데과02-03]</a></td><td>데이터를 분석하기 위해 데이터 속성 간의 관계를 파악하고 통합한다.</td><td>22 · (23)</td></tr>
+      <tr><td><a href="lessons/l24.html">[12데과02-04]</a></td><td>동일한 데이터를 서로 다른 분석 방법을 적용하여 분석 결과를 비교한다.</td><td>24 · (25)</td></tr>
+      <tr><td colspan="3" style="background:var(--u3-soft);font-weight:800;color:#b4700a">Ⅲ. 데이터 모델링과 평가</td></tr>
+      <tr><td><a href="lessons/l26.html">[12데과03-01]</a></td><td>데이터 모델 개념을 이해하고 데이터 분석에 활용할 수 있는 도구를 탐색한다.</td><td>26 · 27</td></tr>
+      <tr><td><a href="lessons/l28.html">[12데과03-02]</a></td><td>동일한 데이터를 통계적 회귀 모델과 기계학습을 통한 회귀 모델로 분석하여 결과 해석 내용을 비교한다.</td><td>28 · 29 · (30) · 31</td></tr>
+      <tr><td><a href="lessons/l32.html">[12데과03-03]</a></td><td>데이터의 속성에 대한 유사성을 측정하고 분석하여 군집을 형성하고, 군집 분석 결과의 의미를 해석한다.</td><td>32 · 33 · (34)</td></tr>
+      <tr><td><a href="lessons/l35.html">[12데과03-04]</a></td><td>데이터 간의 관계를 분석하고 상호 연관성을 파악하여 결과의 의미를 해석한다.</td><td>35 · (36)</td></tr>
+      <tr><td><a href="lessons/l37.html">[12데과03-05]</a></td><td>데이터 분석 방법에 따른 데이터 모델의 분석 결과를 비교하고 평가한다.</td><td>37 · 38 · (39) · (41)</td></tr>
+      <tr><td><a href="lessons/l40.html">[12데과03-06]</a></td><td>다양한 분석 방법을 비교하고 평가하여 분석 목적에 가장 적합한 분석 방법을 적용한다.</td><td>40 · (41)</td></tr>
+      <tr><td colspan="3" style="background:var(--u4-soft);font-weight:800;color:var(--u4)">Ⅳ. 데이터 과학 프로젝트</td></tr>
+      <tr><td><a href="lessons/l42.html">[12데과04-01]</a></td><td>분야별 데이터 과학의 적용 사례를 조사하여 분석하고, 데이터로 해결 가능한 주제를 찾아 적합성을 판단한다.</td><td>42 · 43 · 44</td></tr>
+      <tr><td><a href="lessons/l45.html">[12데과04-02]</a></td><td>수집된 데이터를 탐색적으로 분석하여 데이터 속 의미를 파악하고, 문제 해결을 위한 창의적인 방법을 구상한다.</td><td>44 · 45 · 46</td></tr>
+      <tr><td><a href="lessons/l47.html">[12데과04-03]</a></td><td>데이터 분석을 진행할 때, 2개 이상의 방법을 사용하여 분석하고 결과를 비교한다.</td><td>47 · 48</td></tr>
+      <tr><td><a href="lessons/l50.html">[12데과04-04]</a></td><td>복잡하고 어려운 문제라도 끝까지 해결하기 위한 자세를 갖추고 분석하여, 분석 결과에 대한 의미를 해석한다.</td><td>(49) · 50 · (51)</td></tr>
+      <tr><td><a href="lessons/l52.html">[12데과04-05]</a></td><td>분석을 위한 목적부터 데이터 수집 및 분석에 이르는 전 과정을 성찰하고, 사회적 영향을 고려하여 분석 결과의 활용 방안을 탐색한다.</td><td>52 · (53) · 54 · (55)</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>출판사 표기 안내</h2>
+  <p>본문과 활동 옆의 작은 태그는 그 내용이 어느 교과서의 구성·소재를 참고했는지를 나타냅니다.
+  <i class="pub-c">공통</i> 태그는 4종 중 3종 이상이 함께 다루는 내용, <i class="pub">씨마스</i>와 같은 회색 태그는
+  해당 출판사 교과서의 특색 있는 소재를 참고해 재구성한 내용입니다.
+  모든 본문·그림·활동·데이터는 새로 집필된 오리지널 콘텐츠이며, 태그는 출처 존중과 교과서 병행 수업을 위한 참고 표시입니다.
+  분석 대상: 삼양미디어 · 씨마스 · 와이비엠(YBM) · 천재교과서 (가나다순) — 자세한 비교는 <a href="textbook-analysis.html">📚 교과서 4종 비교 분석</a>을 보세요.</p>
+
+  <h2>이 교과서 사용법</h2>
+  <div class="cards">
+    <div class="cardbox">
+      <h4>🧑‍🎓 학생</h4>
+      <p>본문을 읽고 → 데이터 실험실 위젯을 직접 조작하고 → 파이썬 셀의 <b>▶ 실행</b> 버튼으로 코드를 실행해 보세요.
+      코드 끝의 ✏️ 과제대로 값을 바꿔 다시 실행하면 더 깊이 이해할 수 있습니다. 마지막 <b>스스로 점검하기</b>로 이해도를 확인합니다.</p>
+    </div>
+    <div class="cardbox">
+      <h4>🧑‍🏫 교사</h4>
+      <p>목차 상단에서 학교 편제에 맞는 <b>3학점/4학점 모드</b>를 선택하세요. 초록색 <b>지도 팁</b> 상자에 도구 대안(Orange·스프레드시트)과 오개념 지도법이 있습니다.
+      브라우저 인쇄(Ctrl+P)를 하면 화면 요소가 정리된 <b>활동지 형태</b>로 출력됩니다.</p>
+    </div>
+    <div class="cardbox">
+      <h4>💻 환경</h4>
+      <p>크롬·엣지 등 최신 브라우저면 충분합니다. 파이썬 실습은 처음 실행할 때만 실행 환경(10~20MB)과 한글 글꼴을
+      내려받으므로 인터넷 연결이 필요합니다. 위젯과 퀴즈는 모두 즉시 동작합니다.</p>
+    </div>
+  </div>
+
+  <div class="box box-tip">
+    <span class="box-label">실습 데이터와 외부 도구</span>
+    모든 실습은 교재에 포함된 <a href="data.html">🗂️ 교육용 데이터 13종</a>으로 바로 할 수 있습니다.
+    공공데이터포털, Orange, 구글 코랩 등 외부 도구로 확장하는 방법은 <a href="tools.html">🧰 데이터 분석 도구 모음</a>에서 안내합니다.
+  </div>
+
+  <footer class="site-foot">
+    본 교재는 2022 개정 교육과정(교육부 고시) 「데이터 과학」 성취기준에 맞추어 교과서 4종의 구성을 분석·참고하여
+    새로 집필된 오리지널 콘텐츠입니다. 성취기준 원문은 국가 교육과정 고시문에 따릅니다. 실습 데이터는 교육용 가상 데이터입니다. · 수업 목적으로 자유롭게 활용할 수 있습니다.
+  </footer>
+
+</main>
+</div>
+<script src="assets/js/common.js?v=20260930"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const mode = getMode();
+  const all = flatLessons();
+  const host = document.getElementById("unit-cards");
+  let html = "";
+  for (const u of COURSE) {
+    if (u.unit === 0 || u.unit === 5) continue;
+    const ls = all.filter(l => l.unit === u.unit && (mode === "4" || !l.ext));
+    html += `<a class="unit-card" style="--uc:${u.color}" href="lessons/${ls[0].file}">
+      <div class="u-label">${u.roman} 단원 · ${ls.length}차시</div>
+      <h3>${u.label}</h3>
+      <ul>` + ls.map(l =>
+        `<li>${mode === "3" ? l.num3 : l.num4} ${l.title}${l.ext ? ' <span style="color:#b45309;font-weight:700">◆</span>' : ""}</li>`).join("") +
+      `</ul></a>`;
+  }
+  host.innerHTML = html;
+});
+</script>
+</body>
+</html>

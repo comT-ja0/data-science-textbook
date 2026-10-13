@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>데이터가 바꾸는 사회와 직업 | 데이터 과학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260930">
+<style>
+/* 필터 버블 시뮬레이터 */
+.fb-grid { display:grid; grid-template-columns:1.4fr 1fr; gap:18px; }
+@media (max-width:760px){ .fb-grid { grid-template-columns:1fr; } }
+.fb-feed { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; }
+.fb-card { text-align:left; background:#fff; color:var(--ink); border:1.5px solid var(--line); border-radius:10px;
+  padding:8px 10px; font-weight:500; font-size:.8rem; line-height:1.45; min-height:74px; }
+.fb-card:hover { border-color:var(--accent); background:var(--accent-soft); filter:none; }
+.fb-card .tp { display:block; font-weight:800; font-size:.74rem; margin-bottom:3px; }
+.fb-bars .row { display:grid; grid-template-columns:78px 1fr 44px; align-items:center; gap:6px; font-size:.8rem; margin:4px 0; }
+.fb-bars .bar { height:12px; background:var(--paper); border:1px solid var(--line); border-radius:999px; overflow:hidden; }
+.fb-bars .bar i { display:block; height:100%; border-radius:999px; transition:width .3s; }
+.fb-bars .pct { text-align:right; font-variant-numeric:tabular-nums; color:var(--ink-soft); }
+.fb-verdict { margin-top:10px; padding:9px 12px; border-radius:10px; font-size:.86rem; font-weight:700; }
+.fb-verdict.good { background:#eafaf0; border:1.5px solid #ace8c4; color:#127a3c; }
+.fb-verdict.mid { background:#fef6e7; border:1.5px solid #f3ddb0; color:#b4700a; }
+.fb-verdict.bad { background:#fdeeee; border:1.5px solid #f3b9b9; color:#b32424; }
+.fb-spark { width:100%; height:70px; background:var(--paper); border:1px solid var(--line); border-radius:8px; }
+</style>
+</head>
+<body data-unit="1" data-lesson="L09">
+<div id="app">
+<main>
+
+<header class="lesson-head">
+  <div class="crumbs"></div>
+  <h1><span class="lesson-no"></span>데이터가 바꾸는 사회와 직업</h1>
+  <span class="std-badge">성취기준 12데과01-04</span>
+  <div class="objectives">
+    <div class="label">🎯 학습 목표</div>
+    <ul>
+      <li>데이터가 일상생활·공공 서비스·지속 가능한 발전에 가져온 변화를 사례로 설명할 수 있다.</li>
+      <li>필터 버블 등 데이터 사회의 문제점을 이해하고 이를 줄이는 방법을 제안할 수 있다.</li>
+      <li>데이터 관련 직업이 문제를 해결하는 과정을 ‘문제–데이터–분석–결정’ 틀로 분석할 수 있다.</li>
+    </ul>
+    <div class="std-full">[12데과01-04] 데이터로 인한 사회 변화를 인식하고, 진로 및 직업과 관련한 데이터 기반 문제 해결 사례를 분석한다.</div>
+  </div>
+</header>
+
+<div class="ds-steps"><span class="on">문제 정의</span><span>수집</span><span>전처리</span><span>탐색</span><span>모델링</span><span>평가·해석</span><span class="on">공유</span></div>
+
+<div class="box box-story">
+  <span class="box-label">생각 열기</span>
+  아침에 눈을 뜨면 휴대 전화가 오늘 날씨와 등굣길 버스 도착 시간을 알려 줍니다.
+  점심시간에 동영상 앱을 열면 어제 본 영상과 비슷한 영상이 줄지어 나오고, 저녁에는 쇼핑 앱이 “이 상품을 본 친구들이 함께 산 상품”을 보여 줍니다.
+  하루 동안 여러분이 <b>만들어 낸 데이터</b>와 <b>데이터 덕분에 받은 서비스</b>는 각각 몇 개나 될까요?
+  그리고 그 서비스들이 언제나 여러분에게 좋은 것만 줄까요?
+</div>
+
+<h2><span class="sec-no">1</span>데이터가 바꾼 일상과 사회 <i class="pub">YBM</i></h2>
+
+<p>스마트폰·센서·카드 결제·온라인 활동이 늘면서 사회 곳곳에 데이터가 쌓이고, 이를 분석해 의사 결정을 내리는 일이 당연해졌습니다.
+이렇게 데이터를 바탕으로 판단하고 움직이는 사회를 <span class="keyterm">데이터 기반 사회</span>라고 부릅니다. 변화는 크게 네 방향으로 나타납니다.</p>
+
+<div class="cards">
+  <div class="cardbox"><h4>🔮 예측과 예방</h4><p>과거 기록에서 규칙을 찾아 앞으로 일어날 일을 미리 대비합니다. 예: 기상·교통 체증 예측, 전력 수요 예측으로 정전 예방, 감염병 유행 조기 경보.</p></div>
+  <div class="cardbox"><h4>🎯 맞춤형 서비스</h4><p>개인의 이용 기록으로 각자에게 맞는 것을 추천합니다. 예: 동영상·음악 추천, 학습자 수준에 맞춘 문제 추천, 개인 건강 관리 앱.</p></div>
+  <div class="cardbox"><h4>🏛️ 공공 서비스 개선</h4><p>행정 기관이 시민의 이동·민원·안전 데이터를 분석해 정책을 만듭니다. 예: 유동 인구 분석으로 심야 버스 노선 결정, 사고 다발 지점 개선.</p></div>
+  <div class="cardbox"><h4>💬 여론·트렌드 파악</h4><p>SNS 글과 검색어를 분석해 사람들의 관심과 감정을 빠르게 읽습니다. 예: 신제품 반응 분석, 재난 상황에서 도움이 필요한 지역 파악.</p></div>
+</div>
+
+<p>예를 들어 서울시는 2013년 심야 버스 노선을 정할 때, 늦은 밤 시간대 휴대 전화 이용 위치 데이터를 분석해 사람들이 실제로 많이 모이고 이동하는 곳을 찾아 참고했습니다.
+‘감’으로 노선을 그리는 대신 <b>실제 이동 흔적</b>을 근거로 삼은 것입니다.</p>
+
+<div class="box box-tip">
+  <span class="box-label">데이터 기반 사회의 두 얼굴</span>
+  데이터는 편리함과 효율을 주지만, 동시에 <b>개인정보 노출</b>, <b>알고리즘 편향</b>, 데이터를 다룰 수 있는 사람과 없는 사람 사이의 <b>디지털 격차</b> 같은 새로운 문제도 만듭니다.
+  이 두 얼굴을 함께 보는 것이 데이터 과학을 배우는 사람의 기본자세입니다.
+</div>
+
+<h2><span class="sec-no">2</span>지속 가능한 미래와 데이터 <i class="pub-c">공통</i></h2>
+
+<p>국제 연합(UN)은 2015년 2030년까지 인류가 함께 이루어야 할 17개의 <span class="keyterm">지속 가능 발전 목표(SDGs)</span>를 정했습니다.
+빈곤·기아·건강·교육·에너지·기후 같은 큰 문제는 ‘현재 상태를 정확히 재는 일’부터 시작해야 하므로, 데이터 과학이 중요한 역할을 합니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:190px">SDG 목표</th><th>데이터로 할 수 있는 일 (예시)</th></tr></thead>
+  <tbody>
+    <tr><td>2 기아 종식</td><td>스마트팜 센서(온도·습도·일사량) 데이터로 작물이 잘 자라는 조건을 찾아 수확량을 늘린다.</td></tr>
+    <tr><td>3 건강과 웰빙</td><td>병원 방문·검색 기록으로 독감 유행 시기를 미리 알리고 백신을 준비한다.</td></tr>
+    <tr><td>7 깨끗한 에너지</td><td>시간대별 전력 사용 데이터로 수요를 예측해 발전량을 조절하고 낭비를 줄인다.</td></tr>
+    <tr><td>11 지속 가능한 도시</td><td>교통 카드·유동 인구 데이터로 버스 배차와 자전거 대여소 위치를 정한다.</td></tr>
+    <tr><td>13 기후 행동</td><td>수십 년 치 기온·강수량 데이터로 기후 변화 추세를 확인하고 폭염 대책을 세운다.</td></tr>
+  </tbody>
+</table></div>
+
+<p>이 교재의 Ⅳ영역 프로젝트에서도 ‘우리 학교 전력 사용량’처럼 SDGs와 연결된 문제를 직접 데이터로 풀어 보게 됩니다.</p>
+
+<h2><span class="sec-no">3</span>직업 현장의 데이터 기반 문제 해결: 머니볼 <i class="pub">씨마스</i></h2>
+
+<p>2000년대 초 미국 프로야구의 한 구단은 다른 구단보다 선수 연봉에 쓸 수 있는 돈이 훨씬 적었습니다.
+스카우트들은 오랫동안 “타율이 높고 체격이 좋은 선수”를 경험과 감으로 뽑아 왔지만, 이 구단의 단장은 경기 기록을 분석해
+<b>득점에 실제로 더 많이 기여하는 지표는 출루율</b>이라는 점에 주목했습니다. 그리고 타율은 평범해서 몸값이 싸지만 출루율이 높은 선수들을 모아
+적은 예산으로 좋은 성적을 거두었습니다. 이 이야기는 책과 영화 〈머니볼〉로 널리 알려졌고, 이후 거의 모든 프로 스포츠 구단에 데이터 분석 부서가 생겼습니다.</p>
+
+<h3>직접 비교해 보기</h3>
+<p>두 선수의 한 시즌 기록입니다. 여기서는 몸에 맞는 공·희생 플라이를 빼고 <b>간단하게 만든 출루율</b>을 씁니다.</p>
+<span class="formula">타율 = 안타 ÷ 타수　　간이 출루율 = (안타 + 볼넷) ÷ (타수 + 볼넷)</span>
+
+<div class="table-wrap"><table class="data" style="max-width:560px">
+  <thead><tr><th>선수</th><th>타수</th><th>안타</th><th>볼넷</th><th>타율</th><th>간이 출루율</th></tr></thead>
+  <tbody>
+    <tr><td>가 선수</td><td>500</td><td>150</td><td>20</td><td>0.300</td><td>170 ÷ 520 ≈ 0.327</td></tr>
+    <tr><td>나 선수</td><td>480</td><td>125</td><td>90</td><td>0.260</td><td>215 ÷ 570 ≈ 0.377</td></tr>
+  </tbody>
+</table></div>
+<p>타율만 보면 가 선수가 앞서지만, 볼넷을 잘 골라 <b>아웃되지 않고 누상에 나간 비율</b>은 나 선수가 훨씬 높습니다.
+어떤 지표로 보느냐에 따라 ‘좋은 선수’의 기준이 바뀌는 것, 이것이 데이터 기반 의사 결정의 핵심입니다.</p>
+
+<h3>사례를 분석하는 틀</h3>
+<p>진로와 관련된 데이터 활용 사례를 볼 때는 다음 다섯 칸으로 정리하면 구조가 잘 보입니다.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:110px">단계</th><th>머니볼 사례</th></tr></thead>
+  <tbody>
+    <tr><td>문제</td><td>적은 예산으로 이길 수 있는 선수단을 꾸려야 한다.</td></tr>
+    <tr><td>데이터</td><td>선수별 경기 기록(타수·안타·볼넷·득점 등), 선수 연봉</td></tr>
+    <tr><td>분석</td><td>어떤 지표가 팀 득점과 가장 관계가 깊은지 비교, 지표 대비 연봉이 싼 선수 찾기</td></tr>
+    <tr><td>결정</td><td>출루율이 높고 몸값이 낮은 선수 영입</td></tr>
+    <tr><td>결과·한계</td><td>적은 예산으로 높은 승률. 다만 다른 구단도 같은 방법을 쓰자 이점이 줄어들었다.</td></tr>
+  </tbody>
+</table></div>
+
+<div class="pycell" data-title="연봉 대비 가치가 높은 선수 찾기"><textarea>
+import pandas as pd
+
+# 가상의 선수 5명 기록 (연봉 단위: 억 원)
+players = pd.DataFrame({
+    "선수": ["가", "나", "다", "라", "마"],
+    "타수": [500, 480, 450, 520, 400],
+    "안타": [150, 125, 126, 140, 100],
+    "볼넷": [20, 90, 70, 30, 85],
+    "연봉": [12.0, 4.0, 6.5, 9.0, 3.0],
+})
+
+players["타율"] = (players["안타"] / players["타수"]).round(3)
+players["출루율"] = ((players["안타"] + players["볼넷"]) / (players["타수"] + players["볼넷"])).round(3)
+players["연봉1억당출루율"] = (players["출루율"] / players["연봉"]).round(3)
+
+print(players.sort_values("출루율", ascending=False).to_string(index=False))
+
+# ✏️ 연봉 1억 원당 출루율이 가장 높은 순서로 정렬해 보세요. (힌트: sort_values("연봉1억당출루율", ascending=False))
+</textarea></div>
+
+<h2><span class="sec-no">4</span>데이터 사회의 그늘: 필터 버블 <i class="pub">삼양</i> <i class="pub">YBM</i></h2>
+
+<p>추천 알고리즘은 여러분이 클릭한 기록을 바탕으로 “좋아할 만한 것”을 더 많이 보여 줍니다.
+그런데 클릭 → 비슷한 추천 → 또 클릭이 반복되면 내가 보는 정보가 점점 한쪽으로 좁아집니다.
+마치 투명한 비눗방울 안에 갇힌 것처럼, 나와 다른 관점이나 새로운 분야를 만날 기회가 줄어드는 현상을
+<span class="keyterm">필터 버블(filter bubble)</span>이라고 합니다. 비슷한 생각만 되풀이해 들으며 믿음이 더 강해지는 <span class="keyterm">확증 편향</span>과도 이어집니다.</p>
+
+<figure>
+<svg viewBox="0 0 560 170" role="img" aria-label="추천 알고리즘 피드백 고리">
+  <defs><marker id="ar9" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#0e7490"/></marker></defs>
+  <g font-size="13" font-weight="700" text-anchor="middle" fill="#1e2733">
+    <rect x="20" y="60" width="110" height="46" rx="10" fill="#e2f4f8" stroke="#0e7490"/><text x="75" y="88">① 클릭·시청</text>
+    <rect x="160" y="10" width="110" height="46" rx="10" fill="#e2f4f8" stroke="#0e7490"/><text x="215" y="38">② 기록 저장</text>
+    <rect x="300" y="10" width="120" height="46" rx="10" fill="#e2f4f8" stroke="#0e7490"/><text x="360" y="38">③ 취향 추정</text>
+    <rect x="300" y="112" width="120" height="46" rx="10" fill="#e2f4f8" stroke="#0e7490"/><text x="360" y="140">④ 비슷한 것 추천</text>
+    <rect x="160" y="112" width="110" height="46" rx="10" fill="#fdeeee" stroke="#dc2626"/><text x="215" y="140">⑤ 다른 정보 ↓</text>
+  </g>
+  <g stroke="#0e7490" stroke-width="2" fill="none" marker-end="url(#ar9)">
+    <path d="M100,60 L160,40"/><path d="M270,33 L298,33"/><path d="M360,56 L360,110"/><path d="M300,135 L272,135"/><path d="M160,135 L100,108"/>
+  </g>
+  <text x="480" y="90" font-size="12" fill="#4b5a6b" text-anchor="middle">반복될수록</text>
+  <text x="480" y="108" font-size="12" fill="#4b5a6b" text-anchor="middle">고리가 강해진다</text>
+</svg>
+<figcaption>그림 1. 추천 알고리즘의 피드백 고리 — 내 클릭이 다음 추천을 만들고, 그 추천이 다시 내 클릭을 만든다.</figcaption>
+</figure>
+
+<div class="sim">
+  <div class="sim-head">필터 버블 시뮬레이터 — 내 피드는 얼마나 다양할까?</div>
+  <div class="sim-body">
+    <p style="margin-top:0;font-size:.92rem">왼쪽 피드에서 보고 싶은 글을 클릭하세요. 클릭할 때마다 추천 알고리즘이 여러분의 취향을 다시 계산하고 새 피드 9개를 보여 줍니다.
+    오른쪽 막대는 다음 피드에 각 주제가 나올 확률, 아래 선은 <b>다양성 지수</b>(모든 주제가 고르게 나오면 100)의 변화입니다.</p>
+    <div class="sim-controls">
+      <button id="fb-auto" class="ghost">⚽ 스포츠만 5번 클릭</button>
+      <label><input type="checkbox" id="fb-explore"> 탐색 추천 켜기 (피드의 30%는 무작위 주제)</label>
+      <button id="fb-reset" class="gray">↺ 처음부터</button>
+    </div>
+    <div class="fb-grid">
+      <div class="fb-feed" id="fb-feed"></div>
+      <div>
+        <div class="fb-bars" id="fb-bars"></div>
+        <svg class="fb-spark" id="fb-spark" viewBox="0 0 300 70" preserveAspectRatio="none"></svg>
+        <div class="sim-stats">
+          <span class="stat-chip">클릭 <b id="fb-clicks">0</b>회</span>
+          <span class="stat-chip">피드 속 주제 <b id="fb-kinds">0</b>/8</span>
+          <span class="stat-chip">다양성 지수 <b id="fb-div">100</b></span>
+        </div>
+        <div class="fb-verdict good" id="fb-verdict"></div>
+      </div>
+    </div>
+    <p class="widget-hint">실험: ① 한 주제만 계속 클릭해 다양성 지수가 얼마나 빨리 떨어지는지 보세요. ② ‘탐색 추천’을 켜고 같은 실험을 반복해 보세요. 무엇이 달라지나요?</p>
+  </div>
+</div>
+
+<p>필터 버블을 줄이려면 <b>개인</b>은 일부러 다른 분야·관점의 정보를 찾아보고, 추천 기록을 지우거나 맞춤 추천을 꺼 볼 수 있습니다.
+<b>서비스 기업</b>은 추천 목록에 새로운 주제를 일정 비율 섞거나(탐색 추천), 추천 이유를 투명하게 알려 줄 수 있습니다.
+이 밖에도 데이터 사회에는 <b>개인정보 침해</b>, 한쪽으로 치우친 데이터로 학습한 인공지능의 <b>편향된 판단</b>, 온라인 <b>혐오 표현</b>의 확산,
+데이터를 누가 소유하고 이익을 누가 가져가는지에 대한 <b>데이터 소유권</b> 문제가 함께 논의되고 있습니다.</p>
+
+<div class="activity">
+  <div class="act-head"><span class="act-kind">토론 활동</span>추천 알고리즘, 약일까 독일까? <i class="pub">YBM</i></div>
+  <div class="act-body">
+    <ol>
+      <li>내가 자주 쓰는 앱 하나를 골라, 추천 덕분에 좋았던 경험과 불편했던 경험을 하나씩 적어 보세요.
+        <div class="table-wrap"><table>
+          <thead><tr><th style="width:120px">앱 이름</th><th>좋았던 경험</th><th>불편했던 경험</th></tr></thead>
+          <tbody><tr><td>&nbsp;</td><td></td><td></td></tr></tbody>
+        </table></div></li>
+      <li>위 시뮬레이터에서 ‘탐색 추천’을 켰을 때와 껐을 때 다양성 지수가 어떻게 달랐는지 기록하세요.
+        <div class="write-lines"><div class="line"></div></div></li>
+      <li>필터 버블을 줄이기 위해 <b>나</b>, <b>서비스 회사</b>, <b>학교</b>가 각각 할 수 있는 일을 한 가지씩 제안하고 모둠에서 가장 실천하기 쉬운 것을 골라 보세요.
+        <div class="write-lines"><div class="line"></div><div class="line"></div><div class="line"></div></div></li>
+    </ol>
+  </div>
+</div>
+
+<h2><span class="sec-no">5</span>데이터를 다루는 직업들 <i class="pub">천재</i></h2>
+
+<p>데이터가 사회를 바꾸면서 데이터를 전문으로 다루는 직업이 생겨났고, 기존 직업도 데이터를 쓰는 방식으로 바뀌고 있습니다.
+대표적인 세 직업은 하는 일이 조금씩 다릅니다.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th style="width:130px">직업</th><th>주로 하는 일</th><th style="width:200px">비유</th></tr></thead>
+  <tbody>
+    <tr><td><b>데이터 엔지니어</b></td><td>데이터를 모으고 저장하는 시스템(데이터베이스, 수집 파이프라인)을 설계·관리한다.</td><td>재료가 끊기지 않게 공급하는 <b>물류 담당</b></td></tr>
+    <tr><td><b>데이터 분석가</b></td><td>데이터를 정리·시각화하고 현재 상황을 해석해 보고서로 전달한다.</td><td>재료로 오늘의 메뉴를 정하는 <b>요리사</b></td></tr>
+    <tr><td><b>데이터 과학자</b></td><td>통계·기계학습 모델을 만들어 예측하거나 새로운 해결책을 찾는다.</td><td>새 요리법을 개발하는 <b>연구 셰프</b></td></tr>
+  </tbody>
+</table></div>
+
+<p>이 밖에도 스포츠 데이터 분석가, 의료 데이터를 다루는 생물정보학자, 지도 데이터를 다루는 GIS 전문가, 정보 보안 전문가처럼
+<b>자기 분야의 전문 지식(도메인 지식) + 데이터 역량</b>을 함께 갖춘 사람이 여러 분야에서 필요해지고 있습니다.
+여러분이 꿈꾸는 직업에서는 어떤 데이터가 쓰일지 생각해 보세요.</p>
+
+<div class="box box-teacher">
+  <span class="box-label">지도 팁</span>
+  시간 배분(50분): 생각 열기·사회 변화 10분 → SDGs·머니볼 12분 → 필터 버블 시뮬레이터와 토론 18분 → 직업 5분 → 퀴즈 5분.
+  파이썬 셀은 선택 활동이므로 코딩 경험이 적은 반은 표의 계산을 계산기나 스프레드시트로 해도 됩니다.
+  ‘추천 알고리즘은 나쁘다’는 한쪽 결론으로 흐르지 않도록 편리함과 위험을 함께 따지게 하고, 학생 개인의 앱 이용 기록 공개는 강요하지 않습니다.
+  확장 차시(진로 탐색)를 운영하지 않는 반은 5절의 직업 표로 진로 연결을 마무리합니다.
+</div>
+
+<div class="summary">
+  <h4>📌 핵심 정리</h4>
+  <ul>
+    <li>데이터는 예측·예방, 맞춤형 서비스, 공공 서비스 개선, 여론 파악 등으로 사회를 바꾸고 있으며 SDGs 달성에도 쓰인다.</li>
+    <li>머니볼처럼 어떤 지표를 기준으로 삼느냐에 따라 결정이 달라진다. 사례는 ‘문제–데이터–분석–결정–결과·한계’로 분석한다.</li>
+    <li>필터 버블은 추천의 피드백 고리 때문에 정보가 한쪽으로 좁아지는 현상이며, 개인·기업이 함께 줄여야 한다.</li>
+    <li>데이터 엔지니어는 데이터를 준비하고, 분석가는 해석하고, 과학자는 모델로 예측·해결한다.</li>
+  </ul>
+</div>
+
+<div id="quiz"></div>
+
+</main>
+</div>
+<script src="../assets/js/common.js?v=20260930"></script>
+<script src="../assets/js/pycell.js?v=20260930"></script>
+<script>
+/* ---------- 필터 버블 시뮬레이터 ---------- */
+(function(){
+  const $ = id => document.getElementById(id);
+  const TOPICS = [
+    { name:"스포츠", icon:"⚽", color:"#2563eb", heads:["주말 결승전 하이라이트","신인 선수 데뷔전 분석","마라톤 대회 기록 경신","e스포츠 리그 개막"] },
+    { name:"음악", icon:"🎵", color:"#db2777", heads:["이번 주 인기 차트","밴드 신곡 뮤직비디오","피아노 연습 꿀팁","거리 공연 현장"] },
+    { name:"게임", icon:"🎮", color:"#7c3aed", heads:["신작 게임 첫인상","보스 공략 영상","인디 게임 추천 5선","게임 속 물리 법칙"] },
+    { name:"과학", icon:"🔬", color:"#0e7490", heads:["우주 망원경 새 사진","플라스틱 먹는 미생물","번개는 왜 칠까?","인공지능 최신 연구"] },
+    { name:"요리", icon:"🍳", color:"#d97706", heads:["10분 만에 볶음밥","편의점 재료 레시피","세계의 길거리 음식","제과 실패 원인 분석"] },
+    { name:"여행", icon:"🧭", color:"#16a34a", heads:["기차로 떠나는 섬 여행","국립공원 탐방 코스","해외 골목 산책","캠핑 준비물 목록"] },
+    { name:"사회", icon:"📰", color:"#475569", heads:["청소년 정책 토론회","지역 버스 노선 개편","기후 위기 시위 현장","선거 여론 조사 읽기"] },
+    { name:"예술", icon:"🎨", color:"#b45309", heads:["미술관 특별 전시","웹툰 작가 인터뷰","사진 구도 배우기","무대 뒤 연극 이야기"] },
+  ];
+  const K = TOPICS.length, FEED = 9, BOOST = 1.5, EXPLORE = 0.3;
+  let w, clicks, hist;
+
+  function probs(){
+    const sq = w.map(v => v * v), s = sq.reduce((a, b) => a + b, 0);
+    let p = sq.map(v => v / s);
+    if ($("fb-explore").checked) p = p.map(v => (1 - EXPLORE) * v + EXPLORE / K);
+    return p;
+  }
+  function diversity(p){
+    let h = 0; p.forEach(v => { if (v > 0) h -= v * Math.log(v); });
+    return Math.round(h / Math.log(K) * 100);
+  }
+  function pick(p){
+    let r = Math.random(), acc = 0;
+    for (let i = 0; i < K; i++){ acc += p[i]; if (r < acc) return i; }
+    return K - 1;
+  }
+  function renderFeed(p){
+    const items = [];
+    for (let i = 0; i < FEED; i++){
+      const t = pick(p), T = TOPICS[t];
+      items.push(`<button class="fb-card" data-t="${t}"><span class="tp" style="color:${T.color}">${T.icon} ${T.name}</span>${T.heads[Math.floor(Math.random() * T.heads.length)]}</button>`);
+    }
+    $("fb-feed").innerHTML = items.join("");
+    const kinds = new Set([...$("fb-feed").querySelectorAll(".fb-card")].map(b => b.dataset.t)).size;
+    $("fb-kinds").textContent = kinds;
+  }
+  function renderSide(p){
+    $("fb-bars").innerHTML = TOPICS.map((T, i) =>
+      `<div class="row"><span>${T.icon} ${T.name}</span><div class="bar"><i style="width:${(p[i] * 100).toFixed(1)}%;background:${T.color}"></i></div><span class="pct">${Math.round(p[i] * 100)}%</span></div>`).join("");
+    const d = diversity(p);
+    $("fb-div").textContent = d;
+    $("fb-clicks").textContent = clicks;
+    // 다양성 변화 선
+    const pts = hist.slice(-30), n = pts.length;
+    const xs = i => n === 1 ? 150 : 8 + i * (284 / (n - 1));
+    const ys = v => 64 - v * 0.58;
+    $("fb-spark").innerHTML =
+      `<line x1="0" y1="${ys(50)}" x2="300" y2="${ys(50)}" stroke="#dde4ec" stroke-dasharray="4 3"/>` +
+      `<polyline fill="none" stroke="#0e7490" stroke-width="2.5" points="${pts.map((v, i) => xs(i) + "," + ys(v)).join(" ")}"/>` +
+      pts.map((v, i) => `<circle cx="${xs(i)}" cy="${ys(v)}" r="2.6" fill="#0e7490"/>`).join("") +
+      `<text x="4" y="12" font-size="10" fill="#8595a6">다양성 지수 변화 (점선 = 50)</text>`;
+    const v = $("fb-verdict");
+    if (d >= 80){ v.className = "fb-verdict good"; v.textContent = "피드가 다양합니다. 여러 분야의 소식을 고르게 만나고 있어요."; }
+    else if (d >= 50){ v.className = "fb-verdict mid"; v.textContent = "피드가 좁아지기 시작했습니다. 몇몇 주제가 화면을 차지하고 있어요."; }
+    else { v.className = "fb-verdict bad"; v.textContent = "필터 버블! 거의 한두 주제만 보입니다. 다른 분야를 볼 기회가 크게 줄었어요."; }
+  }
+  function update(){
+    const p = probs();
+    hist.push(diversity(p));
+    renderFeed(p); renderSide(p);
+  }
+  function click(t){ w[t] += BOOST; clicks++; update(); }
+  function reset(){ w = new Array(K).fill(1); clicks = 0; hist = []; update(); }
+
+  $("fb-feed").addEventListener("click", e => {
+    const b = e.target.closest(".fb-card");
+    if (b) click(+b.dataset.t);
+  });
+  $("fb-auto").addEventListener("click", () => { for (let i = 0; i < 5; i++){ w[0] += BOOST; clicks++; hist.push(diversity(probs())); } hist.pop(); update(); });
+  $("fb-explore").addEventListener("change", update);
+  $("fb-reset").addEventListener("click", reset);
+  reset();
+})();
+
+/* ---------- 퀴즈 ---------- */
+Quiz.render("#quiz", [
+  { type:"mc", q:"다음 중 ‘데이터를 이용한 공공 서비스 개선’의 예로 가장 알맞은 것은?",
+    choices:["동영상 앱이 내가 본 영상과 비슷한 영상을 추천한다","쇼핑몰이 장바구니 상품과 함께 살 상품을 보여 준다","시청이 유동 인구 데이터를 분석해 심야 버스 노선을 정한다","게임 회사가 이용자 기록으로 아이템 가격을 정한다","친구가 SNS에 여행 사진을 올린다"], answer:2,
+    explain:"행정 기관이 시민의 이동 데이터를 분석해 정책(버스 노선)을 결정한 것이 공공 서비스 개선의 예입니다. ①②④는 기업의 맞춤형 서비스·판매 전략, ⑤는 데이터를 만드는 행동일 뿐입니다." },
+  { type:"mc", q:"어떤 선수가 타수 400, 안타 100, 볼넷 100을 기록했다. 이 차시에서 쓴 간이 출루율 (안타+볼넷)÷(타수+볼넷)은?",
+    choices:["0.200","0.250","0.333","0.400","0.500"], answer:3,
+    explain:"(100 + 100) ÷ (400 + 100) = 200 ÷ 500 = 0.400입니다. 타율은 100 ÷ 400 = 0.250으로 평범하지만 출루율은 높은 선수입니다." },
+  { type:"ox", q:"필터 버블은 추천 알고리즘이 사용자의 클릭 기록을 반영해 비슷한 정보를 계속 보여 주면서 접하는 정보가 좁아지는 현상이다.",
+    answer:true, explain:"클릭 → 취향 추정 → 비슷한 추천 → 또 클릭의 피드백 고리가 반복되면서 다른 관점과 분야를 만날 기회가 줄어드는 현상입니다." },
+  { type:"mc", q:"회사의 여러 부서에서 쏟아지는 데이터를 안정적으로 모으고 저장하는 시스템(데이터베이스·수집 파이프라인)을 설계·관리하는 직업에 가장 가까운 것은?",
+    choices:["데이터 분석가","데이터 엔지니어","데이터 과학자","스포츠 해설가","그래픽 디자이너"], answer:1,
+    explain:"데이터 엔지니어는 분석가와 과학자가 쓸 데이터가 끊기지 않도록 수집·저장 시스템을 만드는 사람입니다." },
+  { type:"short", q:"필터 버블을 줄이기 위해 서비스 기업이 할 수 있는 방법을 한 가지 제안하고, 그 방법의 장점과 단점을 각각 한 가지씩 쓰세요.",
+    model:"방법: 추천 목록의 일정 비율(예: 30%)을 사용자가 평소 보지 않던 주제로 채우는 ‘탐색 추천’을 넣는다. 장점: 사용자가 새로운 분야와 다른 관점을 만날 기회가 늘어난다. 단점: 관심 없는 콘텐츠가 섞여 만족도나 클릭 수가 일시적으로 떨어질 수 있다." },
+]);
+</script>
+</body>
+</html>
